@@ -5,3 +5,4 @@ authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+bitvec = "*"
