@@ -1,89 +1,116 @@
 use bitvec::{BitVec, bitvec, BigEndian};
-use std::collections::VecDeque;
-use std::ops::Shl;
-use std::ops::ShlAssign;
+use std::ops::Index;
+use core::borrow::Borrow;
 
 const ORDER: Order = Order::RowMajor;
+
+type Coord = (usize, usize);
+
+pub mod stone {
+    pub const WHITE: char = '⚫';
+    pub const BLACK: char = '⚪';
+    pub const EMPTY: char = '.';
+}
 
 pub enum SizeGoban {
     Nineteen = 19,
     Nine = 9,
 }
 
-
 pub enum Order {
     RowMajor,
     ColumnMajor,
 }
 
-pub struct Coord {
-    pub x: usize,
-    pub y: usize,
+pub struct CoordUtil {
     n_rows: usize,
     n_cols: usize,
 }
 
-impl Coord {
-    pub fn set(mut self, coord: (usize, usize)) -> Coord {
-        self.x = coord.0;
-        self.y = coord.1;
-        self
+impl CoordUtil {
+    pub fn new(n_rows: usize, n_cols: usize) -> CoordUtil {
+        CoordUtil { n_cols, n_rows }
     }
 
-    pub fn from(mut self, index: usize) -> Coord {
+    pub fn to(&self, coord: Coord) -> usize {
         match ORDER {
             Order::ColumnMajor => {
-                self.x = index / self.n_cols;
-                self.y = index % self.n_rows;
+                (coord.0 * self.n_cols + coord.1 % self.n_rows)
             }
             Order::RowMajor => {
-                self.x = index / self.n_rows;
-                self.y = index % self.n_cols;
+                (coord.0 * self.n_rows + coord.1 % self.n_cols)
             }
-        };
-        self
+        }
+    }
+
+    pub fn from(&self, index: usize) -> Coord {
+        match ORDER {
+            Order::ColumnMajor => {
+                (index / self.n_cols, index % self.n_rows)
+            }
+            Order::RowMajor => {
+                (index / self.n_rows, index % self.n_cols)
+            }
+        }
     }
 }
 
-
 pub struct Goban {
     tab: BitVec,
-    history: Vec<Coord>,
+    history: Vec<CoordUtil>,
+    size: usize,
+}
+
+impl Index<Coord> for Goban {
+    type Output = bool;
+
+    fn index(&self, index: Coord) -> &<Self as Index<Coord>>::Output {
+        let c = CoordUtil::new(self.size, self.size);
+
+        self.tab.get(c.to(index)).borrow()
+    }
 }
 
 impl Goban {
     pub fn new(size: usize) -> Goban {
         Goban {
-            tab: bitvec![0;size*usize],
+            tab: bitvec![0;size*size],
             history: Vec::new(),
+            size,
         }
     }
 
     pub fn clear(&mut self) {
-        self.tab = bitvec![0;size];
+        self.tab = bitvec![0;self.size*self.size];
         self.history = Vec::new();
     }
 
     fn play(&mut self, coord: Coord) {
-        if coord.x > size || coord.y > size {
+        if coord.0 > self.size || coord.1 > self.size {
             panic!("Play outside the goban")
         }
-        self.tab.set(coord.into(), true);
+        let c = CoordUtil { n_cols: self.size, n_rows: self.size };
+        self.tab.set(c.to(coord), true);
     }
-}
 
-impl Into<usize> for Coord {
-    fn into(self) -> usize {
-        match ORDER {
-            Order::RowMajor => self.x * self.n_rows + self.y % self.n_cols,
-            Order::ColumnMajor => self.x * self.n_cols + self.y % self.n_rows
+    fn pretty_string(&self) -> &str {
+        let mut buff = String::new();
+        for i in 0..self.size {
+            for j in 0..self.size {
+                buff.push(
+                    if *self.index((i, j)) {
+                        stone::BLACK
+                    } else {
+                        stone::EMPTY
+                    }
+                )
+            }
+            buff.push('\n');
         }
+
+        buff.as_str()
     }
 }
 
-impl Into<(usize, usize)> for Coord {
-    fn into(self) -> (usize, usize) {
-        (self.x, self.y)
-    }
-}
+
 
