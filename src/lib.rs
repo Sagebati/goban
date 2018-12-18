@@ -6,6 +6,7 @@ mod tests {
     use crate::pieces::goban::Goban;
     use crate::rules::game::SizeGoban;
     use crate::rules::game::Game;
+    use rand::Rng;
 
     #[test]
     fn it_works() {
@@ -22,7 +23,10 @@ mod tests {
 
     #[test]
     fn full_game() {
-        let g = Game::new(SizeGoban::Nine);
-        g
+        let mut g = Game::new(SizeGoban::Nine);
+        while !g.legals().is_empty() {
+            g.play(rand::thread_rng().choose(&g.legals()).unwrap());
+            println!("{}",g.get_goban().pretty_string());
+        }
     }
 }

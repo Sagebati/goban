@@ -14,12 +14,12 @@ pub enum Errors {
 
 pub struct Game {
     goban: Goban,
-    legals : Vec<Coord>
+    turn: bool,
 }
 
 impl Game {
-    fn new(size: SizeGoban) -> Game {
-        Game { goban: Goban::new(size as usize) }
+    pub fn new(size: SizeGoban) -> Game {
+        Game { goban: Goban::new(size as usize), turn: true }
     }
 
     fn new_game(&mut self) {
@@ -32,6 +32,11 @@ impl Game {
         self.pseudo_legals()
     }
 
+    pub fn play(&mut self, coord: &Coord) {
+        self.goban.play(coord, self.turn);
+        self.turn = !self.turn;
+    }
+
     fn pseudo_legals(&self) -> Vec<Coord> {
         let mut res = Vec::new();
         for i in 0..self.goban.get_size() {
@@ -42,5 +47,9 @@ impl Game {
             }
         }
         res
+    }
+
+    pub fn get_goban(&self) -> &Goban {
+        &self.goban
     }
 }
