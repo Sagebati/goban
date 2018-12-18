@@ -2,6 +2,7 @@ use crate::pieces::util::*;
 use crate::pieces::stones::*;
 
 
+#[derive(Clone)]
 pub struct Goban {
     turn: bool,
     tab: Vec<u8>,

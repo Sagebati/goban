@@ -15,11 +15,14 @@ pub enum Errors {
 pub struct Game {
     goban: Goban,
     turn: bool,
+    tmp: Goban,
 }
 
 impl Game {
     pub fn new(size: SizeGoban) -> Game {
-        Game { goban: Goban::new(size as usize), turn: true }
+        let goban = Goban::new(size as usize);
+        let tmp = goban.clone();
+        Game { goban, turn: true, tmp }
     }
 
     fn new_game(&mut self) {
