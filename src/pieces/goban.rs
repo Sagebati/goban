@@ -91,10 +91,6 @@ impl Goban {
         res
     }
 
-    pub fn get_neighbors_bulk(&self, coords: &Vec<Coord>) -> Vec<Vec<Point>> {
-        coords.iter().map(|c| self.get_neighbors(c)).collect()
-    }
-
     pub fn get_stones(&self) -> Vec<Point> {
         let mut res = Vec::new();
         for i in 0..self.size {
@@ -121,7 +117,10 @@ impl Goban {
     }
 
     pub fn get_liberties(&self, point: &Point) -> u8 {
-        4 - self.get_neighbors_stones(&point.coord).len() as u8
+        let liberties: Vec<Point> = self.get_neighbors(&point.coord).into_iter()
+            .filter(|p| p.stone == Stones::Empty)
+            .collect();
+        liberties.len() as u8
     }
 
     pub fn has_liberties(&self, point: &Point) -> bool {
