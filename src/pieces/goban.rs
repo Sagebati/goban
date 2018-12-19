@@ -10,6 +10,7 @@ pub struct Goban {
     size: usize,
 }
 
+#[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub struct Point {
     pub coord: Coord,
     pub stone: Stones,
@@ -53,36 +54,78 @@ impl Goban {
     }
 
     fn coord_valid(&self, coord: &Coord) -> bool {
-        if coord.0 > self.size || coord.1 > self.size {
-            return false;
+        if coord.0 < self.size || coord.1 < self.size {
+            return true;
         }
-        true
+        false
+    }
+
+    pub fn set(&mut self, coord: &Coord, value: Stones) {
+        self.tab[CoordUtil::new(self.size, self.size).to(coord)] = value as u8;
     }
 
     pub const fn get_size(&self) -> usize {
         self.size
     }
 
-    pub fn get_neighbors(&self, coords: &Vec<Coord>) -> Vec<Point> {
+    pub fn get_neighbors(&self, coord: &Coord) -> Vec<Point> {
         let mut res = Vec::new();
-        for c in coords {
-            if c.0 < 19 && c.1 < 19 {
+        for c in neighbors_connected(coord) {
+            if c.0 < self.size && c.1 < self.size {
                 res.push(Point { coord: c.clone(), stone: self.get(&c) })
             }
         }
         res
     }
 
-    pub fn get_stones_by_color(&self, color: Stones) -> Vec<Coord> {
+    pub fn get_neighbors_stones(&self, coord: &Coord) -> Vec<Point> {
+        let mut res = Vec::new();
+        for c in neighbors_connected(coord) {
+            if c.0 < self.size && c.1 < self.size {
+                let s = self.get(&c);
+                if s != Stones::Empty {
+                    res.push(Point { coord: c.clone(), stone: self.get(&c) })
+                }
+            }
+        }
+        res
+    }
+
+    pub fn get_neighbors_bulk(&self, coords: &Vec<Coord>) -> Vec<Vec<Point>> {
+        coords.iter().map(|c| self.get_neighbors(c)).collect()
+    }
+
+    pub fn get_stones(&self) -> Vec<Point> {
         let mut res = Vec::new();
         for i in 0..self.size {
             for j in 0..self.size {
-                if self.get(&(i, j)) == color {
+                let x = self.get(&(i, j));
+                if x != Stones::Empty {
+                    res.push(Point { coord: (i, j), stone: x })
+                }
+            }
+        }
+        res
+    }
+
+    pub fn get_stones_by_color(&self, color: &Stones) -> Vec<Coord> {
+        let mut res = Vec::new();
+        for i in 0..self.size {
+            for j in 0..self.size {
+                if self.get(&(i, j)) == *color {
                     res.push((i, j))
                 }
             }
         }
         res
+    }
+
+    pub fn get_liberties(&self, point: &Point) -> u8 {
+        4 - self.get_neighbors_stones(&point.coord).len() as u8
+    }
+
+    pub fn has_liberties(&self, point: &Point) -> bool {
+        self.get_liberties(point) != 0
     }
 
     pub fn pretty_string(&self) -> String {

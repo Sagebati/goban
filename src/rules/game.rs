@@ -1,6 +1,8 @@
 use crate::pieces::goban::*;
 use crate::pieces::util::Coord;
 use crate::pieces::stones::Stones;
+use crate::pieces::goban::Point;
+use std::collections::HashSet;
 
 pub enum SizeGoban {
     Nineteen = 19,
@@ -40,10 +42,9 @@ impl Game {
     }
 
     pub fn legals(&self) -> Vec<Coord> {
-        let mut legals = self.pseudo_legals();
+        let legals = self.pseudo_legals();
         legals
     }
-
 
 
     pub fn play(&mut self, coord: &Coord) -> Option<Errors> {
@@ -55,6 +56,7 @@ impl Game {
             None
         };
         self.tmp = self.goban.clone();
+        self.atari();
         res
     }
 
@@ -70,18 +72,53 @@ impl Game {
         res
     }
 
-    pub fn get_goban(&self) -> &Goban {
+    pub const fn get_goban(&self) -> &Goban {
         &self.goban
     }
 
-    pub fn atari(&self){
-        let stones = if self.turn{
-            self.goban.get_stones_by_color(Stones::White)
-        }else {
-            self.goban.get_stones_by_color(Stones::Black)
-        };
+    pub fn atari(&mut self) {
+        let atari_stones: Vec<HashSet<Point>> = self.goban
+            .get_stones().into_iter()
+            .filter(|point| !self.goban.has_liberties(point))
+            .map(|p| self.bfs(&p))
+            .collect();
 
 
+        for strong_connex in atari_stones {
+            let mut is_atari = true;
+            for point in &strong_connex {
+                if self.goban.has_liberties(&point) {
+                    is_atari = false;
+                    break;
+                }
+            }
+            if is_atari {
+                for point in strong_connex {
+                    self.goban.set(&point.coord, Stones::Empty);
+                }
+            }
+        }
+    }
 
+    fn bfs(&self, point: &Point) -> HashSet<Point> {
+        let mut explored: HashSet<Point> = HashSet::new();
+        explored.insert(point.clone());
+
+        let mut to_explore: Vec<Point> = self.goban.get_neighbors(&point.coord)
+            .into_iter()
+            .filter(|p| p.stone == point.stone)
+            .collect(); // Aquiring all the neigbors
+
+        while let Some(point_to_explore) = to_explore.pop() { // exploring the graph
+            explored.insert(point_to_explore);
+            let neighbors: Vec<Point> = self.goban.get_neighbors(&point.coord)
+                .into_iter()
+                .filter(|p| p.stone == point.stone && !explored.contains(p))
+                .collect();
+            for p in neighbors {
+                to_explore.push(p);
+            }
+        }
+        explored
     }
 }

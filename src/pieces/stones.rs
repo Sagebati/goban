@@ -2,15 +2,15 @@ pub const WHITE_STONE: char = '⚫';
 pub const BLACK_STONE: char = '⚪';
 pub const EMPTY_STONE: char = '.';
 
-#[derive(Eq, PartialEq)]
-pub enum Stones{
+#[derive(Eq, PartialEq, Hash,Clone ,Copy,Debug)]
+pub enum Stones {
     White = 2,
     Black = 1,
-    Empty = 0
+    Empty = 0,
 }
 
 
-impl From<u8> for Stones{
+impl From<u8> for Stones {
     fn from(x: u8) -> Self {
         match x {
             2 => Stones::White,
