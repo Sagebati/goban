@@ -3,8 +3,11 @@ name = "goban"
 version = "0.1.0"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 edition = "2018"
+license = "LGPL"
+
+
+[badges]
+gitlab = {url="https://gitlab.com/SamBlaise/goban"}
 
 [dependencies]
-bitvec = "*"
 rand = "*"
-pathfinding = "*"
