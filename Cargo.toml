@@ -8,7 +8,7 @@ license = "LGPL-3.0-only"
 
 
 [badges]
-gitlab = {url="https://gitlab.com/SamBlaise/goban"}
+gitlab = {repository ="https://gitlab.com/SamBlaise/goban"}
 
 [dependencies]
 rand = "0.6.1"
