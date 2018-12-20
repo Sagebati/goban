@@ -2,6 +2,7 @@
 name = "goban"
 version = "0.1.0"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
+description= "Library with go move genration and go ruling."
 edition = "2018"
 license = "LGPL"
 
