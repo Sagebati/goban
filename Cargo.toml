@@ -1,6 +1,6 @@
 [package]
 name = "goban"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 description= "Library with go move genration and go ruling."
 edition = "2018"
