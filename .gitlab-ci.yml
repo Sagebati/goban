@@ -20,6 +20,8 @@ rust-nightly:
 deploy-cargo:
   stage: deploy
   image: rust:latest
+  only:
+    - master
   script:
     - cargo login $login
     - cargo package
