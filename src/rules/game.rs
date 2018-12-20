@@ -1,5 +1,4 @@
 use crate::pieces::goban::*;
-use crate::pieces::util::Coord;
 use crate::pieces::stones::Stones;
 use crate::pieces::goban::Point;
 use std::collections::HashSet;
@@ -10,56 +9,62 @@ pub enum GobanSizes {
     Thirteen = 13,
 }
 
+#[derive(Copy, Clone)]
 pub enum Rules {
     Japanese,
     Chinese,
 }
 
+#[derive(Copy, Clone)]
 pub enum Conflicts {
     Ko,
 }
 
-pub enum Plays {
+#[derive(Copy, Clone)]
+pub enum Move {
     Pass,
     Play(usize, usize),
 }
 
-pub enum EndGames {
+#[derive(Copy, Clone)]
+pub enum EndGame {
     WhiteW,
     BlackW,
+    Equality,
 }
 
 struct Passes {
-    firt_pass: bool,
-    second_pass: bool,
+    first: bool,
+    second: bool,
 }
 
 impl Passes {
     pub fn new() -> Self {
-        Passes { firt_pass: false, second_pass: false }
+        Passes { first: false, second: false }
     }
 
     pub fn two_passes(&self) -> bool {
-        self.firt_pass && self.second_pass
+        self.first && self.second
     }
 
     pub fn pass(&mut self) {
-        if self.firt_pass {
-            self.second_pass = true;
+        if self.first {
+            self.second = true;
         } else {
-            self.firt_pass = false;
+            self.first = false;
         }
     }
     pub fn no_pass(&mut self) {
-        self.firt_pass = false;
+        self.first = false;
     }
 }
 
 pub struct Game {
     goban: Goban,
+    passes: Passes,
     turn: bool,
     komi: f32,
-    passes: Passes,
+    rules: Rules,
 }
 
 impl Game {
@@ -67,33 +72,69 @@ impl Game {
         let goban = Goban::new(size as usize);
         let komi = 5.5;
         let pass = Passes::new();
-        Game { goban, turn: false, komi, passes: pass }
+        Game { goban, turn: false, komi, passes: pass, rules: Rules::Japanese }
     }
 
-    fn new_game(&mut self) {
+    pub const fn get_goban(&self) -> &Goban {
+        &self.goban
+    }
+
+    pub const fn get_turn(&self) -> bool {
+        self.turn
+    }
+
+    pub fn set_komi(&mut self, komi: f32) {
+        self.komi = komi;
+    }
+
+    pub fn set_rules(&mut self, rule: Rules) {
+        self.rules = rule;
+    }
+
+    pub fn get_rules(&self) -> Rules {
+        self.rules
+    }
+}
+
+impl Game {
+    ///
+    /// Reset the game.
+    ///
+    pub fn new_game(&mut self) {
         self.goban.clear();
     }
 
+    ///
+    /// True when the game is over (two passes, or no more legals moves)
+    ///
     pub fn gameover(&self) -> bool {
         self.legals().is_empty() || self.passes.two_passes()
     }
 
-    pub fn legals(&self) -> Vec<Plays> {
+    ///
+    /// Returns a list with legals moves,
+    /// In the list will appear suicides moves, and ko moves.
+    /// Ko moves are analysed when a play occurs.
+    ///
+    pub fn legals(&self) -> Vec<Move> {
         let mut legals = self.pseudo_legals();
         if !legals.is_empty() {
-            legals.push(Plays::Pass);
+            legals.push(Move::Pass);
         }
         legals
     }
 
-
-    pub fn play(&mut self, play: &Plays) -> Option<Conflicts> {
+    ///
+    /// Method to play on the goban or pass,
+    /// Return a conflict (Ko) if the move cannot be performed
+    ///
+    pub fn play(&mut self, play: &Move) -> Option<Conflicts> {
         let mut res = None;
         match *play {
-            Plays::Pass => {
+            Move::Pass => {
                 self.passes.pass();
             }
-            Plays::Play(x, y) => {
+            Move::Play(x, y) => {
                 let mut tmp_goban = self.goban.clone();
                 tmp_goban.play(&(x, y), self.turn);
                 res = if tmp_goban == self.goban {
@@ -110,45 +151,72 @@ impl Game {
         res
     }
 
-    fn pseudo_legals(&self) -> Vec<Plays> {
+    pub fn end_game(&self) -> Option<EndGame> {
+        if self.gameover() {
+            None
+        } else {
+            Some(EndGame::BlackW)
+        }
+    }
+
+    ///
+    /// Generate all moves on all intersections.
+    ///
+    fn pseudo_legals(&self) -> Vec<Move> {
         let mut res = Vec::new();
         for i in 0..self.goban.get_size() {
             for j in 0..self.goban.get_size() {
                 if self.goban.get(&(i, j)) == Stones::Empty {
-                    res.push(Plays::Play(i, j));
+                    res.push(Move::Play(i, j));
                 }
             }
         }
         res
     }
 
-    pub const fn get_goban(&self) -> &Goban {
-        &self.goban
-    }
 
-    pub fn atari(&mut self) {
-        let atari_stones: Vec<HashSet<Point>> = self.goban
+    ///
+    /// Removes stones in atari from the goban.
+    ///
+    fn atari(&mut self) {
+        let atari_stones: Vec<Point> = self.goban
             .get_stones().into_iter()
+            // get all stones without liberties
             .filter(|point| !self.goban.has_liberties(point))
-            .map(|p| self.bfs(&p))
             .collect();
 
-        for strong_connex in atari_stones {
+        let mut list_of_groups_stones: Vec<HashSet<Point>> = Vec::new();
+        for atari_stone in atari_stones {
+
+            // if the stone is already in a group of stones
+            let is_handled = list_of_groups_stones.iter()
+                .any(|set| set.contains(&atari_stone));
+
+            if !is_handled{
+                list_of_groups_stones.push(self.bfs(&atari_stone))
+            }
+        }
+
+        for groups_of_stones in list_of_groups_stones {
             let mut is_atari = true;
-            for point in &strong_connex {
-                if self.goban.has_liberties(&point) {
+            for stone in &groups_of_stones {
+                if self.goban.has_liberties(&stone) {
                     is_atari = false;
                     break;
                 }
             }
             if is_atari {
-                for point in strong_connex {
-                    self.goban.set(&point.coord, Stones::Empty);
+                for stone in groups_of_stones {
+                    self.goban.set(&stone.coord, Stones::Empty);
                 }
             }
         }
     }
 
+    ///
+    /// Can get a group of stones and his neigboors with a bfs,
+    /// works for Empty stones too.
+    ///
     fn bfs(&self, point: &Point) -> HashSet<Point> {
         let mut explored: HashSet<Point> = HashSet::new();
         explored.insert(point.clone());
@@ -156,7 +224,7 @@ impl Game {
         let mut to_explore: Vec<Point> = self.goban.get_neighbors(&point.coord)
             .into_iter()
             .filter(|p| p.stone == point.stone)
-            .collect(); // Aquiring all the neigbors
+            .collect(); // Acquiring all the neighbors
 
         while let Some(point_to_explore) = to_explore.pop() { // exploring the graph
             explored.insert(point_to_explore);

@@ -10,6 +10,7 @@ license = "LGPL-3.0-only"
 
 [badges]
 gitlab = {repository ="SamBlaise/goban"}
+maintenance = {status = "actively-developed"}
 
 [dependencies]
 rand = "0.6.1"
