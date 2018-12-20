@@ -21,5 +21,6 @@ deploy-cargo:
   stage: deploy
   image: rust:latest
   script:
+    - cargo login $login
     - cargo package
     - cargo publish
