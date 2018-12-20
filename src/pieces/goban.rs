@@ -143,6 +143,10 @@ impl Goban {
         }
         buff
     }
+
+    pub fn get_history(&self) -> &Vec<Coord> {
+        &self.history
+    }
 }
 
 impl PartialEq for Goban {
