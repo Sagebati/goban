@@ -1,5 +1,6 @@
 stages:
   - build
+  - deploy
 
 rust-latest:
   stage: build
@@ -15,3 +16,10 @@ rust-nightly:
     - cargo build --verbose
     - cargo test --verbose
   allow_failure: true
+
+deploy-cargo:
+  stage: deploy
+  image: rust:latest
+  script:
+    - cargo package
+    - cargo publish
