@@ -10,6 +10,11 @@ pub enum GobanSizes {
     Thirteen = 13,
 }
 
+pub enum Rules {
+    Japanese,
+    Chinese,
+}
+
 pub enum Conflicts {
     Ko,
 }
