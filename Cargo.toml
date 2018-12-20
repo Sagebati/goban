@@ -11,4 +11,4 @@ license = "LGPL-3.0-only"
 gitlab = {url="https://gitlab.com/SamBlaise/goban"}
 
 [dependencies]
-rand = "*"
+rand = "0.6.1"
