@@ -34,6 +34,17 @@ pub extern fn play_game(ptr: *mut Game, coord: CoordC) {
     game.play(&Move::Play(c.0, c.1));
 }
 
+pub extern fn free_game(ptr: *mut Game){
+    if ptr.is_null(){
+        return;
+    }
+    else {
+        unsafe {
+            Box::from_raw(ptr);
+        }
+    }
+}
+
 pub extern fn print_game(ptr: *mut Game) {
     let mut game = unsafe {
         assert!(!ptr.is_null());

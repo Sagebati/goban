@@ -7,6 +7,8 @@ description= "Library for go move generation and go ruling."
 edition = "2018"
 license = "LGPL-3.0-only"
 
+[lib]
+crate-type = ["cdylib"]
 
 [badges]
 gitlab = {repository ="SamBlaise/goban"}
