@@ -7,8 +7,8 @@ mod tests {
     use crate::rules::game::GobanSizes;
     use crate::rules::game::Game;
     use rand::Rng;
-    use crate::pieces::stones::Stones;
-    use crate::rules::game::Plays;
+    use crate::pieces::stones::StoneColor;
+    use crate::rules::game::Move;
 
     #[test]
     fn goban() {
@@ -32,17 +32,26 @@ mod tests {
     #[test]
     fn atari() {
         let mut g = Game::new(GobanSizes::Nine);
-        g.play(&Plays::Play(1, 0)); // B
+        g.play(&Move::Play(1, 0)); // B
         println!("{}", g.get_goban().pretty_string());
-        g.play(&Plays::Play(0, 0)); // W
+        g.play(&Move::Play(0, 0)); // W
         println!("{}", g.get_goban().pretty_string());
-        g.play(&Plays::Play(1, 1)); // B
+        g.play(&Move::Play(1, 1)); // B
         println!("{}", g.get_goban().pretty_string());
-        g.play(&Plays::Play(8, 8)); // W
+        g.play(&Move::Play(8, 8)); // W
         println!("{}", g.get_goban().pretty_string());
-        g.play(&Plays::Play(0, 1)); // B
+        g.play(&Move::Play(0, 1)); // B
         println!("{}", g.get_goban().pretty_string());
         // Atari
-        assert_eq!(g.get_goban().get(&(0, 0)), Stones::Empty);
+        assert_eq!(g.get_goban().get(&(0, 0)), StoneColor::Empty);
+    }
+
+    #[test]
+    fn score_calcul(){
+        let mut g = Game::new(GobanSizes::Nine);
+        g.play(&Move::Play(4,4));
+        let score = g.calculate_pseudo_score();
+        assert_eq!(score.1,81.); //Black
+        assert_eq!(score.0,5.5); //White
     }
 }
