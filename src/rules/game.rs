@@ -4,10 +4,23 @@ use std::collections::HashSet;
 use crate::pieces::stones::Stone;
 
 pub enum GobanSizes {
-    Nineteen = 19,
-    Nine = 9,
-    Thirteen = 13,
+    Nineteen,
+    Nine,
+    Thirteen,
+    Custom(usize),
 }
+
+impl Into<usize> for GobanSizes {
+    fn into(self) -> usize {
+        match self {
+            GobanSizes::Nine => 9,
+            GobanSizes::Custom(size) => size,
+            GobanSizes::Nineteen => 19,
+            GobanSizes::Thirteen => 13,
+        }
+    }
+}
+
 
 #[derive(Copy, Clone)]
 pub enum Rules {
@@ -70,7 +83,7 @@ pub struct Game {
 
 impl Game {
     pub fn new(size: GobanSizes) -> Game {
-        let goban = Goban::new(size as usize);
+        let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = Passes::new();
         Game { goban, turn: false, komi, passes: pass, rules: Rules::Japanese }
@@ -123,6 +136,10 @@ impl Game {
             legals.push(Move::Pass);
         }
         legals
+    }
+
+    pub fn println(&self) {
+        println!("{}", self.goban.pretty_string());
     }
 
     ///
@@ -242,7 +259,7 @@ impl Game {
             .filter(|point| !self.goban.has_liberties(point))
             .collect();
 
-        let mut list_of_groups_stones = self.get_strongly_connected_stones
+        let list_of_groups_stones = self.get_strongly_connected_stones
         (atari_stones);
 
         for groups_of_stones in list_of_groups_stones {
