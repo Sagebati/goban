@@ -1,5 +1,6 @@
-mod pieces;
-mod rules;
+pub mod pieces;
+pub mod rules;
+pub mod ffi;
 
 #[cfg(test)]
 mod tests {
@@ -12,7 +13,7 @@ mod tests {
 
     #[test]
     fn goban() {
-        let mut g = Goban::new(GobanSizes::Nineteen as usize);
+        let mut g = Goban::new(GobanSizes::Nineteen.into());
         g.play(&(1, 2), true);
         println!("{}", g.pretty_string());
         assert_eq!(true, true)

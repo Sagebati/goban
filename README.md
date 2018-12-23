@@ -9,8 +9,13 @@ front-end.
 - Akari
 - Playing
 - Passing
+- Naive implementation to count points
+- Printing an ugly ascii goban
+
+## In actual development
+- Python FFI
+- Documentation
 
 ## What is not in point:
-- different rules
-- the end game (counting points)
-- SGF
+- Complete end game
+- Japanese Rules

@@ -4,10 +4,23 @@ use std::collections::HashSet;
 use crate::pieces::stones::Stone;
 
 pub enum GobanSizes {
-    Nineteen = 19,
-    Nine = 9,
-    Thirteen = 13,
+    Nineteen,
+    Nine,
+    Thirteen,
+    Custom(usize),
 }
+
+impl Into<usize> for GobanSizes {
+    fn into(self) -> usize {
+        match self {
+            GobanSizes::Nine => 9,
+            GobanSizes::Custom(size) => size,
+            GobanSizes::Nineteen => 19,
+            GobanSizes::Thirteen => 13,
+        }
+    }
+}
+
 
 #[derive(Copy, Clone)]
 pub enum Rules {
@@ -55,8 +68,9 @@ impl Passes {
             self.first = false;
         }
     }
-    pub fn no_pass(&mut self) {
+    pub fn reset(&mut self) {
         self.first = false;
+        self.second = false;
     }
 }
 
@@ -70,7 +84,7 @@ pub struct Game {
 
 impl Game {
     pub fn new(size: GobanSizes) -> Game {
-        let goban = Goban::new(size as usize);
+        let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = Passes::new();
         Game { goban, turn: false, komi, passes: pass, rules: Rules::Japanese }
@@ -105,6 +119,10 @@ impl Game {
         self.goban.clear();
     }
 
+    pub fn resume(&mut self) {
+        self.passes.reset();
+    }
+
     ///
     /// True when the game is over (two passes, or no more legals moves)
     ///
@@ -123,6 +141,10 @@ impl Game {
             legals.push(Move::Pass);
         }
         legals
+    }
+
+    pub fn display(&self) {
+        println!("{}", self.goban.pretty_string());
     }
 
     ///
@@ -145,7 +167,7 @@ impl Game {
                     } else {
                         self.goban.play(&(x, y), self.turn);
                         self.turn = !self.turn;
-                        self.passes.no_pass();
+                        self.passes.reset();
                         self.remove_atari_stones();
                         None
                     };
@@ -210,7 +232,7 @@ impl Game {
         let mut goban_tmp = self.goban.clone();
         goban_tmp.play(&stone.coord, self.turn);
         if !goban_tmp.has_liberties(stone) {
-            Self::is_block_atari(&self.goban, &self.bfs(&stone))
+            self.are_atari(&self.bfs(&stone))
         } else {
             false
         }
@@ -226,10 +248,10 @@ impl Game {
         }
     }
 
-    pub fn is_block_atari(goban: &Goban, stones: &HashSet<Stone>) -> bool {
+    pub fn are_atari(&self, stones: &HashSet<Stone>) -> bool {
         !stones // If there is one stone connected who has liberties it's not atari
             .iter()
-            .any(|s| goban.has_liberties(s))
+            .any(|s| self.goban.has_liberties(s))
     }
 
     ///
@@ -242,11 +264,11 @@ impl Game {
             .filter(|point| !self.goban.has_liberties(point))
             .collect();
 
-        let mut list_of_groups_stones = self.get_strongly_connected_stones
+        let list_of_groups_stones = self.get_strongly_connected_stones
         (atari_stones);
 
         for groups_of_stones in list_of_groups_stones {
-            if Self::is_block_atari(&self.goban, &groups_of_stones) {
+            if self.are_atari(&groups_of_stones) {
                 self.goban.set_many(
                     groups_of_stones
                         .iter()

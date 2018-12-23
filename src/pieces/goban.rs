@@ -1,8 +1,11 @@
 use crate::pieces::util::*;
 use crate::pieces::stones::*;
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::Error;
 
 
-#[derive(Clone)]
+#[derive(Clone, Eq)]
 pub struct Goban {
     turn: bool,
     tab: Vec<u8>,
@@ -73,7 +76,7 @@ impl Goban {
     ///
     pub fn get_neighbors(&self, coord: &Coord) -> Vec<Stone> {
         let mut res = Vec::new();
-        for c in neighbors_connected(coord) {
+        for c in neighbors_coords(coord) {
             if c.0 < self.size && c.1 < self.size {
                 res.push(Stone { coord: c.clone(), color: self.get(&c) })
             }
@@ -85,7 +88,7 @@ impl Goban {
     ///
     pub fn get_stones_neghboors(&self, coord: &Coord) -> Vec<Stone> {
         let mut res = Vec::new();
-        for c in neighbors_connected(coord) {
+        for c in neighbors_coords(coord) {
             if c.0 < self.size && c.1 < self.size {
                 let s = self.get(&c);
                 if s != StoneColor::Empty {
@@ -114,7 +117,7 @@ impl Goban {
         for i in 0..self.size {
             for j in 0..self.size {
                 if self.get(&(i, j)) == *color {
-                    res.push(Stone { coord: (i, j), color:*color })
+                    res.push(Stone { coord: (i, j), color: *color })
                 }
             }
         }
@@ -162,11 +165,15 @@ impl Goban {
     }
 }
 
+impl Display for Goban{
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f,"{}",self.pretty_string())
+    }
+}
+
 impl PartialEq for Goban {
     fn eq(&self, other: &Goban) -> bool {
         other.tab == self.tab
     }
 }
-
-impl Eq for Goban {}
 
