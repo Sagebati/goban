@@ -12,7 +12,7 @@ pub struct CoordUtil {
     n_cols: usize,
 }
 
-pub fn neighbors_connected(coord: &Coord) -> Vec<Coord> {
+pub fn neighbors_coords(coord: &Coord) -> Vec<Coord> {
     let (x, y) = *coord;
     vec![
         (x.wrapping_add(1), y),

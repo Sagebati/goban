@@ -68,8 +68,9 @@ impl Passes {
             self.first = false;
         }
     }
-    pub fn no_pass(&mut self) {
+    pub fn reset(&mut self) {
         self.first = false;
+        self.second = false;
     }
 }
 
@@ -118,6 +119,10 @@ impl Game {
         self.goban.clear();
     }
 
+    pub fn resume(&mut self) {
+        self.passes.reset();
+    }
+
     ///
     /// True when the game is over (two passes, or no more legals moves)
     ///
@@ -138,7 +143,7 @@ impl Game {
         legals
     }
 
-    pub fn println(&self) {
+    pub fn display(&self) {
         println!("{}", self.goban.pretty_string());
     }
 
@@ -162,7 +167,7 @@ impl Game {
                     } else {
                         self.goban.play(&(x, y), self.turn);
                         self.turn = !self.turn;
-                        self.passes.no_pass();
+                        self.passes.reset();
                         self.remove_atari_stones();
                         None
                     };
@@ -227,7 +232,7 @@ impl Game {
         let mut goban_tmp = self.goban.clone();
         goban_tmp.play(&stone.coord, self.turn);
         if !goban_tmp.has_liberties(stone) {
-            Self::is_block_atari(&self.goban, &self.bfs(&stone))
+            self.are_atari(&self.bfs(&stone))
         } else {
             false
         }
@@ -243,10 +248,10 @@ impl Game {
         }
     }
 
-    pub fn is_block_atari(goban: &Goban, stones: &HashSet<Stone>) -> bool {
+    pub fn are_atari(&self, stones: &HashSet<Stone>) -> bool {
         !stones // If there is one stone connected who has liberties it's not atari
             .iter()
-            .any(|s| goban.has_liberties(s))
+            .any(|s| self.goban.has_liberties(s))
     }
 
     ///
@@ -263,7 +268,7 @@ impl Game {
         (atari_stones);
 
         for groups_of_stones in list_of_groups_stones {
-            if Self::is_block_atari(&self.goban, &groups_of_stones) {
+            if self.are_atari(&groups_of_stones) {
                 self.goban.set_many(
                     groups_of_stones
                         .iter()

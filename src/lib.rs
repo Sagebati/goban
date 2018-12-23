@@ -1,6 +1,6 @@
-mod pieces;
-mod rules;
-mod ffi;
+pub mod pieces;
+pub mod rules;
+pub mod ffi;
 
 #[cfg(test)]
 mod tests {
