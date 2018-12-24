@@ -16,4 +16,3 @@ maintenance = {status = "actively-developed"}
 
 [dependencies]
 rand = "0.6.1"
-libc = "0.2.45"
