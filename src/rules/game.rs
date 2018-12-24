@@ -98,6 +98,10 @@ impl Game {
         self.turn
     }
 
+    pub fn get_komi(&self)-> f32{
+        self.komi
+    }
+
     pub fn set_komi(&mut self, komi: f32) {
         self.komi = komi;
     }
@@ -119,6 +123,9 @@ impl Game {
         self.goban.clear();
     }
 
+    ///
+    /// resume the game when to players have passed, and want to continue.
+    ///
     pub fn resume(&mut self) {
         self.passes.reset();
     }
@@ -149,7 +156,7 @@ impl Game {
 
     ///
     /// Method to play on the goban or pass,
-    /// Return a conflict (Ko) if the move cannot be performed
+    /// Return a conflict (Ko,Suicide) if the move cannot be performed
     ///
     pub fn play(&mut self, play: &Move) -> Option<Conflicts> {
         let mut possible_conflict = None;
@@ -176,6 +183,10 @@ impl Game {
         possible_conflict
     }
 
+    ///
+    /// Returns the endgame.
+    /// None if the game is not finish
+    ///
     pub fn end_game(&self) -> Option<EndGame> {
         if !self.gameover() {
             None
@@ -185,6 +196,12 @@ impl Game {
         }
     }
 
+    ///
+    /// Calculates a score for the endgame. It's a naive implementation, it counts only
+    /// territories with the same color surrounding them.
+    ///
+    /// Doesn't handle dead stones.
+    ///
     pub fn calculate_pseudo_score(&self) -> (f32, f32) {
         let mut scores: (f32, f32) = (0., 0.); // White & Black
         let empty_groups =
@@ -227,7 +244,10 @@ impl Game {
         }
         res
     }
-
+    ///
+    /// Add a stone to the board an then test if the stone or stone groupe is
+    /// atari.
+    ///
     pub fn is_suicide(&self, stone: &Stone) -> bool {
         let mut goban_tmp = self.goban.clone();
         goban_tmp.play(&stone.coord, self.turn);
@@ -238,6 +258,9 @@ impl Game {
         }
     }
 
+    ///
+    /// Returns true if the goban is the same that 2 plays ago, handles passes.
+    ///
     pub fn is_ko(&self, stone: &Stone) -> bool {
         if { self.goban.get_history().len() < 2 } {
             false
@@ -248,6 +271,9 @@ impl Game {
         }
     }
 
+    ///
+    /// Test if a groupe of stones is atari.
+    ///
     pub fn are_atari(&self, stones: &HashSet<Stone>) -> bool {
         !stones // If there is one stone connected who has liberties it's not atari
             .iter()
@@ -277,6 +303,9 @@ impl Game {
         }
     }
 
+    ///
+    /// Get stones connected. [[x,y,z],[a,e,r]] exemple of return.
+    ///
     fn get_strongly_connected_stones(&self, stones: Vec<Stone>) -> Vec<HashSet<Stone>> {
         let mut strongly_connected_stones: Vec<HashSet<Stone>> = Vec::new();
         for atari_stone in stones {

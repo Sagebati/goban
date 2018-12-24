@@ -5,16 +5,19 @@ front-end.
 
 **Is not ready**
 
+Channel : stable
+
 ## What works (or seem to works)
 - Akari
 - Playing
 - Passing
 - Naive implementation to count points
 - Printing an ugly ascii goban
+- Generate legals moves
 
 ## In actual development
-- Python FFI
 - Documentation
+
 
 ## What is not in point:
 - Complete end game

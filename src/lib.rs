@@ -1,13 +1,12 @@
 pub mod pieces;
 pub mod rules;
-pub mod ffi;
 
 #[cfg(test)]
 mod tests {
     use crate::pieces::goban::Goban;
     use crate::rules::game::GobanSizes;
     use crate::rules::game::Game;
-    use rand::Rng;
+    use rand::seq::SliceRandom;
     use crate::pieces::stones::StoneColor;
     use crate::rules::game::Move;
 
@@ -24,7 +23,7 @@ mod tests {
         let mut g = Game::new(GobanSizes::Nine);
         let mut i = 35;
         while !g.legals().is_empty() && i != 0 {
-            g.play(rand::thread_rng().choose(&g.legals()).unwrap());
+            g.play(g.legals().choose(&mut rand::thread_rng()).unwrap());
             i -= 1;
             println!("{}", g.get_goban().pretty_string());
         }
@@ -48,11 +47,11 @@ mod tests {
     }
 
     #[test]
-    fn score_calcul(){
+    fn score_calcul() {
         let mut g = Game::new(GobanSizes::Nine);
-        g.play(&Move::Play(4,4));
+        g.play(&Move::Play(4, 4));
         let score = g.calculate_pseudo_score();
-        assert_eq!(score.1,81.); //Black
-        assert_eq!(score.0,5.5); //White
+        assert_eq!(score.1, 81.); //Black
+        assert_eq!(score.0, 5.5); //White
     }
 }
