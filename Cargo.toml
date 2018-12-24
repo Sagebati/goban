@@ -9,9 +9,6 @@ license = "LGPL-3.0-only"
 repository = "https://gitlab.com/SamBlaise/goban"
 keywords=["go","goban","Igo","Baduk"]
 
-[lib]
-crate-type = ["cdylib"]
-
 [badges]
 gitlab = {repository ="SamBlaise/goban"}
 maintenance = {status = "actively-developed"}
