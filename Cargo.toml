@@ -6,6 +6,8 @@ readme="README.md"
 description= "Library for go move generation and go ruling."
 edition = "2018"
 license = "LGPL-3.0-only"
+repository = "https://gitlab.com/SamBlaise/goban"
+keywords=["go","goban","Igo","Baduk"]
 
 [lib]
 crate-type = ["cdylib"]
