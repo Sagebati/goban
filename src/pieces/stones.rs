@@ -1,4 +1,7 @@
 use crate::pieces::util::Coord;
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::Error;
 
 pub const WHITE_STONE: char = '⚫';
 pub const BLACK_STONE: char = '⚪';
@@ -11,7 +14,7 @@ pub enum StoneColor {
     Empty = 0,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct Stone {
     pub coord: Coord,
     pub color: StoneColor,
@@ -34,5 +37,26 @@ impl From<bool> for StoneColor {
             true => StoneColor::White,
             false => StoneColor::Black,
         }
+    }
+}
+
+impl Into<bool> for StoneColor{
+    fn into(self) -> bool {
+        match self {
+            StoneColor::Black=>false,
+            StoneColor::White=>true,
+            StoneColor::Empty=> panic!("Tried to convert Empty to a turn")
+        }
+    }
+}
+
+impl Display for StoneColor{
+    fn fmt(&self, f: &mut Formatter<>) -> Result<(), Error> {
+        let color_str = match self{
+            StoneColor::White => "White",
+            StoneColor::Black => "Black",
+            StoneColor::Empty => "Empty"
+        };
+        write!(f,"{}",color_str)
     }
 }
