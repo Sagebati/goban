@@ -135,6 +135,14 @@ impl Game {
     }
 
     ///
+    /// Removes the last move.
+    ///
+    pub fn pop(&mut self) {
+        self.goban.pop();
+        self.plays.pop();
+    }
+
+    ///
     /// Returns a list with legals moves,
     /// In the list will appear suicides moves, and ko moves.
     /// Ko moves are analysed when a play occurs.
@@ -248,6 +256,7 @@ impl Game {
         }
         res
     }
+
     ///
     /// Add a stone to the board an then test if the stone or stone group is
     /// atari.
