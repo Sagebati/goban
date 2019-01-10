@@ -29,7 +29,7 @@ impl Goban {
             self.tab[CoordUtil::new(self.size, self.size).to(coord)] = color as u8;
             Ok(self)
         } else {
-            Err("Play outside the goban".into())
+            Err(format!("the coord :({},{}) are outside the goban",coord.0,coord.1))
         }
     }
 

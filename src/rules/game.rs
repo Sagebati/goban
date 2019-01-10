@@ -173,7 +173,9 @@ impl Game {
                         Some(Conflicts::Suicide)
                     } else {
                         self.plays.push(self.goban.clone());
-                        self.goban.push(&(x, y), stone.color);
+                        self.goban.push(&(x, y), stone.color)
+                            .expect(&format!("Put the stone in ({},{}) of color {}", x, y, stone
+                                .color));
                         self.turn = !self.turn;
                         self.passes.reset();
                         self.remove_atari_stones();
@@ -253,7 +255,7 @@ impl Game {
     ///
     pub fn is_suicide(&self, stone: &Stone) -> bool {
         let mut goban_test = self.goban().clone();
-        goban_test.push(&stone.coord, stone.color.into());
+        goban_test.push_stone(stone).expect("Play the stone");
 
         // If there is no atari
         if goban_test.has_liberties(stone) {
@@ -280,10 +282,10 @@ impl Game {
     ///
     /// Rule of the super Ko, if any before configuration was played then the move is illegal
     ///
+    ///
     fn super_ko(&self, stone: &Stone) -> bool {
         let mut goban_test = self.goban.clone();
-        goban_test.push_stone(stone);
-        self.goban.clone().push_stone(stone);
+        goban_test.push_stone(stone).expect("Put the stone");
 
         self.plays.iter().rev().any(|g| *g == goban_test)
     }
@@ -324,8 +326,4 @@ impl Game {
             }
         }
     }
-}
-
-mod graph {
-
 }
