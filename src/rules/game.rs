@@ -47,6 +47,7 @@ pub enum EndGame {
     Score(f32, f32),
 }
 
+#[derive(Copy, Clone)]
 struct Passes {
     first: bool,
     second: bool,
@@ -74,12 +75,14 @@ impl Passes {
     }
 }
 
+#[derive(Clone)]
 pub struct Game {
     goban: Goban,
     passes: Passes,
     turn: bool,
     komi: f32,
     rules: Rules,
+    plays: Vec<Goban>,
 }
 
 impl Game {
@@ -87,20 +90,19 @@ impl Game {
         let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = Passes::new();
-        Game { goban, turn: false, komi, passes: pass, rules: Rules::Japanese }
+        let plays = Vec::new();
+        Game { goban, turn: false, komi, passes: pass, rules: Rules::Japanese, plays }
     }
 
-    pub const fn get_goban(&self) -> &Goban {
+    pub const fn goban(&self) -> &Goban {
         &self.goban
     }
 
-    pub const fn get_turn(&self) -> bool {
+    pub const fn turn(&self) -> bool {
         self.turn
     }
 
-    pub fn get_komi(&self)-> f32{
-        self.komi
-    }
+    pub fn komi(&self) -> f32 { self.komi }
 
     pub fn set_komi(&mut self, komi: f32) {
         self.komi = komi;
@@ -110,19 +112,14 @@ impl Game {
         self.rules = rule;
     }
 
-    pub fn get_rules(&self) -> Rules {
+    pub fn rules(&self) -> Rules {
         self.rules
     }
+
+    pub fn plays(&self) -> &Vec<Goban> { &self.plays }
 }
 
 impl Game {
-    ///
-    /// Reset the game.
-    ///
-    pub fn new_game(&mut self) {
-        self.goban.clear();
-    }
-
     ///
     /// resume the game when to players have passed, and want to continue.
     ///
@@ -150,6 +147,9 @@ impl Game {
         legals
     }
 
+    ///
+    /// Prints the goban.
+    ///
     pub fn display(&self) {
         println!("{}", self.goban.pretty_string());
     }
@@ -172,7 +172,8 @@ impl Game {
                     } else if self.is_suicide(&stone) {
                         Some(Conflicts::Suicide)
                     } else {
-                        self.goban.play(&(x, y), self.turn);
+                        self.plays.push(self.goban.clone());
+                        self.goban.push(&(x, y), stone.color);
                         self.turn = !self.turn;
                         self.passes.reset();
                         self.remove_atari_stones();
@@ -205,7 +206,8 @@ impl Game {
     pub fn calculate_pseudo_score(&self) -> (f32, f32) {
         let mut scores: (f32, f32) = (0., 0.); // White & Black
         let empty_groups =
-            self.get_strongly_connected_stones(self.goban.get_stones_by_color(&StoneColor::Empty));
+            self.goban.get_strongly_connected_stones(self.goban.get_stones_by_color
+            (&StoneColor::Empty));
         for group in empty_groups {
             let mut neutral = (false, false);
             for empty_intersection in &group {
@@ -245,34 +247,49 @@ impl Game {
         res
     }
     ///
-    /// Add a stone to the board an then test if the stone or stone groupe is
+    /// Add a stone to the board an then test if the stone or stone group is
     /// atari.
+    /// Returns true if the move is a suicide
     ///
     pub fn is_suicide(&self, stone: &Stone) -> bool {
-        let mut goban_tmp = self.goban.clone();
-        goban_tmp.play(&stone.coord, self.turn);
-        if !goban_tmp.has_liberties(stone) {
-            self.are_atari(&self.bfs(&stone))
-        } else {
+        let mut goban_test = self.goban().clone();
+        goban_test.push(&stone.coord, stone.color.into());
+
+        // If there is no atari
+        if goban_test.has_liberties(stone) {
             false
+        } else {
+            // Search if the opponent has atari stones because of the play
+            if Goban::get_atari_stones_color(&goban_test, (!self.turn).into()).len() == 0 {
+                true
+            } else {
+                // Search for connections
+                self.are_atari(&self.goban.bfs(&stone))
+            }
         }
     }
 
     ///
     /// Returns true if the goban is the same that 2 plays ago, handles passes.
+    /// O(n²) to improve
     ///
     pub fn is_ko(&self, stone: &Stone) -> bool {
-        if { self.goban.get_history().len() < 2 } {
-            false
-        } else if self.goban.clone().play(&stone.coord, self.turn) == self.goban.clone().pop_play() {
-            true
-        } else {
-            false
-        }
+        self.super_ko(stone)
     }
 
     ///
-    /// Test if a groupe of stones is atari.
+    /// Rule of the super Ko, if any before configuration was played then the move is illegal
+    ///
+    fn super_ko(&self, stone: &Stone) -> bool {
+        let mut goban_test = self.goban.clone();
+        goban_test.push_stone(stone);
+        self.goban.clone().push_stone(stone);
+
+        self.plays.iter().rev().any(|g| *g == goban_test)
+    }
+
+    ///
+    /// Test if a group of stones is atari.
     ///
     pub fn are_atari(&self, stones: &HashSet<Stone>) -> bool {
         !stones // If there is one stone connected who has liberties it's not atari
@@ -284,18 +301,9 @@ impl Game {
     /// Removes stones in atari from the goban.
     ///
     fn remove_atari_stones(&mut self) {
-        let atari_stones: Vec<Stone> = self.goban
-            .get_stones().into_iter()
-            // get all stones without liberties
-            .filter(|point| !self.goban.has_liberties(point))
-            .collect();
-
-        let list_of_groups_stones = self.get_strongly_connected_stones
-        (atari_stones);
-
-        for groups_of_stones in list_of_groups_stones {
+        for groups_of_stones in self.goban.get_atari_stones() {
             if self.are_atari(&groups_of_stones) {
-                self.goban.set_many(
+                self.goban.push_many(
                     groups_of_stones
                         .iter()
                         .map(|point| &point.coord), StoneColor::Empty)
@@ -304,46 +312,20 @@ impl Game {
     }
 
     ///
-    /// Get stones connected. [[x,y,z],[a,e,r]] exemple of return.
+    /// Removes the atari stones from the goban by specifying a color stone.
     ///
-    fn get_strongly_connected_stones(&self, stones: Vec<Stone>) -> Vec<HashSet<Stone>> {
-        let mut strongly_connected_stones: Vec<HashSet<Stone>> = Vec::new();
-        for atari_stone in stones {
-            // if the stone is already in a group of stones
-            let is_handled = strongly_connected_stones
-                .iter()
-                .any(|set| set.contains(&atari_stone));
-
-            if !is_handled {
-                strongly_connected_stones.push(self.bfs(&atari_stone))
+    fn remove_atari_stones_color(&mut self, color: StoneColor) {
+        for groups_of_stones in self.goban.get_atari_stones_color(color) {
+            if self.are_atari(&groups_of_stones) {
+                self.goban.push_many(
+                    groups_of_stones
+                        .iter()
+                        .map(|point| &point.coord), StoneColor::Empty)
             }
         }
-        strongly_connected_stones
     }
+}
 
-    ///
-    /// Can get a group of stones and his neigboors with a bfs,
-    /// works for Empty stones too.
-    ///
-    fn bfs(&self, point: &Stone) -> HashSet<Stone> {
-        let mut explored: HashSet<Stone> = HashSet::new();
-        explored.insert(point.clone());
+mod graph {
 
-        let mut to_explore: Vec<Stone> = self.goban.get_neighbors(&point.coord)
-            .into_iter()
-            .filter(|p| p.color == point.color)
-            .collect(); // Acquiring all the neighbors
-
-        while let Some(point_to_explore) = to_explore.pop() { // exploring the graph
-            explored.insert(point_to_explore);
-            let neighbors: Vec<Stone> = self.goban.get_neighbors(&point_to_explore.coord)
-                .into_iter()
-                .filter(|p| p.color == point.color && !explored.contains(p))
-                .collect();
-            for p in neighbors {
-                to_explore.push(p);
-            }
-        }
-        explored
-    }
 }

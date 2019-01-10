@@ -7,9 +7,7 @@ use std::fmt::Error;
 
 #[derive(Clone, Eq)]
 pub struct Goban {
-    turn: bool,
     tab: Vec<u8>,
-    history: Vec<Coord>,
     size: usize,
 }
 
@@ -17,30 +15,26 @@ pub struct Goban {
 impl Goban {
     pub fn new(size: usize) -> Goban {
         Goban {
-            turn: true,
             tab: vec![StoneColor::Empty as u8; size * size],
-            history: Vec::new(),
             size,
         }
     }
 
     pub fn clear(&mut self) {
         self.tab = vec![StoneColor::Empty as u8; self.size * self.size];
-        self.history = Vec::new();
     }
 
-    pub fn play(&mut self, coord: &Coord, turn: bool) -> &mut Goban {
-        if !self.coord_valid(coord) {
-            panic!("Play outside the pieces")
-        }
-        let c = CoordUtil::new(self.size, self.size);
-        let y = if turn {
-            StoneColor::White as u8
+    pub fn push(&mut self, coord: &Coord, color: StoneColor) -> Result<&mut Goban, String> {
+        if self.coord_valid(coord) {
+            self.tab[CoordUtil::new(self.size, self.size).to(coord)] = color as u8;
+            Ok(self)
         } else {
-            StoneColor::Black as u8
-        };
-        self.tab[c.to(coord)] = y;
-        self
+            Err("Play outside the goban".into())
+        }
+    }
+
+    pub fn push_stone(&mut self, stone: &Stone) -> Result<&mut Goban, String> {
+        self.push(&stone.coord, stone.color)
     }
 
     pub fn get(&self, coord: &Coord) -> StoneColor {
@@ -59,12 +53,21 @@ impl Goban {
         false
     }
 
-    pub fn set(&mut self, coord: &Coord, value: StoneColor) {
-        self.tab[CoordUtil::new(self.size, self.size).to(coord)] = value as u8;
+    ///
+    /// Put many stones.
+    ///
+    pub fn push_many<'a>(&'a mut self, coords: impl Iterator<Item=&'a Coord>, value: StoneColor) {
+        coords.for_each(|c| {
+            self.push(c, value).expect("Add one\
+        of the stones to the goban.");
+        })
     }
 
-    pub fn set_many<'a>(&'a mut self, coords: impl Iterator<Item=&'a Coord>, value: StoneColor) {
-        coords.for_each(|c| self.set(c, value))
+    /// Removes the last
+    pub fn pop(&mut self) -> &mut Self {
+        self.tab.pop();
+
+        self
     }
 
     pub const fn get_size(&self) -> usize {
@@ -86,7 +89,7 @@ impl Goban {
     ///
     /// Get all the stones that are neighbor to the coord except empty intersections
     ///
-    pub fn get_stones_neghboors(&self, coord: &Coord) -> Vec<Stone> {
+    pub fn get_neighbors_stones(&self, coord: &Coord) -> Vec<Stone> {
         let mut res = Vec::new();
         for c in neighbors_coords(coord) {
             if c.0 < self.size && c.1 < self.size {
@@ -151,23 +154,11 @@ impl Goban {
         }
         buff
     }
-
-    pub fn get_history(&self) -> &Vec<Coord> {
-        &self.history
-    }
-
-    pub fn pop_play(&mut self) -> &mut Self {
-        match self.history.pop() {
-            Some(coord) => self.set(&coord, StoneColor::Empty),
-            None => eprintln!("The goban has not plays to pop")
-        }
-        self
-    }
 }
 
-impl Display for Goban{
+impl Display for Goban {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f,"{}",self.pretty_string())
+        write!(f, "{}", self.pretty_string())
     }
 }
 
