@@ -47,7 +47,7 @@ mod tests {
     fn score_calcul() {
         let mut g = Game::new(GobanSizes::Nine);
         g.play(&Move::Play(4, 4));
-        let score = g.calculate_pseudo_score();
+        let score = g.calculate_territories();
         assert_eq!(score.1, 81.); //Black
         assert_eq!(score.0, 5.5); //White
     }

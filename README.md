@@ -18,6 +18,7 @@ Channel : stable
 ## In actual development
 - Documentation
 - Rules
+- GTP
 
 ## What is not in point:
 - Complete end game

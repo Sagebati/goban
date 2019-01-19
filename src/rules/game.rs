@@ -2,6 +2,8 @@ use crate::pieces::goban::*;
 use crate::pieces::stones::StoneColor;
 use std::collections::HashSet;
 use crate::pieces::stones::Stone;
+use crate::rules::Rule;
+use crate::rules::JapRule;
 
 pub enum GobanSizes {
     Nineteen,
@@ -19,14 +21,6 @@ impl Into<usize> for GobanSizes {
             GobanSizes::Thirteen => 13,
         }
     }
-}
-
-
-#[derive(Copy, Clone)]
-pub enum Rules {
-    Japanese,
-    Chinese,
-    Aga,
 }
 
 #[derive(Copy, Clone)]
@@ -76,22 +70,24 @@ impl Passes {
 }
 
 #[derive(Clone)]
-pub struct Game {
+pub struct Game<T: Rule> {
     goban: Goban,
     passes: Passes,
+    prisoners: (u32, u32),
     turn: bool,
     komi: f32,
-    rules: Rules,
     plays: Vec<Goban>,
+    rule: T,
 }
 
-impl Game {
-    pub fn new(size: GobanSizes) -> Game {
+impl<T: Rule> Game<T> {
+    pub fn new(size: GobanSizes) -> Game<T> {
         let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = Passes::new();
         let plays = Vec::new();
-        Game { goban, turn: false, komi, passes: pass, rules: Rules::Japanese, plays }
+        let prisoners = (0, 0);
+        Game<JapRule> { goban, turn: false, komi, prisoners, passes: pass, rule: JapRule {}, plays }
     }
 
     pub const fn goban(&self) -> &Goban {
@@ -102,24 +98,26 @@ impl Game {
         self.turn
     }
 
+    pub const fn prisoners(&self) -> &(u32, u32) { &self.prisoners }
+
     pub fn komi(&self) -> f32 { self.komi }
 
     pub fn set_komi(&mut self, komi: f32) {
         self.komi = komi;
     }
 
-    pub fn set_rules(&mut self, rule: Rules) {
-        self.rules = rule;
+    pub fn set_rules(&mut self, rule: impl Rule) {
+        self.rule = rule;
     }
 
-    pub fn rules(&self) -> Rules {
-        self.rules
+    pub fn rules(&self) -> &impl Rule {
+        &self.rule
     }
 
     pub fn plays(&self) -> &Vec<Goban> { &self.plays }
 }
 
-impl Game {
+impl<T:Rule> Game<T>{
     ///
     /// resume the game when to players have passed, and want to continue.
     ///
@@ -186,7 +184,7 @@ impl Game {
                                 .color));
                         self.turn = !self.turn;
                         self.passes.reset();
-                        self.remove_atari_stones();
+                        self.remove_dead_stones();
                         None
                     };
             }
@@ -202,7 +200,7 @@ impl Game {
         if !self.gameover() {
             None
         } else {
-            let scores = self.calculate_pseudo_score();
+            let scores = self.calculate_territories();
             Some(EndGame::Score(scores.0, scores.1))
         }
     }
@@ -211,10 +209,10 @@ impl Game {
     /// Calculates a score for the endgame. It's a naive implementation, it counts only
     /// territories with the same color surrounding them.
     ///
-    /// Doesn't handle dead stones.
+    /// Returns (black territory,  white territory)
     ///
-    pub fn calculate_pseudo_score(&self) -> (f32, f32) {
-        let mut scores: (f32, f32) = (0., 0.); // White & Black
+    pub fn calculate_territories(&self) -> (f32, f32) {
+        let mut scores: (f32, f32) = (0., 0.); // Black & White
         let empty_groups =
             self.goban.get_strongly_connected_stones(self.goban.get_stones_by_color
             (&StoneColor::Empty));
@@ -223,10 +221,10 @@ impl Game {
             for empty_intersection in &group {
                 for stone in self.goban.get_neighbors(&empty_intersection.coord) {
                     if stone.color == StoneColor::White {
-                        neutral.0 = true; // found white stone
+                        neutral.1 = true; // found white stone
                     }
                     if stone.color == StoneColor::Black {
-                        neutral.1 = true; // found black stone
+                        neutral.0 = true; // found black stone
                     }
                 }
             }
@@ -236,9 +234,6 @@ impl Game {
                 scores.1 += group.len() as f32;
             }
         }
-        scores.0 += self.goban.get_stones_by_color(&StoneColor::White).len() as f32 + self.komi;
-        scores.1 += self.goban.get_stones_by_color(&StoneColor::Black).len() as f32;
-
         (scores.0, scores.1)
     }
 
@@ -275,24 +270,31 @@ impl Game {
                 true
             } else {
                 // Search for connections
-                self.are_atari(&self.goban.bfs(&stone))
+                self.are_dead(&self.goban.bfs(&stone))
             }
         }
     }
 
     ///
-    /// Returns true if the goban is the same that 2 plays ago, handles passes.
-    /// O(n²) to improve
+    /// If the goban is in the configuration of the two plays ago returns true
     ///
     pub fn is_ko(&self, stone: &Stone) -> bool {
-        self.super_ko(stone)
+        if self.plays.len() <= 2 {
+            false
+        } else {
+            if self.goban.clone().push_stone(stone) == self.plays[self.plays.len() - 2] {
+                true
+            } else {
+                false
+            }
+        }
     }
 
     ///
-    /// Rule of the super Ko, if any before configuration was played then the move is illegal
+    /// Rule of the super Ko, if any before configuration was already played then the move is
+    /// illegal
     ///
-    ///
-    fn super_ko(&self, stone: &Stone) -> bool {
+    pub fn super_ko(&self, stone: &Stone) -> bool {
         let mut goban_test = self.goban.clone();
         goban_test.push_stone(stone).expect("Put the stone");
 
@@ -300,20 +302,22 @@ impl Game {
     }
 
     ///
-    /// Test if a group of stones is atari.
+    /// Test if a group of stones is dead.
     ///
-    pub fn are_atari(&self, stones: &HashSet<Stone>) -> bool {
+    /// "a group of stones is dead if it doesn't have liberties"
+    ///
+    pub fn are_dead(&self, stones: &HashSet<Stone>) -> bool {
         !stones // If there is one stone connected who has liberties it's not atari
             .iter()
             .any(|s| self.goban.has_liberties(s))
     }
 
     ///
-    /// Removes stones in atari from the goban.
+    /// Removes dead stones from the goban.
     ///
-    fn remove_atari_stones(&mut self) {
+    fn remove_dead_stones(&mut self) {
         for groups_of_stones in self.goban.get_atari_stones() {
-            if self.are_atari(&groups_of_stones) {
+            if self.are_dead(&groups_of_stones) {
                 self.goban.push_many(
                     groups_of_stones
                         .iter()
@@ -323,11 +327,11 @@ impl Game {
     }
 
     ///
-    /// Removes the atari stones from the goban by specifying a color stone.
+    /// Removes the dead stones from the goban by specifying a color stone.
     ///
-    fn remove_atari_stones_color(&mut self, color: StoneColor) {
+    fn remove_dead_stones_color(&mut self, color: StoneColor) {
         for groups_of_stones in self.goban.get_atari_stones_color(color) {
-            if self.are_atari(&groups_of_stones) {
+            if self.are_dead(&groups_of_stones) {
                 self.goban.push_many(
                     groups_of_stones
                         .iter()
