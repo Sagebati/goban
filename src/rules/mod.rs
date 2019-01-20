@@ -6,29 +6,33 @@ pub mod graph;
 
 
 pub mod turn {
-    pub const WHITE : bool = true;
-    pub const BLACK : bool = false;
+    pub const WHITE: bool = true;
+    pub const BLACK: bool = false;
 }
 
 #[derive(Copy, Clone)]
-pub enum Conflicts {
+pub enum PlayError {
     Ko,
     Suicide,
-    GamePaused
+    GamePaused,
 }
 
 pub trait Rule {
     ///
     /// Counts the point for each player.
+    /// (black points, white points)
     ///
     fn count_points(game: &Game) -> (f32, f32);
     ///
-    /// Returns if a move is valid or not.
+    /// Returns if a move is valid or not dependent of the rules.
     ///
-    fn move_validation(game: &Game, stone: &Stone) -> Option<Conflicts>;
+    fn move_validation(game: &Game, stone: &Stone) -> Option<PlayError>;
 }
 
 
+///
+/// Struct to identify the japanese rules.
+///
 pub struct JapRule;
 
 impl Rule for JapRule {
@@ -41,12 +45,12 @@ impl Rule for JapRule {
         scores
     }
 
-    fn move_validation(game: &Game, stone: &Stone) -> Option<Conflicts> {
+    fn move_validation(game: &Game, stone: &Stone) -> Option<PlayError> {
         if game.is_suicide(stone) {
-            return Some(Conflicts::Suicide);
+            return Some(PlayError::Suicide);
         }
         if game.is_ko(stone) {
-            return Some(Conflicts::Ko);
+            return Some(PlayError::Ko);
         }
         None
     }

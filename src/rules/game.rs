@@ -4,6 +4,8 @@ use std::collections::HashSet;
 use crate::pieces::stones::Stone;
 use crate::rules::Rule;
 use crate::rules::turn::BLACK;
+use crate::rules::PlayError;
+use crate::pieces::util::Coord;
 
 pub enum GobanSizes {
     Nineteen,
@@ -28,6 +30,12 @@ impl Into<usize> for GobanSizes {
 pub enum Move {
     Pass,
     Play(usize, usize),
+}
+
+impl From<Coord> for Move {
+    fn from(x: (usize, usize)) -> Self {
+        Move::Play(x.0, x.1)
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -73,7 +81,7 @@ impl Game {
 
 impl Game {
     ///
-    /// resume the game when to players have passed, and want to continue.
+    /// Resume the game when to players have passed, and want to continue.
     ///
     pub fn resume(&mut self) {
         self.passes = 0;
@@ -82,8 +90,8 @@ impl Game {
     ///
     /// True when the game is over (two passes, or no more legals moves)
     ///
-    pub fn game_over(&self) -> bool {
-        self.passes == 2
+    pub fn game_over<T: Rule>(&self) -> bool {
+        self.passes == 2 || self.legals::<T>().count() == 0
     }
 
     ///
@@ -91,7 +99,7 @@ impl Game {
     /// None if the game is not finish
     ///
     pub fn end_game<T: Rule>(&self) -> EndGame {
-        if !self.game_over() {
+        if !self.game_over::<T>() {
             EndGame::GameNotFinish
         } else {
             let scores = T::count_points(&self);
@@ -111,11 +119,11 @@ impl Game {
     /// Returns a list with legals moves,
     /// In the list will appear suicides moves, and ko moves.
     ///
-    pub fn legals<T: Rule>(&self) -> impl Iterator<Item=Move> + '_ {
+    pub fn legals<T: Rule>(&self) -> impl Iterator<Item=Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.into(),
-                coord: s.coord,
+                coord: s,
             })
             .filter(move |s| {
                 if let Some(_x) = T::move_validation(self, s) {
@@ -124,7 +132,7 @@ impl Game {
                     true
                 }
             })
-            .map(|s| Move::Play(s.coord.0, s.coord.1))
+            .map(|s| (s.coord.0, s.coord.1))
     }
 
     ///
@@ -136,7 +144,6 @@ impl Game {
 
     ///
     /// Method to play on the goban or pass,
-    /// Return a conflict (Ko,Suicide) if the move cannot be performed
     ///
     pub fn play(&mut self, play: &Move) {
         match *play {
@@ -150,6 +157,31 @@ impl Game {
                 self.turn = !self.turn;
                 self.passes = 0;
                 self.remove_dead_stones();
+            }
+        }
+    }
+
+    ///
+    /// Method to play but it verifies if the play is legal or not.
+    ///
+    pub fn play_with_verifications<R: Rule>(&mut self, play: &Move) -> Result<(), PlayError> {
+        if self.passes != 2 {
+            Err(PlayError::GamePaused)
+        } else {
+            match *play {
+                Move::Pass => {
+                    self.passes += 1;
+                    Ok(())
+                }
+                Move::Play(x, y) => {
+                    let stone = Stone { coord: (x, y), color: self.turn.into() };
+                    if let Some(c) = R::move_validation(self, &stone) {
+                        Err(c)
+                    } else {
+                        self.play(play);
+                        Ok(())
+                    }
+                }
             }
         }
     }
@@ -189,8 +221,9 @@ impl Game {
     ///
     /// Generate all moves on all intersections.
     ///
-    fn pseudo_legals(&self) -> impl Iterator<Item=Stone> + '_ {
+    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.goban.get_stones_by_color(StoneColor::Empty)
+            .map(|s| s.coord)
     }
 
     ///

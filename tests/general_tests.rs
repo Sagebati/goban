@@ -37,7 +37,10 @@ mod tests {
         let mut g = Game::new(GobanSizes::Nine);
         let mut i = 35;
         while !g.legals::<JapRule>().count() != 0 && i != 0 {
-            g.play(&g.legals::<JapRule>().choose(&mut rand::thread_rng()).unwrap());
+            g.play(
+                &g.legals::<JapRule>().map(|coord| Move::Play(coord.0, coord.1))
+                    .choose(&mut rand::thread_rng())
+                    .unwrap());
             i -= 1;
             println!("{}", g.goban().pretty_string());
         }
@@ -45,14 +48,30 @@ mod tests {
 
     #[test]
     fn atari() {
+        let mut goban = Goban::new(9);
+        let s = Stone { coord: (4, 4), color: StoneColor::Black };
+        goban.push_stone(&s).expect("Put the stone");
+        println!("{}", goban.pretty_string());
+        let cl = goban.clone();
+        let x = cl.get_liberties(&s);
+
+        x.for_each(|s| {
+            println!("{:?}", s.coord);
+            goban.push_stone(&Stone { coord: s.coord, color: StoneColor::White })
+                .expect("Put the stone");
+        });
+
+        println!("{}", goban.pretty_string());
+
+        assert_eq!(goban.get_liberties(&s).count(), 0);
+    }
+
+    #[test]
+    fn atari_2() {
         let mut g = Game::new(GobanSizes::Nine);
         g.play(&Move::Play(1, 0)); // B
         println!("{}", g.goban().pretty_string());
         g.play(&Move::Play(0, 0)); // W
-        println!("{}", g.goban().pretty_string());
-        g.play(&Move::Play(1, 1)); // B
-        println!("{}", g.goban().pretty_string());
-        g.play(&Move::Play(8, 8)); // W
         println!("{}", g.goban().pretty_string());
         g.play(&Move::Play(0, 1)); // B
         println!("{}", g.goban().pretty_string());
@@ -66,7 +85,7 @@ mod tests {
         g.play(&Move::Pass);
         g.play(&Move::Pass);
 
-        assert_eq!(g.game_over(), true)
+        assert_eq!(g.game_over::<JapRule>(), true)
     }
 
     #[test]

@@ -102,6 +102,9 @@ impl Goban {
                 Stone { coord: coord_util.from(index), color: (*t).into() })
     }
 
+    ///
+    /// Get stones by their color.
+    ///
     pub fn get_stones_by_color(&self, color: StoneColor) -> impl Iterator<Item=Stone> + '_ {
         let coord_util = CoordUtil::new(self.size, self.size);
         self.tab
@@ -121,7 +124,7 @@ impl Goban {
     }
 
     ///
-    /// Returns the number of liberties.
+    /// Returns the number of liberties. of the stone
     ///
     pub fn get_nb_liberties(&self, point: &Stone) -> u8 {
         self.get_liberties(point).count() as u8
