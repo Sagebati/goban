@@ -5,8 +5,8 @@ use crate::pieces::stones::StoneColor;
 
 impl Goban {
     ///
-/// Get all the groups of connected atari stones
-///
+    /// Get all the groups of connected atari stones
+    ///
     pub fn get_atari_stones(&self) -> Vec<HashSet<Stone>> {
         let atari_stones: Vec<Stone> = self
             // get all stones without liberties
@@ -18,9 +18,9 @@ impl Goban {
     }
 
     ///
-/// Get all the groups of connected atari stones of a color.
-/// if the color it's an undefined behaviour
-///
+    /// Get all the groups of connected atari stones of a color.
+    /// if the color it's an undefined behaviour
+    ///
     pub fn get_atari_stones_color(&self, color: StoneColor) ->
     Vec<HashSet<Stone>> {
         let atari_stones: Vec<Stone> = self
@@ -32,9 +32,9 @@ impl Goban {
     }
 
     ///
-/// Can get a group of stones and his neigboors with a bfs,
-/// works for Empty stones too.
-///
+    /// Can get a group of stones and his neigboors with a bfs,
+    /// works for Empty stones too.
+    ///
     pub fn bfs(&self, point: &Stone) -> HashSet<Stone> {
         let mut explored: HashSet<Stone> = HashSet::new();
         explored.insert(point.clone());
@@ -58,9 +58,9 @@ impl Goban {
     }
 
     ///
-/// Use a bfs to deduce the groups of connected stones.
-/// Get stones connected. [[x,y,z],[a,e,r]] exemple of return.
-///
+    /// Use a bfs to deduce the groups of connected stones.
+    /// Get stones connected. [[x,y,z],[a,e,r]] exemple of return.
+    ///
     pub fn get_strongly_connected_stones(&self, stones: Vec<Stone>) ->
     Vec<HashSet<Stone>> {
         let mut strongly_connected_stones: Vec<HashSet<Stone>> = Vec::new();
