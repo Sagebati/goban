@@ -14,12 +14,12 @@ Channel : stable
 - Naive implementation to count points
 - Printing an *ugly* ascii goban
 - Generate legals moves
+- Japanese Rules
 
 ## In actual development
 - Documentation
 - Rules
-- GTP
 
 ## What is not in point:
 - Complete end game
-- Japanese Rules
+- Seki handling
