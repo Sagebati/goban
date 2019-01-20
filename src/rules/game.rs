@@ -3,7 +3,8 @@ use crate::pieces::stones::StoneColor;
 use std::collections::HashSet;
 use crate::pieces::stones::Stone;
 use crate::rules::Rule;
-use crate::rules::JapRule;
+use crate::rules::Conflicts;
+use crate::rules::turn::BLACK;
 
 pub enum GobanSizes {
     Nineteen,
@@ -23,11 +24,6 @@ impl Into<usize> for GobanSizes {
     }
 }
 
-#[derive(Copy, Clone)]
-pub enum Conflicts {
-    Ko,
-    Suicide,
-}
 
 #[derive(Copy, Clone)]
 pub enum Move {
@@ -37,8 +33,8 @@ pub enum Move {
 
 #[derive(Copy, Clone)]
 pub enum EndGame {
-    Equality,
     Score(f32, f32),
+    GameNotFinish,
 }
 
 #[derive(Copy, Clone)]
@@ -57,10 +53,10 @@ impl Passes {
     }
 
     pub fn pass(&mut self) {
-        if self.first {
+        if !self.first{
+            self.first = true;
+        }else{
             self.second = true;
-        } else {
-            self.first = false;
         }
     }
     pub fn reset(&mut self) {
@@ -69,55 +65,42 @@ impl Passes {
     }
 }
 
-#[derive(Clone)]
-pub struct Game<T: Rule> {
+#[derive(Clone, Getters, Setters)]
+pub struct Game {
+    #[get = "pub"]
+    #[set = "pub"]
     goban: Goban,
     passes: Passes,
+
+    #[get = "pub"]
+    #[set = "pub"]
     prisoners: (u32, u32),
+
+    #[get = "pub"]
+    #[set = "pub"]
     turn: bool,
+
+    #[get = "pub"]
+    #[set = "pub"]
     komi: f32,
+
+    #[get = "pub"]
+    #[set = "pub"]
     plays: Vec<Goban>,
-    rule: T,
 }
 
-impl<T: Rule> Game<T> {
-    pub fn new(size: GobanSizes) -> Game<T> {
+impl Game {
+    pub fn new(size: GobanSizes) -> Game {
         let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = Passes::new();
         let plays = Vec::new();
         let prisoners = (0, 0);
-        Game<JapRule> { goban, turn: false, komi, prisoners, passes: pass, rule: JapRule {}, plays }
+        Game { goban, turn: BLACK, komi, prisoners, passes: pass, plays }
     }
-
-    pub const fn goban(&self) -> &Goban {
-        &self.goban
-    }
-
-    pub const fn turn(&self) -> bool {
-        self.turn
-    }
-
-    pub const fn prisoners(&self) -> &(u32, u32) { &self.prisoners }
-
-    pub fn komi(&self) -> f32 { self.komi }
-
-    pub fn set_komi(&mut self, komi: f32) {
-        self.komi = komi;
-    }
-
-    pub fn set_rules(&mut self, rule: impl Rule) {
-        self.rule = rule;
-    }
-
-    pub fn rules(&self) -> &impl Rule {
-        &self.rule
-    }
-
-    pub fn plays(&self) -> &Vec<Goban> { &self.plays }
 }
 
-impl<T:Rule> Game<T>{
+impl Game {
     ///
     /// resume the game when to players have passed, and want to continue.
     ///
@@ -130,6 +113,19 @@ impl<T:Rule> Game<T>{
     ///
     pub fn gameover(&self) -> bool {
         self.legals().is_empty() || self.passes.two_passes()
+    }
+
+    ///
+    /// Returns the endgame.
+    /// None if the game is not finish
+    ///
+    pub fn end_game<T: Rule>(&self) -> EndGame {
+        if !self.gameover() {
+            EndGame::GameNotFinish
+        } else {
+            let scores = T::count_points(&self);
+            EndGame::Score(scores.0, scores.1)
+        }
     }
 
     ///
@@ -164,7 +160,7 @@ impl<T:Rule> Game<T>{
     /// Method to play on the goban or pass,
     /// Return a conflict (Ko,Suicide) if the move cannot be performed
     ///
-    pub fn play(&mut self, play: &Move) -> Option<Conflicts> {
+    pub fn play<T: Rule>(&mut self, play: &Move) -> Option<Conflicts> {
         let mut possible_conflict = None;
         match *play {
             Move::Pass => {
@@ -173,10 +169,8 @@ impl<T:Rule> Game<T>{
             Move::Play(x, y) => {
                 let stone = Stone { coord: (x, y), color: self.turn.into() };
                 possible_conflict =
-                    if self.is_ko(&stone) {
-                        Some(Conflicts::Ko)
-                    } else if self.is_suicide(&stone) {
-                        Some(Conflicts::Suicide)
+                    if let Some(c) = T::move_validation(self, &stone) {
+                        Some(c)
                     } else {
                         self.plays.push(self.goban.clone());
                         self.goban.push(&(x, y), stone.color)
@@ -192,18 +186,6 @@ impl<T:Rule> Game<T>{
         possible_conflict
     }
 
-    ///
-    /// Returns the endgame.
-    /// None if the game is not finish
-    ///
-    pub fn end_game(&self) -> Option<EndGame> {
-        if !self.gameover() {
-            None
-        } else {
-            let scores = self.calculate_territories();
-            Some(EndGame::Score(scores.0, scores.1))
-        }
-    }
 
     ///
     /// Calculates a score for the endgame. It's a naive implementation, it counts only
@@ -254,18 +236,17 @@ impl<T:Rule> Game<T>{
 
     ///
     /// Add a stone to the board an then test if the stone or stone group is
-    /// atari.
+    /// dead.
     /// Returns true if the move is a suicide
     ///
     pub fn is_suicide(&self, stone: &Stone) -> bool {
         let mut goban_test = self.goban().clone();
         goban_test.push_stone(stone).expect("Play the stone");
 
-        // If there is no atari
         if goban_test.has_liberties(stone) {
             false
         } else {
-            // Search if the opponent has atari stones because of the play
+            // Search if the opponent has dead stones because of the play
             if Goban::get_atari_stones_color(&goban_test, (!self.turn).into()).len() == 0 {
                 true
             } else {
@@ -282,7 +263,8 @@ impl<T:Rule> Game<T>{
         if self.plays.len() <= 2 {
             false
         } else {
-            if self.goban.clone().push_stone(stone) == self.plays[self.plays.len() - 2] {
+            if *self.goban.clone().push_stone(stone).expect("Put the stone")
+                == self.plays[self.plays.len() - 2] {
                 true
             } else {
                 false
