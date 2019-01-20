@@ -14,6 +14,7 @@ pub mod turn {
 pub enum Conflicts {
     Ko,
     Suicide,
+    GamePaused
 }
 
 pub trait Rule {

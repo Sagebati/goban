@@ -29,7 +29,7 @@ impl Goban {
             self.tab[CoordUtil::new(self.size, self.size).to(coord)] = color as u8;
             Ok(self)
         } else {
-            Err(format!("the coord :({},{}) are outside the goban",coord.0,coord.1))
+            Err(format!("the coord :({},{}) are outside the goban", coord.0, coord.1))
         }
     }
 
@@ -39,7 +39,7 @@ impl Goban {
 
     pub fn get(&self, coord: &Coord) -> StoneColor {
         if !self.coord_valid(coord) {
-            panic!("Coord out of bouds")
+            panic!("Coord out of bounds")
         }
         let c = CoordUtil::new(self.size, self.size);
 
@@ -47,7 +47,7 @@ impl Goban {
     }
 
     fn coord_valid(&self, coord: &Coord) -> bool {
-        if coord.0 < self.size || coord.1 < self.size {
+        if coord.0 < self.size && coord.1 < self.size {
             return true;
         }
         false
@@ -66,7 +66,6 @@ impl Goban {
     /// Removes the last
     pub fn pop(&mut self) -> &mut Self {
         self.tab.pop();
-
         self
     }
 
@@ -77,65 +76,62 @@ impl Goban {
     ///
     /// Get all the neighbors to the coordinate
     ///
-    pub fn get_neighbors(&self, coord: &Coord) -> Vec<Stone> {
-        let mut res = Vec::new();
-        for c in neighbors_coords(coord) {
-            if c.0 < self.size && c.1 < self.size {
-                res.push(Stone { coord: c.clone(), color: self.get(&c) })
-            }
-        }
-        res
+    pub fn get_neighbors(&self, coord: &Coord) -> impl Iterator<Item=Stone> + '_ {
+        neighbors_coords(coord)
+            .into_iter()
+            .filter(move |x| self.coord_valid(x))
+            .map(move |x| Stone { coord: x.clone(), color: self.get(&x) })
     }
     ///
     /// Get all the stones that are neighbor to the coord except empty intersections
     ///
-    pub fn get_neighbors_stones(&self, coord: &Coord) -> Vec<Stone> {
-        let mut res = Vec::new();
-        for c in neighbors_coords(coord) {
-            if c.0 < self.size && c.1 < self.size {
-                let s = self.get(&c);
-                if s != StoneColor::Empty {
-                    res.push(Stone { coord: c.clone(), color: self.get(&c) })
-                }
-            }
-        }
-        res
+    pub fn get_neighbors_stones(&self, coord: &Coord) -> impl Iterator<Item=Stone> + '_ {
+        self.get_neighbors(coord)
+            .filter(|s| s.color != StoneColor::Empty)
     }
 
-    pub fn get_stones(&self) -> Vec<Stone> {
-        let mut res = Vec::new();
-        for i in 0..self.size {
-            for j in 0..self.size {
-                let x = self.get(&(i, j));
-                if x != StoneColor::Empty {
-                    res.push(Stone { coord: (i, j), color: x })
-                }
-            }
-        }
-        res
+    ///
+    /// Get all the stones except "Empty stones"
+    ///
+    pub fn get_stones(&self) -> impl Iterator<Item=Stone> + '_ {
+        let coord_util = CoordUtil::new(self.size, self.size);
+        self.tab.iter()
+            .enumerate()
+            .filter(|(_index, t)| **t != StoneColor::Empty.into())
+            .map(move |(index, t)|
+                Stone { coord: coord_util.from(index), color: (*t).into() })
     }
 
-    pub fn get_stones_by_color(&self, color: &StoneColor) -> Vec<Stone> {
-        let mut res = Vec::new();
-        for i in 0..self.size {
-            for j in 0..self.size {
-                if self.get(&(i, j)) == *color {
-                    res.push(Stone { coord: (i, j), color: *color })
-                }
-            }
-        }
-        res
+    pub fn get_stones_by_color(&self, color: StoneColor) -> impl Iterator<Item=Stone> + '_ {
+        let coord_util = CoordUtil::new(self.size, self.size);
+        self.tab
+            .iter()
+            .enumerate()
+            .filter(move |(_index, t)| (**t) ==  color.into())
+            .map(move |(index, t)|
+                Stone { coord: coord_util.from(index), color: (*t).into() })
     }
 
-    pub fn get_liberties(&self, point: &Stone) -> u8 {
-        let liberties: Vec<Stone> = self.get_neighbors(&point.coord).into_iter()
-            .filter(|p| p.color == StoneColor::Empty)
-            .collect();
-        liberties.len() as u8
+    ///
+    /// Returns the empty stones connected to the point
+    ///
+    pub fn get_liberties(&self, point: &Stone) -> impl Iterator<Item=Stone> + '_ {
+        self.get_neighbors(&point.coord)
+            .filter(|s| s.color == StoneColor::Empty)
     }
 
+    ///
+    /// Returns the number of liberties.
+    ///
+    pub fn get_nb_liberties(&self, point: &Stone) -> u8 {
+        self.get_liberties(point).count() as u8
+    }
+
+    ///
+    /// Returns true if the stone has liberties.
+    ///
     pub fn has_liberties(&self, point: &Stone) -> bool {
-        self.get_liberties(point) != 0
+        self.get_liberties(point).any(|s| StoneColor::Empty == s.color)
     }
 
     pub fn pretty_string(&self) -> String {
