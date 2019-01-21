@@ -1,6 +1,6 @@
 [package]
 name = "goban"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme="README.md"
 description= "Library for go move generation and go ruling."
@@ -14,5 +14,6 @@ gitlab = {repository ="SamBlaise/goban"}
 maintenance = {status = "actively-developed"}
 
 [dependencies]
-rand = "0.6.1"
 getset = "0.0.6"
+[dev-dependencies]
+rand = "0.6.4"

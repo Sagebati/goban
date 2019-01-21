@@ -50,11 +50,15 @@ impl From<bool> for StoneColor {
     }
 }
 
+///
+///  "true" turn belongs to White
+///  "false" turn belongs to Black
+///
 impl Into<bool> for StoneColor {
     fn into(self) -> bool {
         match self {
-            StoneColor::Black => false,
             StoneColor::White => true,
+            StoneColor::Black => false,
             StoneColor::Empty => panic!("Tried to convert Empty to a turn")
         }
     }
