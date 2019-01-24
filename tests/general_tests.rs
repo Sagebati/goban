@@ -3,17 +3,19 @@ mod tests {
     use goban::rules::game::GobanSizes;
     use goban::pieces::goban::Goban;
     use goban::rules::game::Move;
-    use goban::pieces::stones::StoneColor;
+    use goban::pieces::stones::Color;
     use goban::rules::game::Game;
     use goban::rules::JapRule;
     use goban::rules::game::EndGame;
     use goban::pieces::stones::Stone;
     use rand::seq::IteratorRandom;
+    use std::fs::File;
+    use std::io::Read;
 
     #[test]
     fn goban() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push(&(1, 2), StoneColor::White).expect("Put the stone in the goban");
+        g.push(&(1, 2), Color::White).expect("Put the stone in the goban");
         println!("{}", g.pretty_string());
         assert_eq!(true, true)
     }
@@ -21,12 +23,12 @@ mod tests {
     #[test]
     fn get_all_stones() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push(&(1, 2), StoneColor::White).expect("Put the stone in the goban");
-        g.push(&(0, 0), StoneColor::Black).expect("Put the stone in the goban");
+        g.push(&(1, 2), Color::White).expect("Put the stone in the goban");
+        g.push(&(0, 0), Color::Black).expect("Put the stone in the goban");
 
         let expected = vec![
-            Stone { coord: (0, 0), color: StoneColor::Black },
-            Stone { coord: (1, 2), color: StoneColor::White }
+            Stone { coord: (0, 0), color: Color::Black },
+            Stone { coord: (1, 2), color: Color::White }
         ];
         let vec: Vec<Stone> = g.get_stones().collect();
         assert_eq!(expected, vec)
@@ -49,7 +51,7 @@ mod tests {
     #[test]
     fn atari() {
         let mut goban = Goban::new(9);
-        let s = Stone { coord: (4, 4), color: StoneColor::Black };
+        let s = Stone { coord: (4, 4), color: Color::Black };
         goban.push_stone(&s).expect("Put the stone");
         println!("{}", goban.pretty_string());
         let cl = goban.clone();
@@ -57,7 +59,7 @@ mod tests {
 
         x.for_each(|s| {
             println!("{:?}", s.coord);
-            goban.push_stone(&Stone { coord: s.coord, color: StoneColor::White })
+            goban.push_stone(&Stone { coord: s.coord, color: Color::White })
                 .expect("Put the stone");
         });
 
@@ -76,7 +78,7 @@ mod tests {
         g.play(&Move::Play(0, 1)); // B
         println!("{}", g.goban().pretty_string());
         // Atari
-        assert_eq!(g.goban().get(&(0, 0)), StoneColor::Empty);
+        assert_eq!(g.goban().get(&(0, 0)), Color::None);
     }
 
     #[test]
@@ -85,7 +87,7 @@ mod tests {
         g.play(&Move::Pass);
         g.play(&Move::Pass);
 
-        assert_eq!(g.game_over::<JapRule>(), true)
+        assert_eq!(g.over::<JapRule>(), true)
     }
 
     #[test]
@@ -95,10 +97,17 @@ mod tests {
         g.play(&Move::Pass);
         g.play(&Move::Pass);
         let score = match g.end_game::<JapRule>() {
-            EndGame::Score(black, white) => Ok((black, white)),
-            EndGame::GameNotFinish => Err("Game not finished"),
+            Some(EndGame::Score(black, white)) => Ok((black, white)),
+            _ => Err("Game not finished"),
         }.expect("Game finished");
         assert_eq!(score.0, 80.); //Black
         assert_eq!(score.1, 5.5); //White
+    }
+
+    #[test]
+    fn import_sgf() {
+        let mut file = File::open("test1.sgf").unwrap();
+        let mut content = String::new();
+        file.read_to_string(&mut content).unwrap();
     }
 }

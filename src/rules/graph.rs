@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use crate::pieces::stones::Stone;
 use crate::pieces::goban::Goban;
-use crate::pieces::stones::StoneColor;
+use crate::pieces::stones::Color;
 
 impl Goban {
     ///
@@ -20,7 +20,7 @@ impl Goban {
     /// Get all the groups of connected atari stones of a color.
     /// if the color is empty it's an undefined behaviour
     ///
-    pub fn get_dead_stones_color(&self, color: StoneColor) ->
+    pub fn get_dead_stones_color(&self, color: Color) ->
     Vec<HashSet<Stone>> {
         let atari_stones = self
             .get_stones_by_color(color)
