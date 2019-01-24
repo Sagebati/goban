@@ -9,8 +9,6 @@ mod tests {
     use goban::rules::game::EndGame;
     use goban::pieces::stones::Stone;
     use rand::seq::IteratorRandom;
-    use std::fs::File;
-    use std::io::Read;
 
     #[test]
     fn goban() {
@@ -102,12 +100,5 @@ mod tests {
         }.expect("Game finished");
         assert_eq!(score.0, 80.); //Black
         assert_eq!(score.1, 5.5); //White
-    }
-
-    #[test]
-    fn import_sgf() {
-        let mut file = File::open("test1.sgf").unwrap();
-        let mut content = String::new();
-        file.read_to_string(&mut content).unwrap();
     }
 }
