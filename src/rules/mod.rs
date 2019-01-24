@@ -4,7 +4,6 @@ use crate::rules::game::Game;
 pub mod game;
 pub mod graph;
 
-
 pub mod turn {
     pub const WHITE: bool = true;
     pub const BLACK: bool = false;
