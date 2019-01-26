@@ -7,11 +7,11 @@ use std::fmt::Error;
 
 #[derive(Clone, Eq, Getters, Setters)]
 pub struct Goban {
-    #[get]
+    #[get = "pub"]
     #[set]
     tab: Vec<u8>,
 
-    #[get]
+    #[get = "pub"]
     #[set]
     size: usize,
 }
