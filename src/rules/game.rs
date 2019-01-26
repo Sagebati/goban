@@ -83,6 +83,10 @@ impl Game {
         let prisoners = (0, 0);
         Game { goban, turn: BLACK, komi, prisoners, passes: pass, plays, resigned: None }
     }
+
+    pub fn get_board(&self) -> &Vec<u8> {
+        self.goban.tab()
+    }
 }
 
 impl Game {
