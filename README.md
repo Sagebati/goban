@@ -44,6 +44,7 @@ etc...
 - Capturing stones
 - Playing
 - Passing
+- Resigning
 - Naive implementation to count points
 - Printing an *ugly* ascii goban
 - Generate legals moves
@@ -54,7 +55,6 @@ etc...
 - Diff Rules
 
 ## TODO
-
 - SGF imports
 
 ## What is not in point:
