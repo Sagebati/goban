@@ -9,7 +9,7 @@ front-end.
 
 Exemple :
 
-```{rs}
+```{rust}
 let mut g = Game::new(GobanSizes::Nine);
         let mut i = 35;
         while !g.legals::<JapRule>().count() != 0 && i != 0 {
@@ -44,6 +44,7 @@ etc...
 - Capturing stones
 - Playing
 - Passing
+- Resigning
 - Naive implementation to count points
 - Printing an *ugly* ascii goban
 - Generate legals moves
@@ -54,7 +55,6 @@ etc...
 - Diff Rules
 
 ## TODO
-
 - SGF imports
 
 ## What is not in point:

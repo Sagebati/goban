@@ -57,6 +57,8 @@ pub struct Game {
     prisoners: (u32, u32),
 
     /// None if none resigned
+    /// true if the white resigned
+    /// false if the black resigned
     resigned: Option<bool>,
 
     #[get = "pub"]
@@ -111,7 +113,7 @@ impl Game {
             None
         } else {
             if let Some(x) = self.resigned {
-                Some(EndGame::WinnerByResign(x))
+                Some(EndGame::WinnerByResign(!x))
             } else {
                 let scores = T::count_points(&self);
                 Some(EndGame::Score(scores.0, scores.1))
