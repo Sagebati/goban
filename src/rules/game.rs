@@ -334,3 +334,85 @@ impl Game {
         }
     }
 }
+
+
+pub struct GameBuilder {
+    size: Option<usize>,
+    prisoners: Option<(u32, u32)>,
+    passes: Option<u8>,
+    turn: Option<bool>,
+    komi: Option<f32>,
+    resigned: Option<bool>,
+    plays: Option<Vec<Goban>>,
+}
+
+
+impl GameBuilder {
+    pub fn new() -> GameBuilder {
+        GameBuilder {
+            size: None,
+            prisoners: None,
+            passes: None,
+            turn: None,
+            komi: None,
+            resigned: None,
+            plays: None,
+        }
+    }
+
+    pub fn size(&mut self, size: usize) -> &GameBuilder {
+        self.size = Some(size);
+        self
+    }
+
+    pub fn turn(&mut self, turn: bool) -> &GameBuilder {
+        self.turn = Some(turn);
+        self
+    }
+
+    pub fn komi(&mut self, komi: f32) -> &GameBuilder {
+        self.komi = Some(komi);
+        self
+    }
+
+    pub fn plays(&mut self, plays: Vec<Goban>) -> &GameBuilder {
+        self.plays = Some(plays);
+        self
+    }
+
+    pub fn moves(&mut self, moves: Vec<Coord>) -> &GameBuilder {
+        let mut game = Game::new(GobanSizes::Custom(self.size.unwrap_or(19)));
+        moves.into_iter()
+            .for_each(|coord| game.play(&Move::Play(coord.0, coord.1)));
+        self.plays = Some(game.plays().clone());
+        self
+    }
+
+    pub fn passes(&mut self, passes: u8) -> &GameBuilder {
+        self.passes = Some(passes);
+        self
+    }
+
+    pub fn resigned(&mut self, resigned: Option<bool>) -> &GameBuilder {
+        self.resigned = resigned;
+        self
+    }
+
+    pub fn prisoners(&mut self, prisoners: (u32, u32)) -> &GameBuilder {
+        self.prisoners = Some(prisoners);
+        self
+    }
+
+    pub fn build(&self) -> Game {
+        Game {
+            goban: Goban::new(self.size.unwrap_or(19)),
+            passes: self.passes.unwrap_or(0),
+            prisoners: self.prisoners.unwrap_or((0, 0)),
+            resigned: self.resigned,
+            turn: self.turn.unwrap_or(false),
+            komi: self.komi.unwrap_or(0.),
+            plays: self.plays.clone().unwrap_or(Vec::new()),
+        }
+    }
+}
+
