@@ -18,3 +18,4 @@ getset = "0.0.6"
 
 [dev-dependencies]
 rand = "0.6.4"
+mcts = "0.2.0"
