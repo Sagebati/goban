@@ -26,7 +26,7 @@ impl Into<usize> for GobanSizes {
 }
 
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone,  Debug)]
 pub enum Move {
     Pass,
     Resign,
