@@ -94,88 +94,11 @@ mod tests {
         g.play(&Move::Play(4, 4));
         g.play(&Move::Pass);
         g.play(&Move::Pass);
-        let score = match g.end_game::<JapRule>() {
+        let score = match g.outcome::<JapRule>() {
             Some(EndGame::Score(black, white)) => Ok((black, white)),
             _ => Err("Game not finished"),
         }.expect("Game finished");
         assert_eq!(score.0, 80.); //Black
         assert_eq!(score.1, 5.5); //White
-    }
-
-    use mcts::*;
-    use mcts::tree_policy::TreePolicy;
-    use mcts::tree_policy::UCTPolicy;
-
-    #[derive(Clone)]
-    struct IGame(Game);
-
-    impl GameState for IGame {
-        type Move = Move;
-        type Player = bool;
-        type MoveList = Vec<Move>;
-
-        fn current_player(&self) -> Self::Player {
-            *self.0.turn()
-        }
-
-        fn available_moves(&self) -> Self::MoveList {
-            let mut r = self.0.legals::<JapRule>()
-                .map(|c| Move::Play(c.0, c.1))
-                .collect::<Vec<Move>>();
-            r.push(Move::Pass);
-            //r.push(Move::Resign);
-            r
-        }
-
-        fn make_move(&mut self, mov: &Self::Move) {
-            self.0.play(mov);
-        }
-    }
-
-    struct GoEval;
-
-    impl Evaluator<GoMCTS> for GoEval {
-        type StateEvaluation = i32;
-
-        fn evaluate_new_state<'a, 'b, 'c>(&'a self, state: &IGame, moves: &Vec<Move>, handle:
-        Option<SearchHandle<'a, GoMCTS>>) -> (Vec<<<GoMCTS as MCTS>::TreePolicy as TreePolicy<GoMCTS>>::MoveEvaluation>, Self::StateEvaluation) {
-            (vec![(); moves.len()],
-             if let Some(x) = state.0.end_game::<JapRule>() {
-                 match x {
-                     EndGame::Score(black, white) => if black > white { 1 } else { -1 },
-                     EndGame::WinnerByResign(b) => if b { 1 } else { -1 },
-                 }
-             } else {
-                 0
-             })
-        }
-
-        fn evaluate_existing_state<'a, 'b, 'c>(&'a self, state: &IGame, existing_evaln: &'c
-        Self::StateEvaluation, handle: SearchHandle<'a, GoMCTS>) -> Self::StateEvaluation {
-            *existing_evaln
-        }
-
-        fn interpret_evaluation_for_player(&self, evaluation: &Self::StateEvaluation, player: &<<GoMCTS as MCTS>::State as GameState>::Player) -> i64 {
-            *evaluation as i64
-        }
-    }
-
-
-    struct GoMCTS;
-
-    impl MCTS for GoMCTS {
-        type State = IGame;
-        type Eval = GoEval;
-        type TreePolicy = UCTPolicy;
-        type NodeData = ();
-        type ExtraThreadData = ();
-    }
-
-    #[test]
-    pub fn playouts_mcts() {
-        let game: IGame = IGame(Game::new(GobanSizes::Nineteen));
-        let mut mcts = MCTSManager::new(game, GoMCTS, GoEval, UCTPolicy::new(0.5));
-        mcts.playout_n_parallel(100000, 4);
-        mcts.tree().debug_moves();
     }
 }

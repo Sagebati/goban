@@ -3,10 +3,12 @@ use crate::pieces::stones::Color;
 use std::collections::HashSet;
 use crate::pieces::stones::Stone;
 use crate::rules::Rule;
-use crate::rules::turn::BLACK;
 use crate::rules::PlayError;
 use crate::pieces::util::Coord;
+use crate::rules::turn::BLACK;
+use crate::rules::turn::WHITE;
 
+#[derive(Debug, Clone)]
 pub enum GobanSizes {
     Nineteen,
     Nine,
@@ -26,7 +28,7 @@ impl Into<usize> for GobanSizes {
 }
 
 
-#[derive(Copy, Clone,  Debug)]
+#[derive(Clone, Debug)]
 pub enum Move {
     Pass,
     Resign,
@@ -39,10 +41,10 @@ impl From<Coord> for Move {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum EndGame {
     Score(f32, f32),
-    WinnerByResign(bool),
+    WinnerByResign(Player),
 }
 
 #[derive(Clone, Getters, Setters)]
@@ -61,8 +63,6 @@ pub struct Game {
     /// false if the black resigned
     resigned: Option<bool>,
 
-    #[get = "pub"]
-    #[set = "pub"]
     turn: bool,
 
     #[get = "pub"]
@@ -74,6 +74,12 @@ pub struct Game {
     plays: Vec<Goban>,
 }
 
+#[derive(Debug, Clone)]
+pub enum Player {
+    White,
+    Black,
+}
+
 impl Game {
     pub fn new(size: GobanSizes) -> Game {
         let goban = Goban::new(size.into());
@@ -82,6 +88,14 @@ impl Game {
         let plays = Vec::new();
         let prisoners = (0, 0);
         Game { goban, turn: BLACK, komi, prisoners, passes: pass, plays, resigned: None }
+    }
+
+    pub fn turn(&self) -> Player {
+        if self.turn {
+            Player::White
+        } else {
+            Player::Black
+        }
     }
 }
 
@@ -108,12 +122,16 @@ impl Game {
     /// Returns the endgame.
     /// None if the game is not finished
     ///
-    pub fn end_game<T: Rule>(&self) -> Option<EndGame> {
+    pub fn outcome<T: Rule>(&self) -> Option<EndGame> {
         if !self.over::<T>() {
             None
         } else {
             if let Some(x) = self.resigned {
-                Some(EndGame::WinnerByResign(!x))
+                if x == WHITE {
+                    Some(EndGame::WinnerByResign(Player::Black))
+                } else {
+                    Some(EndGame::WinnerByResign(Player::White))
+                }
             } else {
                 let scores = T::count_points(&self);
                 Some(EndGame::Score(scores.0, scores.1))
