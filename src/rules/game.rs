@@ -257,6 +257,14 @@ impl Game {
     }
 
     ///
+    /// Calculates score. with prisoners and komi.
+    /// Dependant of the rule.
+    ///
+    pub fn calculate_score<T: Rule>(&self) -> (f32, f32) {
+        T::count_points(self)
+    }
+
+    ///
     /// Generate all moves on all intersections.
     ///
     fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {

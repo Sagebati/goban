@@ -7,7 +7,6 @@ use goban::rules::game::EndGame;
 use goban::rules::game::GobanSizes;
 use goban::rules::game::Move;
 use goban::rules::game::Player;
-use mcts::tree_policy::AlphaGoPolicy;
 
 #[derive(Clone)]
 struct IGame(pub Game);
@@ -42,7 +41,7 @@ impl GameState for IGame {
 struct GoEval;
 
 impl Evaluator<GoMCTS> for GoEval {
-    type StateEvaluation = i64;
+    type StateEvaluation = f32;
 
     fn evaluate_new_state<'a, 'b, 'c>(&'a self, state: &IGame, moves: &Vec<Move>, _handle:
     Option<SearchHandle<'a, GoMCTS>>) -> (Vec<<<GoMCTS as MCTS>::TreePolicy as TreePolicy<GoMCTS>>::MoveEvaluation>, Self::StateEvaluation) {
@@ -51,17 +50,21 @@ impl Evaluator<GoMCTS> for GoEval {
              match x {
                  EndGame::Score(black, white) =>
                      if black > white {
-                         1000
+                         100.
                      } else {
-                         -1000
+                         -100.
                      },
                  EndGame::WinnerByResign(player) => match player {
-                     Player::Black => 1000,
-                     Player::White => -1000,
+                     Player::Black => 100.,
+                     Player::White => -100.,
                  },
              }
          } else {
-             0
+             let score = state.0.calculate_score::<JapRule>();
+             match state.0.turn() {
+                 Player::Black => score.0,
+                 Player::White => score.1,
+             }
          })
     }
 
@@ -74,9 +77,9 @@ impl Evaluator<GoMCTS> for GoEval {
     &<<GoMCTS as MCTS>::State as GameState>::Player) -> i64 {
         match player {
             Player::White =>
-                -*evaluation,
+                (-*evaluation * 10.) as i64,
             Player::Black =>
-                *evaluation
+                (*evaluation * 10.) as i64
         }
     }
 }
@@ -94,7 +97,7 @@ impl MCTS for GoMCTS {
 
 #[test]
 pub fn playouts_mcts() {
-    let mut game: IGame = IGame(Game::new(GobanSizes::Nine));
+    let mut game: IGame = IGame(Game::new(GobanSizes::Custom(5)));
     for _i in 0..150 {
         let mut mcts = MCTSManager::new(game.clone(), GoMCTS, GoEval, UCTPolicy::new(0.6));
         mcts.playout_n_parallel(1000, 12);
