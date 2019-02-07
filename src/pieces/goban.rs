@@ -5,7 +5,7 @@ use std::fmt::Formatter;
 use std::fmt::Error;
 
 
-#[derive(Clone, Eq, Getters, Setters)]
+#[derive(Clone, Eq, Getters, Setters, Debug)]
 pub struct Goban {
     #[get = "pub"]
     #[set]
@@ -41,6 +41,15 @@ impl Goban {
         }
     }
 
+    ///
+    /// Put many stones.
+    ///
+    pub fn push_many<'a>(&'a mut self, coords: impl Iterator<Item=&'a Coord>, value: Color) {
+        coords.for_each(|c| {
+            self.push(c, value).expect("Add one of the stones to the goban.");
+        })
+    }
+
     pub fn push_stone(&mut self, stone: &Stone) -> Result<&mut Goban, String> {
         self.push(&stone.coord, stone.color)
     }
@@ -52,17 +61,6 @@ impl Goban {
         let c = CoordUtil::new(self.size, self.size);
 
         self.tab[c.to(coord)].into()
-    }
-
-
-    ///
-    /// Put many stones.
-    ///
-    pub fn push_many<'a>(&'a mut self, coords: impl Iterator<Item=&'a Coord>, value: Color) {
-        coords.for_each(|c| {
-            self.push(c, value).expect("Add one\
-        of the stones to the goban.");
-        })
     }
 
     /// Removes the last
@@ -152,11 +150,15 @@ impl Goban {
         buff
     }
 
+    ///
+    /// Return true if the coord is in the goban.
+    ///
     fn coord_valid(&self, coord: &Coord) -> bool {
         if coord.0 < self.size && coord.1 < self.size {
-            return true;
+            true
+        }else{
+            false
         }
-        false
     }
 }
 

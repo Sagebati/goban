@@ -8,7 +8,7 @@ use crate::pieces::util::Coord;
 use crate::rules::turn::BLACK;
 use crate::rules::turn::WHITE;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GobanSizes {
     Nineteen,
     Nine,
@@ -28,7 +28,7 @@ impl Into<usize> for GobanSizes {
 }
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Move {
     Pass,
     Resign,
@@ -41,13 +41,13 @@ impl From<Coord> for Move {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum EndGame {
     Score(f32, f32),
     WinnerByResign(Player),
 }
 
-#[derive(Clone, Getters, Setters)]
+#[derive(Clone, Getters, Setters, Debug)]
 pub struct Game {
     #[get = "pub"]
     #[set = "pub"]
@@ -63,6 +63,8 @@ pub struct Game {
     /// false if the black resigned
     resigned: Option<bool>,
 
+    /// Bool true when is white turn
+    /// false when is black turn
     turn: bool,
 
     #[get = "pub"]
@@ -74,7 +76,7 @@ pub struct Game {
     plays: Vec<Goban>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Player {
     White,
     Black,
@@ -139,12 +141,13 @@ impl Game {
         }
     }
 
+
     ///
-    /// Removes the last move.
+    /// Generate all moves on all intersections.
     ///
-    pub fn pop(&mut self) {
-        self.goban.pop();
-        self.plays.pop();
+    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
+        self.goban.get_stones_by_color(Color::None)
+            .map(|s| s.coord)
     }
 
     ///
@@ -188,7 +191,7 @@ impl Game {
                     .expect(&format!("Put the stone in ({},{}) of color {}", x, y, self.turn));
                 self.turn = !self.turn;
                 self.passes = 0;
-                self.remove_dead_stones();
+                self.remove_captured_stones();
             }
             Move::Resign => {
                 self.resigned = self.turn.into();
@@ -200,7 +203,7 @@ impl Game {
     /// Method to play but it verifies if the play is legal or not.
     ///
     pub fn play_with_verifications<R: Rule>(&mut self, play: &Move) -> Result<(), PlayError> {
-        if self.passes != 2 {
+        if self.passes == 2 {
             Err(PlayError::GamePaused)
         } else {
             match *play {
@@ -222,6 +225,14 @@ impl Game {
                 }
             }
         }
+    }
+
+    ///
+    /// Removes the last move.
+    ///
+    pub fn pop(&mut self) {
+        self.goban.pop();
+        self.plays.pop();
     }
 
     ///
@@ -264,13 +275,6 @@ impl Game {
         T::count_points(self)
     }
 
-    ///
-    /// Generate all moves on all intersections.
-    ///
-    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
-        self.goban.get_stones_by_color(Color::None)
-            .map(|s| s.coord)
-    }
 
     ///
     /// Add a stone to the board an then test if the stone or stone group is
@@ -284,7 +288,7 @@ impl Game {
         if goban_test.has_liberties(stone) {
             false
         } else {
-            // Search if the opponent has dead stones because of the play
+            // Search if the opponent has captured stones because of the play
             if Goban::get_dead_stones_color(&goban_test, (!self.turn).into()).len() == 0 {
                 true
             } else {
@@ -335,8 +339,8 @@ impl Game {
     ///
     /// Removes dead stones from the goban.
     ///
-    fn remove_dead_stones(&mut self) {
-        for groups_of_stones in self.goban.get_dead_stones() {
+    fn remove_captured_stones(&mut self) {
+        for groups_of_stones in self.goban.get_captured_stones() {
             if self.are_dead(&groups_of_stones) {
                 self.goban.push_many(
                     groups_of_stones
@@ -349,7 +353,8 @@ impl Game {
     ///
     /// Removes the dead stones from the goban by specifying a color stone.
     ///
-    fn remove_dead_stones_color(&mut self, color: Color) {
+    #[allow(dead_code)]
+    fn remove_captured_stones_color(&mut self, color: Color) {
         for groups_of_stones in self.goban.get_dead_stones_color(color) {
             if self.are_dead(&groups_of_stones) {
                 self.goban.push_many(
@@ -362,83 +367,4 @@ impl Game {
 }
 
 
-pub struct GameBuilder {
-    size: Option<usize>,
-    prisoners: Option<(u32, u32)>,
-    passes: Option<u8>,
-    turn: Option<bool>,
-    komi: Option<f32>,
-    resigned: Option<bool>,
-    plays: Option<Vec<Goban>>,
-}
-
-
-impl GameBuilder {
-    pub fn new() -> GameBuilder {
-        GameBuilder {
-            size: None,
-            prisoners: None,
-            passes: None,
-            turn: None,
-            komi: None,
-            resigned: None,
-            plays: None,
-        }
-    }
-
-    pub fn size(&mut self, size: usize) -> &GameBuilder {
-        self.size = Some(size);
-        self
-    }
-
-    pub fn turn(&mut self, turn: bool) -> &GameBuilder {
-        self.turn = Some(turn);
-        self
-    }
-
-    pub fn komi(&mut self, komi: f32) -> &GameBuilder {
-        self.komi = Some(komi);
-        self
-    }
-
-    pub fn plays(&mut self, plays: Vec<Goban>) -> &GameBuilder {
-        self.plays = Some(plays);
-        self
-    }
-
-    pub fn moves(&mut self, moves: Vec<Coord>) -> &GameBuilder {
-        let mut game = Game::new(GobanSizes::Custom(self.size.unwrap_or(19)));
-        moves.into_iter()
-            .for_each(|coord| game.play(&Move::Play(coord.0, coord.1)));
-        self.plays = Some(game.plays().clone());
-        self
-    }
-
-    pub fn passes(&mut self, passes: u8) -> &GameBuilder {
-        self.passes = Some(passes);
-        self
-    }
-
-    pub fn resigned(&mut self, resigned: Option<bool>) -> &GameBuilder {
-        self.resigned = resigned;
-        self
-    }
-
-    pub fn prisoners(&mut self, prisoners: (u32, u32)) -> &GameBuilder {
-        self.prisoners = Some(prisoners);
-        self
-    }
-
-    pub fn build(&self) -> Game {
-        Game {
-            goban: Goban::new(self.size.unwrap_or(19)),
-            passes: self.passes.unwrap_or(0),
-            prisoners: self.prisoners.unwrap_or((0, 0)),
-            resigned: self.resigned,
-            turn: self.turn.unwrap_or(false),
-            komi: self.komi.unwrap_or(0.),
-            plays: self.plays.clone().unwrap_or(Vec::new()),
-        }
-    }
-}
 

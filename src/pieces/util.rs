@@ -2,23 +2,24 @@ const ORDER: Order = Order::RowMajor;
 
 pub type Coord = (usize, usize);
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Order {
     RowMajor,
     ColumnMajor,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CoordUtil {
     n_rows: usize,
     n_cols: usize,
 }
 
 pub fn neighbors_coords(coord: &Coord) -> Vec<Coord> {
-    let (x, y) = *coord;
     vec![
-        (x.wrapping_add(1), y),
-        (x.wrapping_sub(1), y),
-        (x, y.wrapping_add(1)),
-        (x, y.wrapping_sub(1))
+        (coord.0.wrapping_add(1), coord.1),
+        (coord.0.wrapping_sub(1), coord.1),
+        (coord.0, coord.1.wrapping_add(1)),
+        (coord.0, coord.1.wrapping_sub(1))
     ]
 }
 
