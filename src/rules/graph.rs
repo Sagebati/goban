@@ -7,7 +7,7 @@ impl Goban {
     ///
     /// Get all the groups of connected atari stones
     ///
-    pub fn get_dead_stones(&self) -> Vec<HashSet<Stone>> {
+    pub fn get_captured_stones(&self) -> Vec<HashSet<Stone>> {
         let atari_stones = self
             // get all stones without liberties
             .get_stones()
@@ -41,9 +41,9 @@ impl Goban {
             .filter(|p| p.color == point.color)
             .collect(); // Acquiring all the neighbors
 
-        while let Some(point_to_explore) = to_explore.pop() { // exploring the graph
-            explored.insert(point_to_explore);
-            self.get_neighbors(&point_to_explore.coord)
+        while let Some(stone_to_explore) = to_explore.pop() { // exploring the graph
+            explored.insert(stone_to_explore.clone());
+            self.get_neighbors(&stone_to_explore.coord)
                 .filter(|p| p.color == point.color && !explored.contains(p))
                 .for_each(|s| to_explore.push(s));
         }

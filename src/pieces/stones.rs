@@ -14,7 +14,7 @@ pub enum Color {
     None = 0,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct Stone {
     pub coord: Coord,
     pub color: Color,

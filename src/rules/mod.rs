@@ -47,10 +47,32 @@ impl Rule for JapRule {
     fn move_validation(game: &Game, stone: &Stone) -> Option<PlayError> {
         if game.is_suicide(stone) {
             return Some(PlayError::Suicide);
-        }
-        if game.is_ko(stone) {
+        } else if game.is_ko(stone) {
             return Some(PlayError::Ko);
+        } else {
+            None
         }
-        None
+    }
+}
+
+
+pub struct ChineseRule;
+
+impl Rule for ChineseRule {
+    fn count_points(game: &Game) -> (f32, f32) {
+        // Territories in seki are not counted
+        let mut scores = game.calculate_territories();
+        scores.1 += game.komi();
+        scores
+    }
+
+    fn move_validation(game: &Game, stone: &Stone) -> Option<PlayError> {
+        if game.is_suicide(stone) {
+            Some(PlayError::Suicide)
+        } else if game.is_ko(stone) {
+            Some(PlayError::Ko)
+        } else {
+            None
+        }
     }
 }

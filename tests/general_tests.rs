@@ -94,7 +94,7 @@ mod tests {
         g.play(&Move::Play(4, 4));
         g.play(&Move::Pass);
         g.play(&Move::Pass);
-        let score = match g.end_game::<JapRule>() {
+        let score = match g.outcome::<JapRule>() {
             Some(EndGame::Score(black, white)) => Ok((black, white)),
             _ => Err("Game not finished"),
         }.expect("Game finished");

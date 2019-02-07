@@ -3,10 +3,12 @@ use crate::pieces::stones::Color;
 use std::collections::HashSet;
 use crate::pieces::stones::Stone;
 use crate::rules::Rule;
-use crate::rules::turn::BLACK;
 use crate::rules::PlayError;
 use crate::pieces::util::Coord;
+use crate::rules::turn::BLACK;
+use crate::rules::turn::WHITE;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GobanSizes {
     Nineteen,
     Nine,
@@ -26,7 +28,7 @@ impl Into<usize> for GobanSizes {
 }
 
 
-#[derive(Copy, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Move {
     Pass,
     Resign,
@@ -39,13 +41,13 @@ impl From<Coord> for Move {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum EndGame {
     Score(f32, f32),
-    WinnerByResign(bool),
+    WinnerByResign(Player),
 }
 
-#[derive(Clone, Getters, Setters)]
+#[derive(Clone, Getters, Setters, Debug)]
 pub struct Game {
     #[get = "pub"]
     #[set = "pub"]
@@ -61,8 +63,8 @@ pub struct Game {
     /// false if the black resigned
     resigned: Option<bool>,
 
-    #[get = "pub"]
-    #[set = "pub"]
+    /// Bool true when is white turn
+    /// false when is black turn
     turn: bool,
 
     #[get = "pub"]
@@ -74,6 +76,12 @@ pub struct Game {
     plays: Vec<Goban>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Player {
+    White,
+    Black,
+}
+
 impl Game {
     pub fn new(size: GobanSizes) -> Game {
         let goban = Goban::new(size.into());
@@ -82,6 +90,14 @@ impl Game {
         let plays = Vec::new();
         let prisoners = (0, 0);
         Game { goban, turn: BLACK, komi, prisoners, passes: pass, plays, resigned: None }
+    }
+
+    pub fn turn(&self) -> Player {
+        if self.turn {
+            Player::White
+        } else {
+            Player::Black
+        }
     }
 }
 
@@ -108,12 +124,16 @@ impl Game {
     /// Returns the endgame.
     /// None if the game is not finished
     ///
-    pub fn end_game<T: Rule>(&self) -> Option<EndGame> {
+    pub fn outcome<T: Rule>(&self) -> Option<EndGame> {
         if !self.over::<T>() {
             None
         } else {
             if let Some(x) = self.resigned {
-                Some(EndGame::WinnerByResign(!x))
+                if x == WHITE {
+                    Some(EndGame::WinnerByResign(Player::Black))
+                } else {
+                    Some(EndGame::WinnerByResign(Player::White))
+                }
             } else {
                 let scores = T::count_points(&self);
                 Some(EndGame::Score(scores.0, scores.1))
@@ -121,12 +141,13 @@ impl Game {
         }
     }
 
+
     ///
-    /// Removes the last move.
+    /// Generate all moves on all intersections.
     ///
-    pub fn pop(&mut self) {
-        self.goban.pop();
-        self.plays.pop();
+    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
+        self.goban.get_stones_by_color(Color::None)
+            .map(|s| s.coord)
     }
 
     ///
@@ -170,7 +191,7 @@ impl Game {
                     .expect(&format!("Put the stone in ({},{}) of color {}", x, y, self.turn));
                 self.turn = !self.turn;
                 self.passes = 0;
-                self.remove_dead_stones();
+                self.remove_captured_stones();
             }
             Move::Resign => {
                 self.resigned = self.turn.into();
@@ -182,7 +203,7 @@ impl Game {
     /// Method to play but it verifies if the play is legal or not.
     ///
     pub fn play_with_verifications<R: Rule>(&mut self, play: &Move) -> Result<(), PlayError> {
-        if self.passes != 2 {
+        if self.passes == 2 {
             Err(PlayError::GamePaused)
         } else {
             match *play {
@@ -204,6 +225,14 @@ impl Game {
                 }
             }
         }
+    }
+
+    ///
+    /// Removes the last move.
+    ///
+    pub fn pop(&mut self) {
+        self.goban.pop();
+        self.plays.pop();
     }
 
     ///
@@ -239,12 +268,13 @@ impl Game {
     }
 
     ///
-    /// Generate all moves on all intersections.
+    /// Calculates score. with prisoners and komi.
+    /// Dependant of the rule.
     ///
-    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
-        self.goban.get_stones_by_color(Color::None)
-            .map(|s| s.coord)
+    pub fn calculate_score<T: Rule>(&self) -> (f32, f32) {
+        T::count_points(self)
     }
+
 
     ///
     /// Add a stone to the board an then test if the stone or stone group is
@@ -258,7 +288,7 @@ impl Game {
         if goban_test.has_liberties(stone) {
             false
         } else {
-            // Search if the opponent has dead stones because of the play
+            // Search if the opponent has captured stones because of the play
             if Goban::get_dead_stones_color(&goban_test, (!self.turn).into()).len() == 0 {
                 true
             } else {
@@ -309,8 +339,8 @@ impl Game {
     ///
     /// Removes dead stones from the goban.
     ///
-    fn remove_dead_stones(&mut self) {
-        for groups_of_stones in self.goban.get_dead_stones() {
+    fn remove_captured_stones(&mut self) {
+        for groups_of_stones in self.goban.get_captured_stones() {
             if self.are_dead(&groups_of_stones) {
                 self.goban.push_many(
                     groups_of_stones
@@ -323,7 +353,8 @@ impl Game {
     ///
     /// Removes the dead stones from the goban by specifying a color stone.
     ///
-    fn remove_dead_stones_color(&mut self, color: Color) {
+    #[allow(dead_code)]
+    fn remove_captured_stones_color(&mut self, color: Color) {
         for groups_of_stones in self.goban.get_dead_stones_color(color) {
             if self.are_dead(&groups_of_stones) {
                 self.goban.push_many(
@@ -334,3 +365,6 @@ impl Game {
         }
     }
 }
+
+
+
