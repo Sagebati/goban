@@ -30,26 +30,14 @@ pub enum PlayError {
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Rule {
-    JapRule,
-    ChineseRule,
-}
-
-pub trait RuleImpl {
-    ///
-    /// Counts the point for each player.
-    /// (black points, white points)
-    ///
-    fn count_points(game: &Game) -> (f32, f32);
-    ///
-    /// Returns if a move is valid or not dependent of the rules.
-    ///
-    fn move_validation(game: &Game, stone: &Stone) -> Option<PlayError>;
+    Japanese,
+    Chinese,
 }
 
 impl Rule {
     pub fn count_points(&self, game: &Game) -> (f32, f32) {
         match self {
-            Rule::JapRule => {
+            Rule::Japanese => {
                 let mut scores = game.calculate_territories();
                 scores.0 += game.prisoners().0 as f32;
                 scores.1 += game.prisoners().1 as f32;
@@ -57,7 +45,7 @@ impl Rule {
 
                 scores
             }
-            Rule::ChineseRule => {
+            Rule::Chinese => {
                 // Territories in seki are not counted
                 let mut scores = game.calculate_territories();
                 scores.1 += game.komi();
@@ -68,7 +56,7 @@ impl Rule {
 
     pub fn move_validation(&self, game: &Game, stone: &Stone) -> Option<PlayError> {
         match self {
-            Rule::JapRule => {
+            Rule::Japanese => {
                 if game.is_suicide(stone) {
                     Some(PlayError::Suicide)
                 } else if game.is_ko(stone) {
@@ -77,7 +65,7 @@ impl Rule {
                     None
                 }
             }
-            Rule::ChineseRule => {
+            Rule::Chinese => {
                 if game.is_suicide(stone) {
                     return Some(PlayError::Suicide);
                 } else if game.is_ko(stone) {
