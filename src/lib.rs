@@ -1,6 +1,9 @@
 //! # Exemple
 //! ## Get legals moves and plays some random.
 //! ```
+//!     use crate::goban::rules::*;
+//!     use crate::goban::rules::game::*;
+//!
 //!     let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
 //        let mut i = 35;
 //        while !g.legals().count() != 0 && i != 0 {
