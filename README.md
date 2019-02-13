@@ -37,8 +37,7 @@ let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
 etc...
 ```
 
-**Is not ready**
-
+**Is in beta.**
 
 ## What works (or seem to works)
 - Capturing stones
