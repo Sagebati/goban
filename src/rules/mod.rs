@@ -1,3 +1,6 @@
+//! Module for ruling in the game of go.
+
+
 use crate::pieces::stones::Stone;
 use crate::rules::game::Game;
 
@@ -28,6 +31,10 @@ pub enum PlayError {
     GamePaused,
 }
 
+///
+/// This enum describes the rules for the game.
+/// for example in chinese rules we don't count prisoners.
+///
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Rule {
     Japanese,
@@ -35,6 +42,9 @@ pub enum Rule {
 }
 
 impl Rule {
+    ///
+    /// Count the points of the game
+    ///
     pub fn count_points(&self, game: &Game) -> (f32, f32) {
         match self {
             Rule::Japanese => {
@@ -53,7 +63,9 @@ impl Rule {
             }
         }
     }
-
+    ///
+    /// Specify the constraints in the move validation by rule.
+    ///
     pub fn move_validation(&self, game: &Game, stone: &Stone) -> Option<PlayError> {
         match self {
             Rule::Japanese => {
