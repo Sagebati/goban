@@ -49,10 +49,11 @@ etc...
 - Printing an *ugly* ascii goban
 - Generate legals moves
 - Japanese Rules
+- Chinese Rules
 
 ## In actual development
 - Documentation
-- Diff Rules
+- Best workflow for passing
 
 ## TODO
 - SGF imports
