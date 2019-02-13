@@ -10,11 +10,11 @@ front-end.
 Exemple :
 
 ```{rust}
-let mut g = Game::new(GobanSizes::Nine);
+let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
         let mut i = 35;
-        while !g.legals::<JapRule>().count() != 0 && i != 0 {
+        while !g.legals().count() != 0 && i != 0 {
             g.play(
-                &g.legals::<JapRule>().map(|coord| Move::Play(coord.0, coord.1))
+                &g.legals().map(|coord| Move::Play(coord.0, coord.1))
                     .choose(&mut rand::thread_rng())
                     .unwrap());
             i -= 1;
