@@ -1,3 +1,6 @@
+//! Module for ruling in the game of go.
+
+
 use crate::pieces::stones::Stone;
 use crate::rules::game::Game;
 

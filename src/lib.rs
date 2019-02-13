@@ -1,10 +1,3 @@
-#[macro_use]
-extern crate getset;
-
-//!
-//! Library for Go playing and ruling.
-//!
-//!
 //! # Exemple
 //! ## Get legals moves and plays some random.
 //! ```
@@ -20,6 +13,8 @@ extern crate getset;
 //        }
 //! ```
 
+#[macro_use]
+extern crate getset;
 
 pub mod pieces;
 pub mod rules;
