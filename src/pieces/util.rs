@@ -1,3 +1,6 @@
+//! Module with the logic for calculating coordinates.
+
+/// Defining the policy for the colums.
 const ORDER: Order = Order::RowMajor;
 
 pub type Coord = (usize, usize);
@@ -8,6 +11,7 @@ pub enum Order {
     ColumnMajor,
 }
 
+/// Waiting for const numeric.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CoordUtil {
     n_rows: usize,
