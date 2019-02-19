@@ -7,6 +7,10 @@ use std::fmt::Error;
 
 #[derive(Clone, Eq, Getters, Setters, Debug)]
 pub struct Goban {
+    ///
+    /// The values are stored in a one dimension vector.
+    /// Using the RowMajor Policy.
+    ///
     #[get = "pub"]
     #[set]
     tab: Vec<u8>,
