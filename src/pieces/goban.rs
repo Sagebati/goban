@@ -1,3 +1,5 @@
+//! Module with the goban and his implementations.
+
 use crate::pieces::util::*;
 use crate::pieces::stones::*;
 use std::fmt::Display;
@@ -5,6 +7,9 @@ use std::fmt::Formatter;
 use std::fmt::Error;
 
 
+///
+/// Represents a Goban. With an array with the stones encoded in u8. and the size.
+///
 #[derive(Clone, Eq, Getters, Setters, Debug)]
 pub struct Goban {
     ///
@@ -160,7 +165,7 @@ impl Goban {
     fn coord_valid(&self, coord: &Coord) -> bool {
         if coord.0 < self.size && coord.1 < self.size {
             true
-        }else{
+        } else {
             false
         }
     }

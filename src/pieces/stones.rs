@@ -1,3 +1,5 @@
+//! Module with all needed to play.
+
 use crate::pieces::util::Coord;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -7,6 +9,7 @@ pub const WHITE_STONE: char = '⚫';
 pub const BLACK_STONE: char = '⚪';
 pub const EMPTY_STONE: char = '.';
 
+/// Color on the goban.
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
 pub enum Color {
     White = 2,
@@ -14,6 +17,7 @@ pub enum Color {
     None = 0,
 }
 
+/// Stone on a goban.
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct Stone {
     pub coord: Coord,
