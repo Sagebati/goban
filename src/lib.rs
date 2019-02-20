@@ -3,6 +3,7 @@
 //! ```
 //!     use crate::goban::rules::*;
 //!     use crate::goban::rules::game::*;
+//!     use rand::seq::IteratorRandom;
 //!
 //!     let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
 //!       let mut i = 35;
