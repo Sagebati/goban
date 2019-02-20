@@ -9,4 +9,4 @@ TODO
 # Functionalities
 
 - Detect dead stones at the end of the game.
-
+- SGF Import
