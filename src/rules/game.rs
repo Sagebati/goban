@@ -7,6 +7,8 @@ use crate::rules::PlayError;
 use crate::pieces::util::Coord;
 use crate::rules::turn::BLACK;
 use crate::rules::turn::WHITE;
+use crate::rules::Player;
+use crate::rules::EndGame;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GobanSizes {
@@ -41,11 +43,6 @@ impl From<Coord> for Move {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum EndGame {
-    Score(f32, f32),
-    WinnerByResign(Player),
-}
 
 #[derive(Clone, Getters, Setters, Debug)]
 pub struct Game {
@@ -72,24 +69,32 @@ pub struct Game {
     komi: f32,
 
     #[get = "pub"]
+    #[set]
+    rule: Rule,
+
+    #[get = "pub"]
     #[set = "pub"]
     plays: Vec<Goban>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Player {
-    White,
-    Black,
-}
 
 impl Game {
-    pub fn new(size: GobanSizes) -> Game {
+    pub fn new(size: GobanSizes, rule: Rule) -> Game {
         let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = 0;
         let plays = Vec::new();
         let prisoners = (0, 0);
-        Game { goban, turn: BLACK, komi, prisoners, passes: pass, plays, resigned: None }
+        Game {
+            goban,
+            turn: BLACK,
+            komi,
+            prisoners,
+            passes: pass,
+            plays,
+            resigned: None,
+            rule,
+        }
     }
 
     pub fn turn(&self) -> Player {
@@ -112,11 +117,11 @@ impl Game {
     ///
     /// True when the game is over (two passes, or no more legals moves, Resign)
     ///
-    pub fn over<T: Rule>(&self) -> bool {
+    pub fn over(&self) -> bool {
         if let Some(_x) = self.resigned {
             true
         } else {
-            self.passes == 2 || self.legals::<T>().count() == 0
+            self.passes == 2 || self.legals().count() == 0
         }
     }
 
@@ -124,8 +129,8 @@ impl Game {
     /// Returns the endgame.
     /// None if the game is not finished
     ///
-    pub fn outcome<T: Rule>(&self) -> Option<EndGame> {
-        if !self.over::<T>() {
+    pub fn outcome(&self) -> Option<EndGame> {
+        if !self.over() {
             None
         } else {
             if let Some(x) = self.resigned {
@@ -135,7 +140,7 @@ impl Game {
                     Some(EndGame::WinnerByResign(Player::White))
                 }
             } else {
-                let scores = T::count_points(&self);
+                let scores = self.rule.count_points(&self);
                 Some(EndGame::Score(scores.0, scores.1))
             }
         }
@@ -154,14 +159,14 @@ impl Game {
     /// Returns a list with legals moves,
     /// In the list will appear suicides moves, and ko moves.
     ///
-    pub fn legals<T: Rule>(&self) -> impl Iterator<Item=Coord> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.into(),
                 coord: s,
             })
             .filter(move |s| {
-                if let Some(_x) = T::move_validation(self, s) {
+                if let Some(_x) = self.rule.move_validation(self, s) {
                     false
                 } else {
                     true
@@ -181,13 +186,13 @@ impl Game {
     /// Method to play on the goban or pass.
     ///
     pub fn play(&mut self, play: &Move) {
-        match *play {
+        match play {
             Move::Pass => {
                 self.passes += 1;
             }
             Move::Play(x, y) => {
                 self.plays.push(self.goban.clone());
-                self.goban.push(&(x, y), self.turn.into())
+                self.goban.push(&(*x, *y), self.turn.into())
                     .expect(&format!("Put the stone in ({},{}) of color {}", x, y, self.turn));
                 self.turn = !self.turn;
                 self.passes = 0;
@@ -202,18 +207,18 @@ impl Game {
     ///
     /// Method to play but it verifies if the play is legal or not.
     ///
-    pub fn play_with_verifications<R: Rule>(&mut self, play: &Move) -> Result<(), PlayError> {
+    pub fn play_with_verifications(&mut self, play: &Move) -> Result<(), PlayError> {
         if self.passes == 2 {
             Err(PlayError::GamePaused)
         } else {
-            match *play {
+            match play {
                 Move::Pass => {
                     self.passes += 1;
                     Ok(())
                 }
                 Move::Play(x, y) => {
-                    let stone = Stone { coord: (x, y), color: self.turn.into() };
-                    if let Some(c) = R::move_validation(self, &stone) {
+                    let stone = Stone { coord: (*x, *y), color: self.turn.into() };
+                    if let Some(c) = self.rule.move_validation(self, &stone) {
                         Err(c)
                     } else {
                         self.play(play);
@@ -271,8 +276,8 @@ impl Game {
     /// Calculates score. with prisoners and komi.
     /// Dependant of the rule.
     ///
-    pub fn calculate_score<T: Rule>(&self) -> (f32, f32) {
-        T::count_points(self)
+    pub fn calculate_score(&self) -> (f32, f32) {
+        self.rule.count_points(self)
     }
 
 

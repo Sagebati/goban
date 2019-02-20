@@ -10,11 +10,11 @@ front-end.
 Exemple :
 
 ```{rust}
-let mut g = Game::new(GobanSizes::Nine);
+let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
         let mut i = 35;
-        while !g.legals::<JapRule>().count() != 0 && i != 0 {
+        while !g.legals().count() != 0 && i != 0 {
             g.play(
-                &g.legals::<JapRule>().map(|coord| Move::Play(coord.0, coord.1))
+                &g.legals().map(|coord| Move::Play(coord.0, coord.1))
                     .choose(&mut rand::thread_rng())
                     .unwrap());
             i -= 1;
@@ -37,8 +37,7 @@ let mut g = Game::new(GobanSizes::Nine);
 etc...
 ```
 
-**Is not ready**
-
+**Is in beta.**
 
 ## What works (or seem to works)
 - Capturing stones
@@ -49,10 +48,11 @@ etc...
 - Printing an *ugly* ascii goban
 - Generate legals moves
 - Japanese Rules
+- Chinese Rules
 
 ## In actual development
 - Documentation
-- Diff Rules
+- Best workflow for passing
 
 ## TODO
 - SGF imports

@@ -5,10 +5,10 @@ mod tests {
     use goban::rules::game::Move;
     use goban::pieces::stones::Color;
     use goban::rules::game::Game;
-    use goban::rules::JapRule;
-    use goban::rules::game::EndGame;
     use goban::pieces::stones::Stone;
     use rand::seq::IteratorRandom;
+    use goban::rules::Rule;
+    use goban::rules::EndGame;
 
     #[test]
     fn goban() {
@@ -34,11 +34,11 @@ mod tests {
 
     #[test]
     fn some_plays() {
-        let mut g = Game::new(GobanSizes::Nine);
+        let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
         let mut i = 35;
-        while !g.legals::<JapRule>().count() != 0 && i != 0 {
+        while !g.legals().count() != 0 && i != 0 {
             g.play(
-                &g.legals::<JapRule>().map(|coord| Move::Play(coord.0, coord.1))
+                &g.legals().map(|coord| Move::Play(coord.0, coord.1))
                     .choose(&mut rand::thread_rng())
                     .unwrap());
             i -= 1;
@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn atari_2() {
-        let mut g = Game::new(GobanSizes::Nine);
+        let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
         g.play(&Move::Play(1, 0)); // B
         println!("{}", g.goban().pretty_string());
         g.play(&Move::Play(0, 0)); // W
@@ -81,20 +81,20 @@ mod tests {
 
     #[test]
     fn game_finished() {
-        let mut g = Game::new(GobanSizes::Nine);
+        let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
         g.play(&Move::Pass);
         g.play(&Move::Pass);
 
-        assert_eq!(g.over::<JapRule>(), true)
+        assert_eq!(g.over(), true)
     }
 
     #[test]
     fn score_calcul() {
-        let mut g = Game::new(GobanSizes::Nine);
+        let mut g = Game::new(GobanSizes::Nine, Rule::Japanese);
         g.play(&Move::Play(4, 4));
         g.play(&Move::Pass);
         g.play(&Move::Pass);
-        let score = match g.outcome::<JapRule>() {
+        let score = match g.outcome() {
             Some(EndGame::Score(black, white)) => Ok((black, white)),
             _ => Err("Game not finished"),
         }.expect("Game finished");
