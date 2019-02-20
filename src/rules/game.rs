@@ -30,6 +30,7 @@ impl Into<usize> for GobanSizes {
 }
 
 
+/// Enum for playing in the Goban.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Move {
     Pass,
