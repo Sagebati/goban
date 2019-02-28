@@ -1,3 +1,5 @@
+//! Module with tools for getting the connected stones and liberties.
+
 use std::collections::HashSet;
 use crate::pieces::stones::Stone;
 use crate::pieces::goban::Goban;

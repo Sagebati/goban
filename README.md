@@ -37,7 +37,6 @@ let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
 etc...
 ```
 
-**Is in beta.**
 
 ## What works (or seem to works)
 - Capturing stones
@@ -52,10 +51,6 @@ etc...
 
 ## In actual development
 - Documentation
-- Best workflow for passing
-
-## TODO
-- SGF imports
 
 ## What is not in point:
 - Complete end game
