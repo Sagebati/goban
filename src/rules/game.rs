@@ -189,6 +189,7 @@ impl Game {
     pub fn play(&mut self, play: &Move) {
         match play {
             Move::Pass => {
+                self.turn = !self.turn;
                 self.passes += 1;
             }
             Move::Play(x, y) => {
