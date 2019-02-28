@@ -19,6 +19,16 @@ mod tests {
     }
 
     #[test]
+    fn passes() {
+        let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
+        g.play(&Move::Play(3, 3));
+        g.play(&Move::Pass);
+        g.play(&Move::Play(4, 3));
+        let goban: &Goban = g.goban();
+        assert_eq!(goban.get(&(4, 3)), Color::Black);
+    }
+
+    #[test]
     fn get_all_stones() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
         g.push(&(1, 2), Color::White).expect("Put the stone in the goban");
