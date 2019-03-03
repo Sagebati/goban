@@ -19,6 +19,16 @@ mod tests {
     }
 
     #[test]
+    fn passes() {
+        let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
+        g.play(&Move::Play(3, 3));
+        g.play(&Move::Pass);
+        g.play(&Move::Play(4, 3));
+        let goban: &Goban = g.goban();
+        assert_eq!(goban.get(&(4, 3)), Color::Black);
+    }
+
+    #[test]
     fn get_all_stones() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
         g.push(&(1, 2), Color::White).expect("Put the stone in the goban");
@@ -99,6 +109,20 @@ mod tests {
             _ => Err("Game not finished"),
         }.expect("Game finished");
         assert_eq!(score.0, 80.); //Black
+        assert_eq!(score.1, 5.5); //White
+    }
+
+    #[test]
+    fn score_calcul_chinesse() {
+        let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
+        g.play(&Move::Play(4, 4));
+        g.play(&Move::Pass);
+        g.play(&Move::Pass);
+        let score = match g.outcome() {
+            Some(EndGame::Score(black, white)) => Ok((black, white)),
+            _ => Err("Game not finished"),
+        }.expect("Game finished");
+        assert_eq!(score.0, 81.); //Black
         assert_eq!(score.1, 5.5); //White
     }
 }

@@ -275,6 +275,22 @@ impl Game {
     }
 
     ///
+    /// Get number of stones on the goban.
+    /// (number of black stones, number of white stones)
+    ///
+    pub fn number_of_stones(&self) -> (u32, u32) {
+        let mut res: (u32, u32) = (0, 0);
+        self.goban.get_stones().for_each(|stone| {
+            match stone.color {
+                Color::Black => { res.0 += 1; }
+                Color::White => { res.1 += 1; }
+                _ => unreachable!()
+            }
+        });
+        res
+    }
+
+    ///
     /// Calculates score. with prisoners and komi.
     /// Dependant of the rule.
     ///

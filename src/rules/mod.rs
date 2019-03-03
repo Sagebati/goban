@@ -58,6 +58,9 @@ impl Rule {
             Rule::Chinese => {
                 // Territories in seki are not counted
                 let mut scores = game.calculate_territories();
+                let ns = game.number_of_stones();
+                scores.0 += ns.0 as f32;
+                scores.1 += ns.1 as f32;
                 scores.1 += game.komi();
                 scores
             }
