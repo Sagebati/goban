@@ -111,4 +111,18 @@ mod tests {
         assert_eq!(score.0, 80.); //Black
         assert_eq!(score.1, 5.5); //White
     }
+
+    #[test]
+    fn score_calcul_chinesse() {
+        let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
+        g.play(&Move::Play(4, 4));
+        g.play(&Move::Pass);
+        g.play(&Move::Pass);
+        let score = match g.outcome() {
+            Some(EndGame::Score(black, white)) => Ok((black, white)),
+            _ => Err("Game not finished"),
+        }.expect("Game finished");
+        assert_eq!(score.0, 81.); //Black
+        assert_eq!(score.1, 5.5); //White
+    }
 }
