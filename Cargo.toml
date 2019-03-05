@@ -18,4 +18,3 @@ getset = "0.0.6"
 
 [dev-dependencies]
 rand = "0.6.5"
-bitvec = "0.9.0"

@@ -244,9 +244,15 @@ impl Game {
     ///
     /// Removes the last move.
     ///
-    pub fn pop(&mut self) {
-        self.goban.pop();
-        self.plays.pop();
+    pub fn pop(&mut self) -> &Self {
+        let x = self.plays.pop();
+        match x {
+            Some(goban) => {
+                self.goban = goban;
+            }
+            _ => {}
+        }
+        self
     }
 
     ///
@@ -299,6 +305,7 @@ impl Game {
 
     ///
     /// Put the handicap stones on the goban.
+    /// Does not override previous setting ! .
     ///
     pub fn put_handicap(&mut self, coords: &[Coord]) {
         self.handicap = coords.len() as u8;

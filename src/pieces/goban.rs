@@ -18,6 +18,13 @@ pub struct Goban {
     #[get = "pub"]
     #[set]
     tab: Vec<u8>,
+    ///
+    /// For future repr
+    ///
+    #[get = "pub"]
+    b_stones: Vec<bool>,
+    #[get = "pub"]
+    w_stones: Vec<bool>,
 
     #[get = "pub"]
     #[set]
@@ -35,6 +42,8 @@ impl Goban {
             tab: vec![Color::None as u8; size * size],
             size,
             coord_util: CoordUtil::new(size, size),
+            b_stones: vec![false; size * size],
+            w_stones: vec![false; size * size],
         }
     }
 
@@ -47,7 +56,20 @@ impl Goban {
 
     pub fn push(&mut self, coord: &Coord, color: Color) -> Result<&mut Goban, String> {
         if self.coord_valid(coord) {
-            self.tab[self.coord_util.to(coord)] = color as u8;
+            let i = self.coord_util.to(coord);
+            match color {
+                Color::Black => {
+                    self.b_stones[i] = true;
+                }
+                Color::White => {
+                    self.w_stones[i] = true;
+                }
+                Color::None => {
+                    self.b_stones[i] = true;
+                    self.w_stones[i] = true;
+                }
+            }
+            self.tab[i] = color as u8;
             Ok(self)
         } else {
             Err(format!("the coord :({},{}) are outside the goban", coord.0, coord.1))
@@ -73,12 +95,6 @@ impl Goban {
         }
 
         self.tab[self.coord_util.to(coord)].into()
-    }
-
-    /// Removes the last
-    pub fn pop(&mut self) -> &mut Self {
-        self.tab.pop();
-        self
     }
 
     ///
