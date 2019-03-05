@@ -6,7 +6,6 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Error;
 
-
 ///
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
 ///
@@ -23,6 +22,10 @@ pub struct Goban {
     #[get = "pub"]
     #[set]
     size: usize,
+
+    #[get]
+    #[set]
+    coord_util: CoordUtil,
 }
 
 
@@ -31,6 +34,7 @@ impl Goban {
         Goban {
             tab: vec![Color::None as u8; size * size],
             size,
+            coord_util: CoordUtil::new(size, size),
         }
     }
 
@@ -43,7 +47,7 @@ impl Goban {
 
     pub fn push(&mut self, coord: &Coord, color: Color) -> Result<&mut Goban, String> {
         if self.coord_valid(coord) {
-            self.tab[CoordUtil::new(self.size, self.size).to(coord)] = color as u8;
+            self.tab[self.coord_util.to(coord)] = color as u8;
             Ok(self)
         } else {
             Err(format!("the coord :({},{}) are outside the goban", coord.0, coord.1))
@@ -67,9 +71,8 @@ impl Goban {
         if !self.coord_valid(coord) {
             panic!("Coord out of bounds")
         }
-        let c = CoordUtil::new(self.size, self.size);
 
-        self.tab[c.to(coord)].into()
+        self.tab[self.coord_util.to(coord)].into()
     }
 
     /// Removes the last

@@ -74,6 +74,10 @@ pub struct Game {
     rule: Rule,
 
     #[get = "pub"]
+    #[set]
+    handicap: u8,
+
+    #[get = "pub"]
     #[set = "pub"]
     plays: Vec<Goban>,
 }
@@ -86,6 +90,7 @@ impl Game {
         let pass = 0;
         let plays = Vec::new();
         let prisoners = (0, 0);
+        let handicap = 0;
         Game {
             goban,
             turn: BLACK,
@@ -95,6 +100,7 @@ impl Game {
             plays,
             resigned: None,
             rule,
+            handicap,
         }
     }
 
@@ -125,6 +131,7 @@ impl Game {
             self.passes == 2 || self.legals().count() == 0
         }
     }
+
 
     ///
     /// Returns the endgame.
@@ -288,6 +295,18 @@ impl Game {
             }
         });
         res
+    }
+
+    ///
+    /// Put the handicap stones on the goban.
+    ///
+    pub fn put_handicap(&mut self, coords: &[Coord]) {
+        self.handicap = coords.len() as u8;
+        coords.iter().for_each(|coord| {
+            self.goban.push(coord, Color::Black)
+                .expect(&format!("Putting the handicap stone ({},{})", coord.0, coord.1));
+        });
+        self.turn = !self.turn;
     }
 
     ///
