@@ -4,11 +4,11 @@ use std::collections::HashSet;
 use crate::pieces::stones::Stone;
 use crate::rules::Rule;
 use crate::rules::PlayError;
-use crate::pieces::util::Coord;
 use crate::rules::turn::BLACK;
 use crate::rules::turn::WHITE;
 use crate::rules::Player;
 use crate::rules::EndGame;
+use crate::pieces::util::coord::Coord;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GobanSizes {

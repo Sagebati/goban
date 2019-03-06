@@ -1,10 +1,10 @@
 //! Module with the goban and his implementations.
 
-use crate::pieces::util::*;
 use crate::pieces::stones::*;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Error;
+use crate::pieces::util::coord::{CoordUtil, Coord, neighbors_coords};
 
 ///
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
