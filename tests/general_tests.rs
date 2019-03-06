@@ -9,13 +9,24 @@ mod tests {
     use rand::seq::IteratorRandom;
     use goban::rules::Rule;
     use goban::rules::EndGame;
+    use goban::pieces::util::coord::Order;
 
     #[test]
     fn goban() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
         g.push(&(1, 2), Color::White).expect("Put the stone in the goban");
         println!("{}", g.pretty_string());
-        assert_eq!(true, true)
+        assert!(true)
+    }
+
+    #[test]
+    fn goban_new_array() {
+        let mut g = Goban::new(GobanSizes::Nineteen.into());
+        g.push(&(1, 2), Color::White).expect("Put the stone in the goban");
+        g.push(&(1,3), Color::Black).expect("Put the stone in the goabn");
+        let tab = g.tab();
+        let g2 = Goban::from_array(&tab,Order::RowMajor);
+        assert_eq!(g,g2)
     }
 
     #[test]
