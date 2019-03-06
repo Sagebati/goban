@@ -1,11 +1,10 @@
 //! Module with the goban and his implementations.
 
-use crate::pieces::util::*;
 use crate::pieces::stones::*;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Error;
-
+use crate::pieces::util::coord::{CoordUtil, Coord, neighbors_coords};
 
 ///
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
@@ -19,10 +18,21 @@ pub struct Goban {
     #[get = "pub"]
     #[set]
     tab: Vec<u8>,
+    ///
+    /// For future repr
+    ///
+    #[get = "pub"]
+    b_stones: Vec<bool>,
+    #[get = "pub"]
+    w_stones: Vec<bool>,
 
     #[get = "pub"]
     #[set]
     size: usize,
+
+    #[get]
+    #[set]
+    coord_util: CoordUtil,
 }
 
 
@@ -31,6 +41,9 @@ impl Goban {
         Goban {
             tab: vec![Color::None as u8; size * size],
             size,
+            coord_util: CoordUtil::new(size, size),
+            b_stones: vec![false; size * size],
+            w_stones: vec![false; size * size],
         }
     }
 
@@ -43,7 +56,20 @@ impl Goban {
 
     pub fn push(&mut self, coord: &Coord, color: Color) -> Result<&mut Goban, String> {
         if self.coord_valid(coord) {
-            self.tab[CoordUtil::new(self.size, self.size).to(coord)] = color as u8;
+            let i = self.coord_util.to(coord);
+            match color {
+                Color::Black => {
+                    self.b_stones[i] = true;
+                }
+                Color::White => {
+                    self.w_stones[i] = true;
+                }
+                Color::None => {
+                    self.b_stones[i] = false;
+                    self.w_stones[i] = false;
+                }
+            }
+            self.tab[i] = color as u8;
             Ok(self)
         } else {
             Err(format!("the coord :({},{}) are outside the goban", coord.0, coord.1))
@@ -67,15 +93,8 @@ impl Goban {
         if !self.coord_valid(coord) {
             panic!("Coord out of bounds")
         }
-        let c = CoordUtil::new(self.size, self.size);
 
-        self.tab[c.to(coord)].into()
-    }
-
-    /// Removes the last
-    pub fn pop(&mut self) -> &mut Self {
-        self.tab.pop();
-        self
+        self.tab[self.coord_util.to(coord)].into()
     }
 
     ///
@@ -144,10 +163,10 @@ impl Goban {
 
     pub fn pretty_string(&self) -> String {
         let mut buff = String::new();
-        for i in 0..self.size {
+        for i in (0..self.size).rev() {
             for j in 0..self.size {
                 buff.push(
-                    match self.get(&(i, j)) {
+                    match self.get(&(j, i)) {
                         Color::White => WHITE_STONE,
                         Color::Black => BLACK_STONE,
                         Color::None => EMPTY_STONE,

@@ -1,9 +1,9 @@
 //! Module with all needed to play.
 
-use crate::pieces::util::Coord;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Error;
+use crate::pieces::util::coord::Coord;
 
 pub const WHITE_STONE: char = '⚫';
 pub const BLACK_STONE: char = '⚪';

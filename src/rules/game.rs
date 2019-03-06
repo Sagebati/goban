@@ -4,11 +4,11 @@ use std::collections::HashSet;
 use crate::pieces::stones::Stone;
 use crate::rules::Rule;
 use crate::rules::PlayError;
-use crate::pieces::util::Coord;
 use crate::rules::turn::BLACK;
 use crate::rules::turn::WHITE;
 use crate::rules::Player;
 use crate::rules::EndGame;
+use crate::pieces::util::coord::Coord;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GobanSizes {
@@ -74,6 +74,10 @@ pub struct Game {
     rule: Rule,
 
     #[get = "pub"]
+    #[set]
+    handicap: u8,
+
+    #[get = "pub"]
     #[set = "pub"]
     plays: Vec<Goban>,
 }
@@ -86,6 +90,7 @@ impl Game {
         let pass = 0;
         let plays = Vec::new();
         let prisoners = (0, 0);
+        let handicap = 0;
         Game {
             goban,
             turn: BLACK,
@@ -95,6 +100,7 @@ impl Game {
             plays,
             resigned: None,
             rule,
+            handicap,
         }
     }
 
@@ -125,6 +131,7 @@ impl Game {
             self.passes == 2 || self.legals().count() == 0
         }
     }
+
 
     ///
     /// Returns the endgame.
@@ -237,9 +244,15 @@ impl Game {
     ///
     /// Removes the last move.
     ///
-    pub fn pop(&mut self) {
-        self.goban.pop();
-        self.plays.pop();
+    pub fn pop(&mut self) -> &Self {
+        let x = self.plays.pop();
+        match x {
+            Some(goban) => {
+                self.goban = goban;
+            }
+            _ => {}
+        }
+        self
     }
 
     ///
@@ -288,6 +301,19 @@ impl Game {
             }
         });
         res
+    }
+
+    ///
+    /// Put the handicap stones on the goban.
+    /// Does not override previous setting ! .
+    ///
+    pub fn put_handicap(&mut self, coords: &[Coord]) {
+        self.handicap = coords.len() as u8;
+        coords.iter().for_each(|coord| {
+            self.goban.push(coord, Color::Black)
+                .expect(&format!("Putting the handicap stone ({},{})", coord.0, coord.1));
+        });
+        self.turn = !self.turn;
     }
 
     ///
