@@ -21,9 +21,8 @@ getset = "0.0.6"
 
 [dev-dependencies]
 rand = "0.6.5"
-bencher = "0.1.5"
+criterion = "0.2.10"
 
 [[bench]]
 name = "perft"
-path = "src/benches/perft.rs"
 harness = false
