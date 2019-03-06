@@ -65,8 +65,8 @@ impl Goban {
                     self.w_stones[i] = true;
                 }
                 Color::None => {
-                    self.b_stones[i] = true;
-                    self.w_stones[i] = true;
+                    self.b_stones[i] = false;
+                    self.w_stones[i] = false;
                 }
             }
             self.tab[i] = color as u8;
