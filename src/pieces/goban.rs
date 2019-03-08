@@ -212,10 +212,10 @@ impl Goban {
     ///
     pub fn pretty_string(&self) -> String {
         let mut buff = String::new();
-        for i in (0..self.size).rev() {
+        for i in 0..self.size {
             for j in 0..self.size {
                 buff.push(
-                    match self.get(&(j, i)) {
+                    match self.get(&(i, j)) {
                         Color::White => WHITE_STONE,
                         Color::Black => BLACK_STONE,
                         Color::None => EMPTY_STONE,
