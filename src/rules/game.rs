@@ -203,9 +203,9 @@ impl Game {
                 self.plays.push(self.goban.clone());
                 self.goban.push(&(*x, *y), self.turn.into())
                     .expect(&format!("Put the stone in ({},{}) of color {}", x, y, self.turn));
+                self.remove_captured_stones();
                 self.turn = !self.turn;
                 self.passes = 0;
-                self.remove_captured_stones();
             }
             Move::Resign => {
                 self.resigned = self.turn.into();
@@ -383,13 +383,10 @@ impl Game {
     /// Removes dead stones from the goban.
     ///
     fn remove_captured_stones(&mut self) {
-        for groups_of_stones in self.goban.get_connected_stones() {
-            if self.goban.are_dead(&groups_of_stones) {
-                self.goban.push_many(
-                    groups_of_stones
-                        .iter()
-                        .map(|point| &point.coord), Color::None)
-            }
+        if self.turn == WHITE {
+            self.remove_captured_stones_color(Color::Black)
+        } else {
+            self.remove_captured_stones_color(Color::White)
         }
     }
 

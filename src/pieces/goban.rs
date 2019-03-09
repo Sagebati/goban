@@ -161,13 +161,12 @@ impl Goban {
     /// Get stones by their color.
     ///
     pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item=Stone> + '_ {
-        let coord_util = CoordUtil::new(self.size, self.size);
         self.tab
             .iter()
             .enumerate()
             .filter(move |(_index, t)| Color::from(**t) == color)
             .map(move |(index, t)|
-                Stone { coord: coord_util.from(index), color: (*t).into() })
+                Stone { coord: self.coord_util.from(index), color: (*t).into() })
     }
 
     ///
