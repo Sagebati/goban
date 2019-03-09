@@ -129,6 +129,9 @@ mod tests {
             EndGame::WinnerByResign(player) => panic!("There is no winner by resign in this game"),
             EndGame::Score(x, y) => (x, y)
         };
+        let (b_prisoners,w_prisoners) = g.prisoners();
+        assert_eq!(*b_prisoners,16);
+        assert_eq!(*w_prisoners,36);
         println!("score  b:{} w:{}", score.0, score.1)
     }
 
