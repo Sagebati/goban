@@ -7,9 +7,21 @@ use crate::pieces::stones::Color;
 
 impl Goban {
     ///
-    /// Get all the groups of connected atari stones
+    /// Test if a group of stones is dead.
     ///
-    pub fn get_captured_stones(&self) -> Vec<HashSet<Stone>> {
+    /// "a group of stones is dead if it doesn't have liberties"
+    ///
+    pub fn are_dead(&self, stones: &HashSet<Stone>) -> bool {
+        !stones // If there is one stone connected who has liberties, they are not captured.
+            .iter()
+            .any(|s| self.has_liberties(s))
+    }
+
+    ///
+    /// Get all the groups of connected stones, who has at least one stones
+    /// without liberties.
+    ///
+    pub fn get_connected_stones(&self) -> Vec<HashSet<Stone>> {
         let atari_stones = self
             // get all stones without liberties
             .get_stones()
@@ -19,10 +31,12 @@ impl Goban {
     }
 
     ///
-    /// Get all the groups of connected atari stones of a color.
+    /// Get all the groups of connected stones of a color, who has at leart one stone without
+    /// liberties.
+    ///
     /// if the color is empty it's an undefined behaviour
     ///
-    pub fn get_dead_stones_color(&self, color: Color) ->
+    pub fn get_connected_stones_color(&self, color: Color) ->
     Vec<HashSet<Stone>> {
         let atari_stones = self
             .get_stones_by_color(color)

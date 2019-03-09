@@ -1,6 +1,6 @@
 [package]
 name = "goban"
-version = "0.3.9"
+version = "0.4.0"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme= "README.md"
 description= "Library for go move generation and go ruling."
@@ -21,3 +21,8 @@ getset = "0.0.6"
 
 [dev-dependencies]
 rand = "0.6.5"
+criterion = "0.2.10"
+
+[[bench]]
+name = "perft"
+harness = false

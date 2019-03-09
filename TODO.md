@@ -1,6 +1,10 @@
 TODO
 ==
 
+# Problem
+
+Rule with suicide enabled cannot be implemented for the moment.
+
 # Optimizing
 
 - Use a string structure and don't compute liberties on the fly. ? 

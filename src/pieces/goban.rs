@@ -4,7 +4,7 @@ use crate::pieces::stones::*;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Error;
-use crate::pieces::util::coord::{CoordUtil, Coord, neighbors_coords};
+use crate::pieces::util::coord::{CoordUtil, Coord, neighbors_coords, Order};
 
 ///
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
@@ -37,7 +37,7 @@ pub struct Goban {
 
 
 impl Goban {
-    pub fn new(size: usize) -> Goban {
+    pub fn new(size: usize) -> Self {
         Goban {
             tab: vec![Color::None as u8; size * size],
             size,
@@ -47,6 +47,32 @@ impl Goban {
         }
     }
 
+    pub fn new_with_order(size: usize, order: Order) -> Self {
+        Goban {
+            tab: vec![Color::None as u8; size * size],
+            size,
+            coord_util: CoordUtil::new_order(size, size, order),
+            b_stones: vec![false; size * size],
+            w_stones: vec![false; size * size],
+        }
+    }
+
+    ///
+    /// Creates a goban from an array of stones.
+    ///
+    pub fn from_array(stones: &[u8], order: Order) -> Self {
+        let size = ((stones.len() as f32).sqrt()) as usize;
+        let mut g = Goban::new_with_order(size, order);
+        let coord_util = CoordUtil::new_order(size, size, order);
+        stones.iter().enumerate().map(|k|
+            {
+                (coord_util.from(k.0), *k.1)
+            }).for_each(|coord| {
+            g.push(&coord.0, coord.1.into()).expect("Play the stone");
+        });
+        g
+    }
+
     ///
     /// Removes all the stones from the goban.
     ///
@@ -54,6 +80,11 @@ impl Goban {
         self.tab = vec![Color::None as u8; self.size * self.size];
     }
 
+    ///
+    /// Put a stones in the goban. The coord depends on the order choose.
+    /// default (line, colomn)
+    /// the (0,0) coord is in the top left.
+    ///
     pub fn push(&mut self, coord: &Coord, color: Color) -> Result<&mut Goban, String> {
         if self.coord_valid(coord) {
             let i = self.coord_util.to(coord);
@@ -130,13 +161,12 @@ impl Goban {
     /// Get stones by their color.
     ///
     pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item=Stone> + '_ {
-        let coord_util = CoordUtil::new(self.size, self.size);
         self.tab
             .iter()
             .enumerate()
             .filter(move |(_index, t)| Color::from(**t) == color)
             .map(move |(index, t)|
-                Stone { coord: coord_util.from(index), color: (*t).into() })
+                Stone { coord: self.coord_util.from(index), color: (*t).into() })
     }
 
     ///
@@ -161,12 +191,35 @@ impl Goban {
         self.get_liberties(point).any(|s| Color::None == s.color)
     }
 
-    pub fn pretty_string(&self) -> String {
+    ///
+    /// Get a string for printing the goban in the memory shape (0,0) right top
+    ///
+    pub fn raw_string(&self) -> String {
         let mut buff = String::new();
-        for i in (0..self.size).rev() {
+        for i in 0..self.size {
             for j in 0..self.size {
                 buff.push(
-                    match self.get(&(j, i)) {
+                    match self.get(&(i, j)) {
+                        Color::White => WHITE_STONE,
+                        Color::Black => BLACK_STONE,
+                        Color::None => EMPTY_STONE,
+                    }
+                );
+            }
+            buff.push('\n');
+        }
+        buff
+    }
+
+    ///
+    /// Get a string for printing the goban in normal shape (0,0 ) left bottom
+    ///
+    pub fn pretty_string(&self) -> String {
+        let mut buff = String::new();
+        for i in 0..self.size {
+            for j in 0..self.size {
+                buff.push(
+                    match self.get(&(i, j)) {
                         Color::White => WHITE_STONE,
                         Color::Black => BLACK_STONE,
                         Color::None => EMPTY_STONE,

@@ -3,11 +3,10 @@
 
 pub mod coord {
     /// Defining the policy for the colums.
-    const ORDER: Order = Order::RowMajor;
 
     pub type Coord = (usize, usize);
 
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq, Eq, Copy)]
     pub enum Order {
         RowMajor,
         ColumnMajor,
@@ -18,6 +17,7 @@ pub mod coord {
     pub struct CoordUtil {
         n_rows: usize,
         n_cols: usize,
+        order: Order,
     }
 
     pub fn neighbors_coords(coord: &Coord) -> Vec<Coord> {
@@ -29,13 +29,21 @@ pub mod coord {
         ]
     }
 
+
     impl CoordUtil {
         pub fn new(n_rows: usize, n_cols: usize) -> CoordUtil {
-            CoordUtil { n_cols, n_rows }
+            CoordUtil { n_cols, n_rows, order: Order::RowMajor }
+        }
+        pub fn new_order(n_rows: usize, n_cols: usize, order: Order) -> CoordUtil {
+            CoordUtil {
+                n_rows,
+                n_cols,
+                order,
+            }
         }
 
         pub fn to(&self, coord: &Coord) -> usize {
-            match ORDER {
+            match self.order {
                 Order::ColumnMajor => {
                     (coord.0 * self.n_cols + coord.1 % self.n_rows)
                 }
@@ -46,7 +54,7 @@ pub mod coord {
         }
 
         pub fn from(&self, index: usize) -> Coord {
-            match ORDER {
+            match self.order {
                 Order::ColumnMajor => {
                     (index / self.n_cols, index % self.n_rows)
                 }

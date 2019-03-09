@@ -1,6 +1,5 @@
 use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
-use std::collections::HashSet;
 use crate::pieces::stones::Stone;
 use crate::rules::Rule;
 use crate::rules::PlayError;
@@ -192,6 +191,7 @@ impl Game {
 
     ///
     /// Method to play on the goban or pass.
+    /// (0,0) is in the top left corner of the goban.
     ///
     pub fn play(&mut self, play: &Move) {
         match play {
@@ -203,9 +203,9 @@ impl Game {
                 self.plays.push(self.goban.clone());
                 self.goban.push(&(*x, *y), self.turn.into())
                     .expect(&format!("Put the stone in ({},{}) of color {}", x, y, self.turn));
+                self.capture_stones();
                 self.turn = !self.turn;
                 self.passes = 0;
-                self.remove_captured_stones();
             }
             Move::Resign => {
                 self.resigned = self.turn.into();
@@ -331,18 +331,22 @@ impl Game {
     /// Returns true if the move is a suicide
     ///
     pub fn is_suicide(&self, stone: &Stone) -> bool {
-        let mut goban_test = self.goban().clone();
+        let mut goban_test: Goban = self.goban().clone();
         goban_test.push_stone(stone).expect("Play the stone");
 
         if goban_test.has_liberties(stone) {
             false
         } else {
-            // Search if the opponent has captured stones because of the play
-            if Goban::get_dead_stones_color(&goban_test, (!self.turn).into()).len() == 0 {
-                true
+            let opponent_color: Color = (!self.turn).into();
+            // Test if the connected stones are also without liberties.
+            if goban_test.are_dead(&goban_test.bfs(&stone)) {
+                // if the chain has no liberties then look if enemy stones are captured
+                !goban_test.get_neighbors(&stone.coord)
+                    .filter(|s| s.color == opponent_color)
+                    .map(|s| goban_test.bfs(&s))
+                    .any(|bfs| goban_test.are_dead(&bfs))
             } else {
-                // Search for connections
-                self.are_dead(&self.goban.bfs(&stone))
+                false
             }
         }
     }
@@ -374,44 +378,34 @@ impl Game {
         self.plays.iter().rev().any(|g| *g == goban_test)
     }
 
-    ///
-    /// Test if a group of stones is dead.
-    ///
-    /// "a group of stones is dead if it doesn't have liberties"
-    ///
-    pub fn are_dead(&self, stones: &HashSet<Stone>) -> bool {
-        !stones // If there is one stone connected who has liberties it's not atari
-            .iter()
-            .any(|s| self.goban.has_liberties(s))
-    }
 
     ///
     /// Removes dead stones from the goban.
     ///
-    fn remove_captured_stones(&mut self) {
-        for groups_of_stones in self.goban.get_captured_stones() {
-            if self.are_dead(&groups_of_stones) {
-                self.goban.push_many(
-                    groups_of_stones
-                        .iter()
-                        .map(|point| &point.coord), Color::None)
-            }
+    fn capture_stones(&mut self) {
+        if self.turn == BLACK {
+            self.prisoners.0 += self.remove_captured_stones_color(Color::White) as u32;
+        } else {
+            self.prisoners.1 += self.remove_captured_stones_color(Color::Black) as u32;
         }
     }
 
     ///
     /// Removes the dead stones from the goban by specifying a color stone.
+    /// Retuns the number of stones removed from the goban.
     ///
-    #[allow(dead_code)]
-    fn remove_captured_stones_color(&mut self, color: Color) {
-        for groups_of_stones in self.goban.get_dead_stones_color(color) {
-            if self.are_dead(&groups_of_stones) {
+    fn remove_captured_stones_color(&mut self, color: Color)-> usize {
+        let mut number_of_stones_captured = 0;
+        for groups_of_stones in self.goban.get_connected_stones_color(color) {
+            if self.goban.are_dead(&groups_of_stones) {
                 self.goban.push_many(
                     groups_of_stones
                         .iter()
-                        .map(|point| &point.coord), Color::None)
+                        .map(|point| &point.coord), Color::None);
+                number_of_stones_captured += groups_of_stones.len();
             }
         }
+        number_of_stones_captured
     }
 }
 
