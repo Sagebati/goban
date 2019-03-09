@@ -7,6 +7,17 @@ use crate::pieces::stones::Color;
 
 impl Goban {
     ///
+    /// Test if a group of stones is dead.
+    ///
+    /// "a group of stones is dead if it doesn't have liberties"
+    ///
+    pub fn are_dead(&self, stones: &HashSet<Stone>) -> bool {
+        !stones // If there is one stone connected who has liberties it's not atari
+            .iter()
+            .any(|s| self.has_liberties(s))
+    }
+
+    ///
     /// Get all the groups of connected atari stones
     ///
     pub fn get_captured_stones(&self) -> Vec<HashSet<Stone>> {

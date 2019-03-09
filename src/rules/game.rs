@@ -1,6 +1,5 @@
 use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
-use std::collections::HashSet;
 use crate::pieces::stones::Stone;
 use crate::rules::Rule;
 use crate::rules::PlayError;
@@ -332,18 +331,23 @@ impl Game {
     /// Returns true if the move is a suicide
     ///
     pub fn is_suicide(&self, stone: &Stone) -> bool {
-        let mut goban_test = self.goban().clone();
+        let mut goban_test: Goban = self.goban().clone();
         goban_test.push_stone(stone).expect("Play the stone");
 
         if goban_test.has_liberties(stone) {
             false
         } else {
+            let opponent_color: Color = (!self.turn).into();
             // Search if the opponent has captured stones because of the play
-            if Goban::get_dead_stones_color(&goban_test, (!self.turn).into()).len() == 0 {
+            if goban_test.get_neighbors(&stone.coord)
+                .filter(|s| s.color == opponent_color)
+                .map(|s| goban_test.bfs(&s))
+                .any(|bfs| goban_test.are_dead(&bfs))
+            {
                 true
             } else {
                 // Search for connections
-                self.are_dead(&self.goban.bfs(&stone))
+                goban_test.are_dead(&goban_test.bfs(&stone))
             }
         }
     }
@@ -375,23 +379,13 @@ impl Game {
         self.plays.iter().rev().any(|g| *g == goban_test)
     }
 
-    ///
-    /// Test if a group of stones is dead.
-    ///
-    /// "a group of stones is dead if it doesn't have liberties"
-    ///
-    pub fn are_dead(&self, stones: &HashSet<Stone>) -> bool {
-        !stones // If there is one stone connected who has liberties it's not atari
-            .iter()
-            .any(|s| self.goban.has_liberties(s))
-    }
 
     ///
     /// Removes dead stones from the goban.
     ///
     fn remove_captured_stones(&mut self) {
         for groups_of_stones in self.goban.get_captured_stones() {
-            if self.are_dead(&groups_of_stones) {
+            if self.goban.are_dead(&groups_of_stones) {
                 self.goban.push_many(
                     groups_of_stones
                         .iter()
@@ -406,7 +400,7 @@ impl Game {
     #[allow(dead_code)]
     fn remove_captured_stones_color(&mut self, color: Color) {
         for groups_of_stones in self.goban.get_dead_stones_color(color) {
-            if self.are_dead(&groups_of_stones) {
+            if self.goban.are_dead(&groups_of_stones) {
                 self.goban.push_many(
                     groups_of_stones
                         .iter()
