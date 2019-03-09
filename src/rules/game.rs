@@ -203,7 +203,7 @@ impl Game {
                 self.plays.push(self.goban.clone());
                 self.goban.push(&(*x, *y), self.turn.into())
                     .expect(&format!("Put the stone in ({},{}) of color {}", x, y, self.turn));
-                self.remove_captured_stones();
+                self.capture_stones();
                 self.turn = !self.turn;
                 self.passes = 0;
             }
@@ -382,26 +382,30 @@ impl Game {
     ///
     /// Removes dead stones from the goban.
     ///
-    fn remove_captured_stones(&mut self) {
-        if self.turn == WHITE {
-            self.remove_captured_stones_color(Color::Black)
+    fn capture_stones(&mut self) {
+        if self.turn == BLACK {
+            self.prisoners.0 += self.remove_captured_stones_color(Color::White) as u32;
         } else {
-            self.remove_captured_stones_color(Color::White)
+            self.prisoners.1 += self.remove_captured_stones_color(Color::Black) as u32;
         }
     }
 
     ///
     /// Removes the dead stones from the goban by specifying a color stone.
+    /// Retuns the number of stones removed from the goban.
     ///
-    fn remove_captured_stones_color(&mut self, color: Color) {
+    fn remove_captured_stones_color(&mut self, color: Color)-> usize {
+        let mut number_of_stones_captured = 0;
         for groups_of_stones in self.goban.get_connected_stones_color(color) {
             if self.goban.are_dead(&groups_of_stones) {
                 self.goban.push_many(
                     groups_of_stones
                         .iter()
-                        .map(|point| &point.coord), Color::None)
+                        .map(|point| &point.coord), Color::None);
+                number_of_stones_captured += groups_of_stones.len();
             }
         }
+        number_of_stones_captured
     }
 }
 
