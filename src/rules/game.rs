@@ -338,16 +338,15 @@ impl Game {
             false
         } else {
             let opponent_color: Color = (!self.turn).into();
-            // Search if the opponent has captured stones because of the play
-            if goban_test.get_neighbors(&stone.coord)
-                .filter(|s| s.color == opponent_color)
-                .map(|s| goban_test.bfs(&s))
-                .any(|bfs| goban_test.are_dead(&bfs))
-            {
-                true
+            // Test if the connected stones are also without liberties.
+            if goban_test.are_dead(&goban_test.bfs(&stone)) {
+                // if the chain has no liberties then look if enemy stones are captured
+                !goban_test.get_neighbors(&stone.coord)
+                    .filter(|s| s.color == opponent_color)
+                    .map(|s| goban_test.bfs(&s))
+                    .any(|bfs| goban_test.are_dead(&bfs))
             } else {
-                // Search for connections
-                goban_test.are_dead(&goban_test.bfs(&stone))
+                false
             }
         }
     }
@@ -384,7 +383,7 @@ impl Game {
     /// Removes dead stones from the goban.
     ///
     fn remove_captured_stones(&mut self) {
-        for groups_of_stones in self.goban.get_captured_stones() {
+        for groups_of_stones in self.goban.get_connected_stones() {
             if self.goban.are_dead(&groups_of_stones) {
                 self.goban.push_many(
                     groups_of_stones
@@ -397,9 +396,8 @@ impl Game {
     ///
     /// Removes the dead stones from the goban by specifying a color stone.
     ///
-    #[allow(dead_code)]
     fn remove_captured_stones_color(&mut self, color: Color) {
-        for groups_of_stones in self.goban.get_dead_stones_color(color) {
+        for groups_of_stones in self.goban.get_connected_stones_color(color) {
             if self.goban.are_dead(&groups_of_stones) {
                 self.goban.push_many(
                     groups_of_stones

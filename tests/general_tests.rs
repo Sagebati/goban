@@ -112,21 +112,27 @@ mod tests {
         let mut g = Game::new(GobanSizes::Nineteen, Rule::Japanese);
         let inv_coord: Vec<usize> = (0..19).rev().collect();
         g.put_handicap(&handicap);
+        let mut c = 0;
         for m in moves_sgf {
             let to_play = match m {
                 Play(x, y) => {
-                    println!("({},{})", x ,y);
-                    println!("({},{})", y, inv_coord[x]);
+                    println!("({},{})", x, y);
+                    println!("({},{})", inv_coord[x], y);
                     Play(inv_coord[x], y)
-                },
+                }
                 Move::Pass => Move::Pass,
                 _ => unreachable!()
             };
-            if to_play == Move::Play(12, 13) {
+            if c == 292 {
                 println!();
+                let mut  gg: Goban = g.goban().clone();
+                gg.push(&(0, 3), Color::White);
+                println!("{}", gg);
             }
+            println!("count : {}", c - 6);
             g.play_with_verifications(&to_play).unwrap();
             g.display();
+            c += 1;
         }
     }
 
