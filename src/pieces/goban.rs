@@ -80,6 +80,11 @@ impl Goban {
         self.tab = vec![Color::None as u8; self.size * self.size];
     }
 
+    ///
+    /// Put a stones in the goban. The coord depends on the order choose.
+    /// default (line, colomn)
+    /// the (0,0) coord is in the top left.
+    ///
     pub fn push(&mut self, coord: &Coord, color: Color) -> Result<&mut Goban, String> {
         if self.coord_valid(coord) {
             let i = self.coord_util.to(coord);

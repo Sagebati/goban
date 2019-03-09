@@ -192,6 +192,7 @@ impl Game {
 
     ///
     /// Method to play on the goban or pass.
+    /// (0,0) is in the top left corner of the goban.
     ///
     pub fn play(&mut self, play: &Move) {
         match play {

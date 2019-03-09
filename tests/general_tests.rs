@@ -23,10 +23,10 @@ mod tests {
     fn goban_new_array() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
         g.push(&(1, 2), Color::White).expect("Put the stone in the goban");
-        g.push(&(1,3), Color::Black).expect("Put the stone in the goabn");
+        g.push(&(1, 3), Color::Black).expect("Put the stone in the goabn");
         let tab = g.tab();
-        let g2 = Goban::from_array(&tab,Order::RowMajor);
-        assert_eq!(g,g2)
+        let g2 = Goban::from_array(&tab, Order::RowMajor);
+        assert_eq!(g, g2)
     }
 
     #[test]
@@ -63,6 +63,38 @@ mod tests {
                     .choose(&mut rand::thread_rng())
                     .unwrap());
             i -= 1;
+            println!("{}", g.goban().pretty_string());
+        }
+    }
+
+    fn vec_bool_to_vec_u8(w_stones: &Vec<bool>, b_stones: &Vec<bool>) -> Vec<u8> {
+        let mut res: Vec<u8> = vec![Color::None.into(); w_stones.len()];
+        for i in 0..w_stones.len() {
+            if w_stones[i] && b_stones[i] {
+                panic!("Error");
+            }
+            if w_stones[i] {
+                res[i] = Color::White.into();
+            }
+            if b_stones[i] {
+                res[i] = Color::Black.into();
+            }
+        }
+        res
+    }
+
+    #[test]
+    fn some_plays_integrity_boolean_vecs() {
+        let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
+        let mut i = 40;
+        while !g.legals().count() != 0 && i != 0 {
+            g.play(
+                &g.legals().map(|coord| Move::Play(coord.0, coord.1))
+                    .choose(&mut rand::thread_rng())
+                    .unwrap());
+            i -= 1;
+            assert_eq!(g.goban().tab(), &vec_bool_to_vec_u8(g.goban().w_stones(),g.goban()
+                .b_stones()));
             println!("{}", g.goban().pretty_string());
         }
     }
