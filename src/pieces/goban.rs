@@ -18,6 +18,7 @@ pub struct Goban {
     #[get = "pub"]
     #[set]
     tab: Vec<u8>,
+
     ///
     /// For future repr
     ///
@@ -116,10 +117,12 @@ impl Goban {
         })
     }
 
+    #[inline]
     pub fn push_stone(&mut self, stone: &Stone) -> Result<&mut Goban, String> {
         self.push(&stone.coord, stone.color)
     }
 
+    #[inline]
     pub fn get(&self, coord: &Coord) -> Color {
         if !self.coord_valid(coord) {
             panic!("Coord out of bounds")
@@ -131,15 +134,18 @@ impl Goban {
     ///
     /// Get all the neighbors to the coordinate
     ///
+    #[inline]
     pub fn get_neighbors(&self, coord: &Coord) -> impl Iterator<Item=Stone> + '_ {
         neighbors_coords(coord)
             .into_iter()
             .filter(move |x| self.coord_valid(x))
             .map(move |x| Stone { coord: x.clone(), color: self.get(&x) })
     }
+
     ///
     /// Get all the stones that are neighbor to the coord except empty intersections
     ///
+    #[inline]
     pub fn get_neighbors_stones(&self, coord: &Coord) -> impl Iterator<Item=Stone> + '_ {
         self.get_neighbors(coord)
             .filter(|s| s.color != Color::None)
@@ -148,6 +154,7 @@ impl Goban {
     ///
     /// Get all the stones except "Empty stones"
     ///
+    #[inline]
     pub fn get_stones(&self) -> impl Iterator<Item=Stone> + '_ {
         let coord_util = CoordUtil::new(self.size, self.size);
         self.tab.iter()
@@ -160,6 +167,7 @@ impl Goban {
     ///
     /// Get stones by their color.
     ///
+    #[inline]
     pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item=Stone> + '_ {
         self.tab
             .iter()
@@ -172,6 +180,7 @@ impl Goban {
     ///
     /// Returns the empty stones connected to the point
     ///
+    #[inline]
     pub fn get_liberties(&self, point: &Stone) -> impl Iterator<Item=Stone> + '_ {
         self.get_neighbors(&point.coord)
             .filter(|s| s.color == Color::None)
@@ -180,6 +189,7 @@ impl Goban {
     ///
     /// Returns the number of liberties. of the stone
     ///
+    #[inline]
     pub fn get_nb_liberties(&self, point: &Stone) -> u8 {
         self.get_liberties(point).count() as u8
     }
@@ -187,9 +197,10 @@ impl Goban {
     ///
     /// Returns true if the stone has liberties.
     ///
+    #[inline]
     pub fn has_liberties(&self, point: &Stone) -> bool {
         self.get_liberties(point).any(|s| Color::None == s.color)
-    }
+    }    #[inline]
 
     ///
     /// Get a string for printing the goban in the memory shape (0,0) right top
@@ -234,6 +245,7 @@ impl Goban {
     ///
     /// Return true if the coord is in the goban.
     ///
+    #[inline]
     fn coord_valid(&self, coord: &Coord) -> bool {
         if coord.0 < self.size && coord.1 < self.size {
             true

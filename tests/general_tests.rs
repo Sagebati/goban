@@ -126,7 +126,7 @@ mod tests {
             g.display();
         }
         let score = match g.outcome().unwrap() {
-            EndGame::WinnerByResign(player) => panic!("There is no winner by resign in this game"),
+            EndGame::WinnerByResign(_player) => panic!("There is no winner by resign in this game"),
             EndGame::Score(x, y) => (x, y)
         };
         let (b_prisoners,w_prisoners) = g.prisoners();
