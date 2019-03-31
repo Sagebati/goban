@@ -1,21 +1,37 @@
 //! Module for ruling in the game of go.
 
 
-use crate::pieces::stones::Stone;
+use crate::pieces::stones::{Stone, Color};
 use crate::rules::game::Game;
+use std::ops::Not;
 
 pub mod game;
 pub mod graph;
 
-pub mod turn {
-    pub const WHITE: bool = true;
-    pub const BLACK: bool = false;
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum Player {
     White,
     Black,
+}
+
+impl Not for Player {
+    type Output = Player;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Player::Black=> Player::White,
+            Player::White => Player::Black
+        }
+    }
+}
+
+impl Into<Color> for Player {
+    fn into(self) -> Color {
+        match self {
+            Player::Black => Color::Black,
+            Player::White => Color::White
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
