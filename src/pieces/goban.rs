@@ -102,7 +102,7 @@ impl Goban {
                     self.w_stones[i] = false;
                 }
             }
-            self.tab[i] = color;
+            self[*coord] = color;
             Ok(self)
         } else {
             Err(format!("the coord :({},{}) are outside the goban", coord.0, coord.1))
@@ -112,6 +112,7 @@ impl Goban {
     ///
     /// Put many stones.
     ///
+    #[inline]
     pub fn push_many<'a>(&'a mut self, coords: impl Iterator<Item=&'a Coord>, value: Color) {
         coords.for_each(|c| {
             self.push(c, value).expect("Add one of the stones to the goban.");

@@ -3,8 +3,6 @@ use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use crate::rules::Rule;
 use crate::rules::PlayError;
-use crate::rules::turn::BLACK;
-use crate::rules::turn::WHITE;
 use crate::rules::Player;
 use crate::rules::EndGame;
 use crate::pieces::util::coord::Coord;
@@ -58,11 +56,12 @@ pub struct Game {
     /// None if none resigned
     /// true if the white resigned
     /// false if the black resigned
-    resigned: Option<bool>,
+    resigned: Option<Player>,
 
     /// Bool true when is white turn
     /// false when is black turn
-    turn: bool,
+    #[get = "pub"]
+    turn: Player,
 
     #[get = "pub"]
     #[set = "pub"]
@@ -92,7 +91,7 @@ impl Game {
         let handicap = 0;
         Game {
             goban,
-            turn: BLACK,
+            turn: Player::Black,
             komi,
             prisoners,
             passes: pass,
@@ -100,14 +99,6 @@ impl Game {
             resigned: None,
             rule,
             handicap,
-        }
-    }
-
-    pub fn turn(&self) -> Player {
-        if self.turn {
-            Player::White
-        } else {
-            Player::Black
         }
     }
 }
@@ -141,7 +132,7 @@ impl Game {
             None
         } else {
             if let Some(x) = self.resigned {
-                if x == WHITE {
+                if x == Player::White {
                     Some(EndGame::WinnerByResign(Player::Black))
                 } else {
                     Some(EndGame::WinnerByResign(Player::White))
@@ -200,15 +191,16 @@ impl Game {
                 self.passes += 1;
             }
             Move::Play(x, y) => {
+                let stone_color: Color = self.turn.into();
                 self.goban.push(&(*x, *y), self.turn.into())
-                    .expect(&format!("Put the stone in ({},{}) of color {}", x, y, self.turn));
-                self.capture_stones();
+                    .expect(&format!("Put the stone in ({},{}) of color {}", x, y, stone_color));
+                self.remove_captured_stones();
                 self.plays.push(self.goban.clone()); // Keep the history of the game
                 self.turn = !self.turn;
                 self.passes = 0;
             }
             Move::Resign => {
-                self.resigned = self.turn.into();
+                self.resigned = Some(self.turn);
             }
         }
     }
@@ -235,7 +227,8 @@ impl Game {
                     }
                 }
                 Move::Resign => {
-                    Ok(self.resigned = self.turn.into())
+                    self.resigned = Some(self.turn);
+                    Ok(())
                 }
             }
         }
@@ -264,7 +257,7 @@ impl Game {
     pub fn calculate_territories(&self) -> (f32, f32) {
         let mut scores: (f32, f32) = (0., 0.); // Black & White
         let empty_groups =
-            self.goban.get_strongly_connected_stones(self.goban.get_stones_by_color
+            self.goban.get_groups_by_stone(self.goban.get_stones_by_color
             (Color::None));
         for group in empty_groups {
             let mut neutral = (false, false);
@@ -313,7 +306,7 @@ impl Game {
             self.goban.push(coord, Color::Black)
                 .expect(&format!("Putting the handicap stone ({},{})", coord.0, coord.1));
         });
-        self.turn = !self.turn;
+        self.turn = Player::White;
     }
 
     ///
@@ -337,12 +330,12 @@ impl Game {
         if goban_test.has_liberties(stone) {
             false
         } else {
-            let opponent_color: Color = (!self.turn).into();
+            let opponent_stone_color: Color = (!self.turn).into();
             // Test if the connected stones are also without liberties.
             if goban_test.are_dead(&goban_test.bfs(&stone)) {
                 // if the chain has no liberties then look if enemy stones are captured
                 !goban_test.get_neighbors(&stone.coord)
-                    .filter(|s| s.color == opponent_color)
+                    .filter(|s| s.color == opponent_stone_color)
                     .map(|s| goban_test.bfs(&s))
                     .any(|bfs| goban_test.are_dead(&bfs))
             } else {
@@ -382,8 +375,8 @@ impl Game {
     ///
     /// Removes captured stones from the goban.
     ///
-    fn capture_stones(&mut self) {
-        if self.turn == BLACK {
+    fn remove_captured_stones(&mut self) {
+        if self.turn == Player::Black {
             self.prisoners.0 += self.remove_captured_stones_color(Color::White) as u32;
         } else {
             self.prisoners.1 += self.remove_captured_stones_color(Color::Black) as u32;
@@ -392,11 +385,11 @@ impl Game {
 
     ///
     /// Removes the dead stones from the goban by specifying a color stone.
-    /// Retuns the number of stones removed from the goban.
+    /// Returns the number of stones removed from the goban.
     ///
     fn remove_captured_stones_color(&mut self, color: Color) -> usize {
         let mut number_of_stones_captured = 0;
-        for groups_of_stones in self.goban.get_connected_stones_color(color) {
+        for groups_of_stones in self.goban.get_groups_of_stones_color_without_liberties(color) {
             if self.goban.are_dead(&groups_of_stones) {
                 self.goban.push_many(
                     groups_of_stones
