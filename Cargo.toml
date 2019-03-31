@@ -26,7 +26,3 @@ criterion = "0.2.10"
 [[bench]]
 name = "perft"
 harness = false
-
-[profile.release]
-debug = true
-lto = false
