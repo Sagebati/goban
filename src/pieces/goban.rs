@@ -5,6 +5,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Error;
 use crate::pieces::util::coord::{CoordUtil, Coord, neighbors_coords, Order};
+use std::ops::{Index, IndexMut};
 
 ///
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
@@ -17,7 +18,7 @@ pub struct Goban {
     ///
     #[get = "pub"]
     #[set]
-    tab: Vec<u8>,
+    tab: Vec<Color>,
 
     ///
     /// For future repr
@@ -40,7 +41,7 @@ pub struct Goban {
 impl Goban {
     pub fn new(size: usize) -> Self {
         Goban {
-            tab: vec![Color::None as u8; size * size],
+            tab: vec![Color::None; size * size],
             size,
             coord_util: CoordUtil::new(size, size),
             b_stones: vec![false; size * size],
@@ -50,7 +51,7 @@ impl Goban {
 
     pub fn new_with_order(size: usize, order: Order) -> Self {
         Goban {
-            tab: vec![Color::None as u8; size * size],
+            tab: vec![Color::None; size * size],
             size,
             coord_util: CoordUtil::new_order(size, size, order),
             b_stones: vec![false; size * size],
@@ -61,7 +62,7 @@ impl Goban {
     ///
     /// Creates a goban from an array of stones.
     ///
-    pub fn from_array(stones: &[u8], order: Order) -> Self {
+    pub fn from_array(stones: &[Color], order: Order) -> Self {
         let size = ((stones.len() as f32).sqrt()) as usize;
         let mut g = Goban::new_with_order(size, order);
         let coord_util = CoordUtil::new_order(size, size, order);
@@ -78,7 +79,7 @@ impl Goban {
     /// Removes all the stones from the goban.
     ///
     pub fn clear(&mut self) {
-        self.tab = vec![Color::None as u8; self.size * self.size];
+        self.tab = vec![Color::None; self.size * self.size];
     }
 
     ///
@@ -101,7 +102,7 @@ impl Goban {
                     self.w_stones[i] = false;
                 }
             }
-            self.tab[i] = color as u8;
+            self.tab[i] = color;
             Ok(self)
         } else {
             Err(format!("the coord :({},{}) are outside the goban", coord.0, coord.1))
@@ -123,12 +124,8 @@ impl Goban {
     }
 
     #[inline]
-    pub fn get(&self, coord: &Coord) -> Color {
-        if !self.coord_valid(coord) {
-            panic!("Coord out of bounds")
-        }
-
-        self.tab[self.coord_util.to(coord)].into()
+    fn get(&self, coord: &Coord) -> &Color {
+        &self.tab[self.coord_util.to(coord)]
     }
 
     ///
@@ -139,7 +136,7 @@ impl Goban {
         neighbors_coords(coord)
             .into_iter()
             .filter(move |x| self.coord_valid(x))
-            .map(move |x| Stone { coord: x.clone(), color: self.get(&x) })
+            .map(move |x| Stone { coord: x.clone(), color: *self.get(&x) })
     }
 
     ///
@@ -200,8 +197,8 @@ impl Goban {
     #[inline]
     pub fn has_liberties(&self, point: &Stone) -> bool {
         self.get_liberties(point).any(|s| Color::None == s.color)
-    }    #[inline]
-
+    }
+    #[inline]
     ///
     /// Get a string for printing the goban in the memory shape (0,0) right top
     ///
@@ -267,3 +264,16 @@ impl PartialEq for Goban {
     }
 }
 
+impl Index<Coord> for Goban {
+    type Output = Color;
+
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        &self.get(&index)
+    }
+}
+
+impl IndexMut<Coord> for Goban {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        &mut self.tab[self.coord_util.to(&index)]
+    }
+}

@@ -352,6 +352,7 @@ impl Game {
     }
 
     ///
+    /// Test if a play is ko.
     /// If the goban is in the configuration of the two plays ago returns true
     ///
     pub fn is_ko(&self, stone: &Stone) -> bool {
@@ -368,19 +369,18 @@ impl Game {
     }
 
     ///
-    /// Rule of the super Ko, if any before configuration was already played then the move is
-    /// illegal
+    /// Rule of the super Ko, if any before configuration was already played then return true.
     ///
     pub fn super_ko(&self, stone: &Stone) -> bool {
         let mut goban_test = self.goban.clone();
         goban_test.push_stone(stone).expect("Put the stone");
 
-        self.plays.iter().rev().any(|g| *g == goban_test)
+        self.plays.iter().rev().any(|g| g == &goban_test)
     }
 
 
     ///
-    /// Removes dead stones from the goban.
+    /// Removes captured stones from the goban.
     ///
     fn capture_stones(&mut self) {
         if self.turn == BLACK {

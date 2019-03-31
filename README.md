@@ -43,7 +43,7 @@ etc...
 - Playing
 - Passing
 - Resigning
-- Naive implementation to count points
+- Implementation to count points
 - Printing an *ugly* ascii goban
 - Generate legals moves
 - Japanese Rules
@@ -53,5 +53,4 @@ etc...
 - Documentation
 
 ## What is not in point:
-- Complete end game
-- Seki handling
+- Handling dead stones at the end of the game.

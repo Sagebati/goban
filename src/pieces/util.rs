@@ -66,7 +66,7 @@ pub mod coord {
     }
 }
 
-pub mod zobrist {
+/*pub mod zobrist {
     use crate::pieces::stones::Color;
     use crate::pieces::goban::Goban;
 
@@ -121,7 +121,7 @@ pub mod zobrist {
         let coord_util = CoordUtil::new(size, size);
         for i in 0..size {
             for j in 0..size {
-                let stone = goban.get(&(i, j));
+                let stone = goban[(i, j)];
                 if stone != Color::None {
                     h ^= zobrist_table[coord_util.to(&(i, j))][value_stone(stone)];
                 }
@@ -129,4 +129,4 @@ pub mod zobrist {
         }
         h
     }
-}
+}*/
