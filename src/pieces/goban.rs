@@ -123,11 +123,6 @@ impl Goban {
         self.push(&stone.coord, stone.color)
     }
 
-    #[inline]
-    fn get(&self, coord: &Coord) -> &Color {
-        &self.tab[self.coord_util.to(coord)]
-    }
-
     ///
     /// Get all the neighbors to the coordinate
     ///
@@ -136,7 +131,7 @@ impl Goban {
         neighbors_coords(coord)
             .into_iter()
             .filter(move |x| self.coord_valid(x))
-            .map(move |x| Stone { coord: x.clone(), color: *self.get(&x) })
+            .map(move |x| Stone { coord: x.clone(), color: self[x] })
     }
 
     ///
@@ -156,9 +151,9 @@ impl Goban {
         let coord_util = CoordUtil::new(self.size, self.size);
         self.tab.iter()
             .enumerate()
-            .filter(|(_index, t)| Color::from(**t) != Color::None)
+            .filter(|(_index, t)| **t != Color::None)
             .map(move |(index, t)|
-                Stone { coord: coord_util.from(index), color: (*t).into() })
+                Stone { coord: coord_util.from(index), color: *t })
     }
 
     ///
@@ -169,9 +164,9 @@ impl Goban {
         self.tab
             .iter()
             .enumerate()
-            .filter(move |(_index, t)| Color::from(**t) == color)
+            .filter(move |(_index, t)| **t == color)
             .map(move |(index, t)|
-                Stone { coord: self.coord_util.from(index), color: (*t).into() })
+                Stone { coord: self.coord_util.from(index), color: *t })
     }
 
     ///
@@ -198,7 +193,7 @@ impl Goban {
     pub fn has_liberties(&self, point: &Stone) -> bool {
         self.get_liberties(point).any(|s| Color::None == s.color)
     }
-    #[inline]
+
     ///
     /// Get a string for printing the goban in the memory shape (0,0) right top
     ///
@@ -207,7 +202,7 @@ impl Goban {
         for i in 0..self.size {
             for j in 0..self.size {
                 buff.push(
-                    match self.get(&(i, j)) {
+                    match self[(i, j)] {
                         Color::White => WHITE_STONE,
                         Color::Black => BLACK_STONE,
                         Color::None => EMPTY_STONE,
@@ -227,7 +222,7 @@ impl Goban {
         for i in 0..self.size {
             for j in 0..self.size {
                 buff.push(
-                    match self.get(&(i, j)) {
+                    match self[(i, j)] {
                         Color::White => WHITE_STONE,
                         Color::Black => BLACK_STONE,
                         Color::None => EMPTY_STONE,
@@ -268,7 +263,7 @@ impl Index<Coord> for Goban {
     type Output = Color;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
-        &self.get(&index)
+        &self.tab[self.coord_util.to(&index)]
     }
 }
 

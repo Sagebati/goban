@@ -42,6 +42,7 @@ pub mod coord {
             }
         }
 
+        #[inline]
         pub fn to(&self, coord: &Coord) -> usize {
             match self.order {
                 Order::ColumnMajor => {
@@ -53,6 +54,7 @@ pub mod coord {
             }
         }
 
+        #[inline]
         pub fn from(&self, index: usize) -> Coord {
             match self.order {
                 Order::ColumnMajor => {
