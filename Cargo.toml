@@ -1,6 +1,6 @@
 [package]
 name = "goban"
-version = "0.4.2"
+version = "0.4.3"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme= "README.md"
 description= "Library for go move generation and go ruling."
@@ -14,10 +14,10 @@ gitlab = {repository ="SamBlaise/goban"}
 maintenance = {status = "actively-developed"}
 
 [dependencies]
-lazy_static = "1.3.0"
-rand_isaac = "0.1.1"
-rand_core = "0.4.0"
-getset = "0.0.6"
+getset = "0.0.7"
+#lazy_static = "1.3.0"
+#rand_isaac = "0.1.1"
+#rand_core = "0.4.0"
 
 [dev-dependencies]
 rand = "0.6.5"

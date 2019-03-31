@@ -37,7 +37,7 @@ mod tests {
         g.play(&Move::Pass);
         g.play(&Move::Play(4, 3));
         let goban: &Goban = g.goban();
-        assert_eq!(goban.get(&(4, 3)), Color::Black);
+        assert_eq!(goban[(4, 3)], Color::Black);
     }
 
     #[test]
@@ -68,17 +68,16 @@ mod tests {
         }
     }
 
-    fn vec_bool_to_vec_u8(w_stones: &Vec<bool>, b_stones: &Vec<bool>) -> Vec<u8> {
-        let mut res: Vec<u8> = vec![Color::None.into(); w_stones.len()];
+    fn vec_bool_to_vec_color(w_stones: &Vec<bool>, b_stones: &Vec<bool>) -> Vec<Color> {
+        let mut res: Vec<Color> = vec![Color::None; w_stones.len()];
         for i in 0..w_stones.len() {
             if w_stones[i] && b_stones[i] {
                 panic!("Error");
             }
             if w_stones[i] {
-                res[i] = Color::White.into();
-            }
-            if b_stones[i] {
-                res[i] = Color::Black.into();
+                res[i] = Color::White;
+            }else if b_stones[i] {
+                res[i] = Color::Black;
             }
         }
         res
@@ -94,7 +93,7 @@ mod tests {
                     .choose(&mut rand::thread_rng())
                     .unwrap());
             i -= 1;
-            assert_eq!(g.goban().tab(), &vec_bool_to_vec_u8(g.goban().w_stones(), g.goban()
+            assert_eq!(g.goban().tab(), &vec_bool_to_vec_color(g.goban().w_stones(), g.goban()
                 .b_stones()));
             println!("{}", g.goban().pretty_string());
         }
@@ -165,7 +164,7 @@ mod tests {
         g.play(&Move::Play(0, 1)); // B
         println!("{}", g.goban().pretty_string());
         // Atari
-        assert_eq!(g.goban().get(&(0, 0)), Color::None);
+        assert_eq!(g.goban()[(0, 0)], Color::None);
     }
 
     #[test]
@@ -192,7 +191,7 @@ mod tests {
     }
 
     #[test]
-    fn score_calcul_chinesse() {
+    fn score_calcul_chinese() {
         let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
         g.play(&Move::Play(4, 4));
         g.play(&Move::Pass);

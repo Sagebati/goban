@@ -5,6 +5,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Error;
 use crate::pieces::util::coord::{CoordUtil, Coord, neighbors_coords, Order};
+use std::ops::{Index, IndexMut};
 
 ///
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
@@ -17,7 +18,7 @@ pub struct Goban {
     ///
     #[get = "pub"]
     #[set]
-    tab: Vec<u8>,
+    tab: Vec<Color>,
 
     ///
     /// For future repr
@@ -40,7 +41,7 @@ pub struct Goban {
 impl Goban {
     pub fn new(size: usize) -> Self {
         Goban {
-            tab: vec![Color::None as u8; size * size],
+            tab: vec![Color::None; size * size],
             size,
             coord_util: CoordUtil::new(size, size),
             b_stones: vec![false; size * size],
@@ -50,7 +51,7 @@ impl Goban {
 
     pub fn new_with_order(size: usize, order: Order) -> Self {
         Goban {
-            tab: vec![Color::None as u8; size * size],
+            tab: vec![Color::None; size * size],
             size,
             coord_util: CoordUtil::new_order(size, size, order),
             b_stones: vec![false; size * size],
@@ -61,7 +62,7 @@ impl Goban {
     ///
     /// Creates a goban from an array of stones.
     ///
-    pub fn from_array(stones: &[u8], order: Order) -> Self {
+    pub fn from_array(stones: &[Color], order: Order) -> Self {
         let size = ((stones.len() as f32).sqrt()) as usize;
         let mut g = Goban::new_with_order(size, order);
         let coord_util = CoordUtil::new_order(size, size, order);
@@ -78,7 +79,7 @@ impl Goban {
     /// Removes all the stones from the goban.
     ///
     pub fn clear(&mut self) {
-        self.tab = vec![Color::None as u8; self.size * self.size];
+        self.tab = vec![Color::None; self.size * self.size];
     }
 
     ///
@@ -101,7 +102,7 @@ impl Goban {
                     self.w_stones[i] = false;
                 }
             }
-            self.tab[i] = color as u8;
+            self.tab[i] = color;
             Ok(self)
         } else {
             Err(format!("the coord :({},{}) are outside the goban", coord.0, coord.1))
@@ -122,15 +123,6 @@ impl Goban {
         self.push(&stone.coord, stone.color)
     }
 
-    #[inline]
-    pub fn get(&self, coord: &Coord) -> Color {
-        if !self.coord_valid(coord) {
-            panic!("Coord out of bounds")
-        }
-
-        self.tab[self.coord_util.to(coord)].into()
-    }
-
     ///
     /// Get all the neighbors to the coordinate
     ///
@@ -139,7 +131,7 @@ impl Goban {
         neighbors_coords(coord)
             .into_iter()
             .filter(move |x| self.coord_valid(x))
-            .map(move |x| Stone { coord: x.clone(), color: self.get(&x) })
+            .map(move |x| Stone { coord: x.clone(), color: self[x] })
     }
 
     ///
@@ -159,9 +151,9 @@ impl Goban {
         let coord_util = CoordUtil::new(self.size, self.size);
         self.tab.iter()
             .enumerate()
-            .filter(|(_index, t)| Color::from(**t) != Color::None)
+            .filter(|(_index, t)| **t != Color::None)
             .map(move |(index, t)|
-                Stone { coord: coord_util.from(index), color: (*t).into() })
+                Stone { coord: coord_util.from(index), color: *t })
     }
 
     ///
@@ -172,9 +164,9 @@ impl Goban {
         self.tab
             .iter()
             .enumerate()
-            .filter(move |(_index, t)| Color::from(**t) == color)
+            .filter(move |(_index, t)| **t == color)
             .map(move |(index, t)|
-                Stone { coord: self.coord_util.from(index), color: (*t).into() })
+                Stone { coord: self.coord_util.from(index), color: *t })
     }
 
     ///
@@ -200,7 +192,7 @@ impl Goban {
     #[inline]
     pub fn has_liberties(&self, point: &Stone) -> bool {
         self.get_liberties(point).any(|s| Color::None == s.color)
-    }    #[inline]
+    }
 
     ///
     /// Get a string for printing the goban in the memory shape (0,0) right top
@@ -210,7 +202,7 @@ impl Goban {
         for i in 0..self.size {
             for j in 0..self.size {
                 buff.push(
-                    match self.get(&(i, j)) {
+                    match self[(i, j)] {
                         Color::White => WHITE_STONE,
                         Color::Black => BLACK_STONE,
                         Color::None => EMPTY_STONE,
@@ -230,7 +222,7 @@ impl Goban {
         for i in 0..self.size {
             for j in 0..self.size {
                 buff.push(
-                    match self.get(&(i, j)) {
+                    match self[(i, j)] {
                         Color::White => WHITE_STONE,
                         Color::Black => BLACK_STONE,
                         Color::None => EMPTY_STONE,
@@ -267,3 +259,16 @@ impl PartialEq for Goban {
     }
 }
 
+impl Index<Coord> for Goban {
+    type Output = Color;
+
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        &self.tab[self.coord_util.to(&index)]
+    }
+}
+
+impl IndexMut<Coord> for Goban {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        &mut self.tab[self.coord_util.to(&index)]
+    }
+}

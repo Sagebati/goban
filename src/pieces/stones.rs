@@ -11,6 +11,7 @@ pub const EMPTY_STONE: char = '.';
 
 /// Color on the goban.
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
+#[repr(u8)]
 pub enum Color {
     White = 2,
     Black = 1,
@@ -31,16 +32,6 @@ impl From<u8> for Color {
             1 => Color::Black,
             0 => Color::None,
             _ => panic!("Error int the conversion from u8 to Stone")
-        }
-    }
-}
-
-impl Into<u8> for Color {
-    fn into(self) -> u8 {
-        match self {
-            Color::Black => 1,
-            Color::None => 0,
-            Color::White => 2,
         }
     }
 }
