@@ -130,17 +130,15 @@ impl Game {
     pub fn outcome(&self) -> Option<EndGame> {
         if !self.over() {
             None
-        } else {
-            if let Some(x) = self.resigned {
-                if x == Player::White {
-                    Some(EndGame::WinnerByResign(Player::Black))
-                } else {
-                    Some(EndGame::WinnerByResign(Player::White))
-                }
+        } else if let Some(x) = self.resigned {
+            if x == Player::White {
+                Some(EndGame::WinnerByResign(Player::Black))
             } else {
-                let scores = self.rule.count_points(&self);
-                Some(EndGame::Score(scores.0, scores.1))
+                Some(EndGame::WinnerByResign(Player::White))
             }
+        } else {
+            let scores = self.rule.count_points(&self);
+            Some(EndGame::Score(scores.0, scores.1))
         }
     }
 
@@ -238,12 +236,8 @@ impl Game {
     /// Removes the last move.
     ///
     pub fn pop(&mut self) -> &Self {
-        let x = self.plays.pop();
-        match x {
-            Some(goban) => {
-                self.goban = goban;
-            }
-            _ => {}
+        if let Some(goban) = self.plays.pop() {
+            self.goban = goban
         }
         self
     }
@@ -352,12 +346,8 @@ impl Game {
         if self.plays.len() <= 2 {
             false
         } else {
-            if *self.goban.clone().push_stone(stone).expect("Put the stone")
-                == self.plays[self.plays.len() - 2] {
-                true
-            } else {
-                false
-            }
+            *self.goban.clone().push_stone(stone).expect("Put the stone")
+                == self.plays[self.plays.len() - 2]
         }
     }
 

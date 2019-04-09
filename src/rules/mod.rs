@@ -98,9 +98,9 @@ impl Rule {
             }
             Rule::Chinese => {
                 if game.is_suicide(stone) {
-                    return Some(PlayError::Suicide);
+                    Some(PlayError::Suicide)
                 } else if game.is_ko(stone) {
-                    return Some(PlayError::Ko);
+                    Some(PlayError::Ko)
                 } else {
                     None
                 }

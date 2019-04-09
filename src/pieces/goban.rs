@@ -69,8 +69,8 @@ impl Goban {
         stones.iter().enumerate().map(|k|
             {
                 (coord_util.from(k.0), *k.1)
-            }).for_each(|coord| {
-            g.push(&coord.0, coord.1.into()).expect("Play the stone");
+            }).for_each(|coord_color| {
+            g.push(&coord_color.0, coord_color.1).expect("Play the stone");
         });
         g
     }
@@ -132,7 +132,7 @@ impl Goban {
         neighbors_coords(coord)
             .into_iter()
             .filter(move |x| self.coord_valid(x))
-            .map(move |x| Stone { coord: x.clone(), color: self[x] })
+            .map(move |x| Stone { coord: x, color: self[x] })
     }
 
     ///
@@ -240,11 +240,7 @@ impl Goban {
     ///
     #[inline]
     fn coord_valid(&self, coord: &Coord) -> bool {
-        if coord.0 < self.size && coord.1 < self.size {
-            true
-        } else {
-            false
-        }
+        coord.0 < self.size && coord.1 < self.size
     }
 }
 
