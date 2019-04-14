@@ -1,11 +1,11 @@
 [package]
 name = "goban"
-version = "0.4.4"
+version = "0.4.5"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme= "README.md"
 description= "Library for go move generation and go ruling."
 edition = "2018"
-license = "LGPL-3.0-only"
+license = "MIT"
 repository = "https://gitlab.com/Sabati/goban"
 keywords=["go","goban","Igo","Baduk"]
 
