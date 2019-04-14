@@ -49,7 +49,7 @@ impl Goban {
         }
     }
 
-    pub fn new_with_order(size: usize, order: Order) -> Self {
+    pub fn new_with_order(size: usize, order : Order) -> Self {
         Goban {
             tab: vec![Color::None; size * size],
             size,
@@ -73,13 +73,6 @@ impl Goban {
             g.push(&coord_color.0, coord_color.1).expect("Play the stone");
         });
         g
-    }
-
-    ///
-    /// Removes all the stones from the goban.
-    ///
-    pub fn clear(&mut self) {
-        self.tab = vec![Color::None; self.size * self.size];
     }
 
     ///
@@ -180,7 +173,7 @@ impl Goban {
     }
 
     ///
-    /// Returns the number of liberties. of the stone
+    /// Returns the number of liberties of the stone.
     ///
     #[inline]
     pub fn get_nb_liberties(&self, point: &Stone) -> u8 {
@@ -267,5 +260,11 @@ impl Index<Coord> for Goban {
 impl IndexMut<Coord> for Goban {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
         &mut self.tab[self.coord_util.to(&index)]
+    }
+}
+
+impl Default for Goban {
+    fn default() -> Self {
+        Goban::new(19)
     }
 }
