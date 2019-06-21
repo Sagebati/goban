@@ -41,7 +41,7 @@ etc...
 ```
 
 
-## What works (or seem to works)
+## What works
 - Capturing stones
 - Playing
 - Passing
@@ -51,9 +51,6 @@ etc...
 - Generate legals moves
 - Japanese Rules
 - Chinese Rules
-
-## In actual development
-- Documentation
 
 ## What is not in point:
 - Handling dead stones at the end of the game.

@@ -3,7 +3,7 @@ TODO
 
 # Problem
 
-Rule with suicide enabled cannot be implemented for the moment.
+Rules with suicide enabled cannot be implemented for the moment.
 
 # Optimizing
 
