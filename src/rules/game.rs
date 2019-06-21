@@ -68,7 +68,7 @@ pub struct Game {
     komi: f32,
 
     #[get = "pub"]
-    #[set]
+    #[set = "pub"]
     rule: Rule,
 
     #[get = "pub"]
@@ -326,12 +326,12 @@ impl Game {
         } else {
             let opponent_stone_color: Color = (!self.turn).into();
             // Test if the connected stones are also without liberties.
-            if goban_test.are_dead(&goban_test.bfs(&stone)) {
+            if goban_test.is_group_dead(&goban_test.bfs(&stone)) {
                 // if the chain has no liberties then look if enemy stones are captured
                 !goban_test.get_neighbors(&stone.coord)
                     .filter(|s| s.color == opponent_stone_color)
                     .map(|s| goban_test.bfs(&s))
-                    .any(|bfs| goban_test.are_dead(&bfs))
+                    .any(|bfs| goban_test.is_group_dead(&bfs))
             } else {
                 false
             }
@@ -380,7 +380,7 @@ impl Game {
     fn remove_captured_stones_color(&mut self, color: Color) -> usize {
         let mut number_of_stones_captured = 0;
         for groups_of_stones in self.goban.get_groups_of_stones_color_without_liberties(color) {
-            if self.goban.are_dead(&groups_of_stones) {
+            if self.goban.is_group_dead(&groups_of_stones) {
                 self.goban.push_many(
                     groups_of_stones
                         .iter()
@@ -389,6 +389,12 @@ impl Game {
             }
         }
         number_of_stones_captured
+    }
+}
+
+impl Default for Game {
+    fn default() -> Self {
+        Game::new(GobanSizes::Nineteen, Rule::Japanese)
     }
 }
 

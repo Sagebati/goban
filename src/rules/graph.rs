@@ -11,7 +11,7 @@ impl Goban {
     ///
     /// "a group of stones is dead if it doesn't have liberties"
     ///
-    pub fn are_dead(&self, stones: &HashSet<Stone>) -> bool {
+    pub fn is_group_dead(&self, stones: &HashSet<Stone>) -> bool {
         !stones // If there is one stone connected who has liberties, they are not captured.
             .iter()
             .any(|s| self.has_liberties(s))
