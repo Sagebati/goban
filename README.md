@@ -2,7 +2,10 @@
 
 **Library to play with a rusty goban** 
 
+**Use the version >4.3 because in a bug detecting dead stones**
+
 *Channel : stable*
+
 
 Only contains move generation, and rules there is no IA, neither
 front-end.
