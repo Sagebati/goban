@@ -49,7 +49,7 @@ impl Goban {
         }
     }
 
-    pub fn new_with_order(size: usize, order : Order) -> Self {
+    pub fn new_with_order(size: usize, order: Order) -> Self {
         Goban {
             tab: vec![Color::None; size * size],
             size,

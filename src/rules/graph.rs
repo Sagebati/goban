@@ -36,6 +36,8 @@ impl Goban {
     ///
     /// if the color is empty it's an undefined behaviour
     ///
+    // / Ex: Passing a function to this will return all the points of same color connected to
+    /// the stone.
     pub fn get_groups_of_stones_color_without_liberties(&self, color: Color) ->
     Vec<HashSet<Stone>> {
         let stones_without_libnerties = self
@@ -48,6 +50,9 @@ impl Goban {
     ///
     /// Get the chain of stones connected to a stone. with a Breadth First Search,
     /// works for Empty stones too.
+    ///
+    /// Ex: Passing a function to this will return all the points of same color connected to
+    /// the stone.
     ///
     pub fn bfs(&self, point: &Stone) -> HashSet<Stone> {
         let mut explored: HashSet<Stone> = HashSet::new();
