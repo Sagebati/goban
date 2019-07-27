@@ -1,7 +1,6 @@
 //! Module for ruling in the game of go.
 
-
-use crate::pieces::stones::{Stone, Color};
+use crate::pieces::stones::{Color, Stone};
 use crate::rules::game::Game;
 use std::ops::Not;
 
@@ -19,8 +18,8 @@ impl Not for Player {
 
     fn not(self) -> Self::Output {
         match self {
-            Player::Black=> Player::White,
-            Player::White => Player::Black
+            Player::Black => Player::White,
+            Player::White => Player::Black,
         }
     }
 }
@@ -29,7 +28,7 @@ impl Into<Color> for Player {
     fn into(self) -> Color {
         match self {
             Player::Black => Color::Black,
-            Player::White => Color::White
+            Player::White => Color::White,
         }
     }
 }

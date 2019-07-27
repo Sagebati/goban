@@ -1,10 +1,10 @@
 //! Module with the goban and his implementations.
 
 use crate::pieces::stones::*;
+use crate::pieces::util::coord::{neighbors_coords, Coord, CoordUtil, Order};
 use std::fmt::Display;
-use std::fmt::Formatter;
 use std::fmt::Error;
-use crate::pieces::util::coord::{CoordUtil, Coord, neighbors_coords, Order};
+use std::fmt::Formatter;
 use std::ops::{Index, IndexMut};
 
 ///
@@ -37,7 +37,6 @@ pub struct Goban {
     coord_util: CoordUtil,
 }
 
-
 impl Goban {
     pub fn new(size: usize) -> Self {
         Goban {
@@ -66,12 +65,14 @@ impl Goban {
         let size = ((stones.len() as f32).sqrt()) as usize;
         let mut g = Goban::new_with_order(size, order);
         let coord_util = CoordUtil::new_order(size, size, order);
-        stones.iter().enumerate().map(|k|
-            {
-                (coord_util.from(k.0), *k.1)
-            }).for_each(|coord_color| {
-            g.push(&coord_color.0, coord_color.1).expect("Play the stone");
-        });
+        stones
+            .iter()
+            .enumerate()
+            .map(|k| (coord_util.from(k.0), *k.1))
+            .for_each(|coord_color| {
+                g.push(&coord_color.0, coord_color.1)
+                    .expect("Play the stone");
+            });
         g
     }
 
@@ -98,7 +99,10 @@ impl Goban {
             self[*coord] = color;
             Ok(self)
         } else {
-            Err(format!("the coord :({},{}) are outside the goban", coord.0, coord.1))
+            Err(format!(
+                "the coord :({},{}) are outside the goban",
+                coord.0, coord.1
+            ))
         }
     }
 
@@ -106,9 +110,10 @@ impl Goban {
     /// Put many stones.
     ///
     #[inline]
-    pub fn push_many<'a>(&'a mut self, coords: impl Iterator<Item=&'a Coord>, value: Color) {
+    pub fn push_many<'a>(&'a mut self, coords: impl Iterator<Item = &'a Coord>, value: Color) {
         coords.for_each(|c| {
-            self.push(c, value).expect("Add one of the stones to the goban.");
+            self.push(c, value)
+                .expect("Add one of the stones to the goban.");
         })
     }
 
@@ -121,53 +126,60 @@ impl Goban {
     /// Get all the neighbors to the coordinate
     ///
     #[inline]
-    pub fn get_neighbors(&self, coord: &Coord) -> impl Iterator<Item=Stone> + '_ {
+    pub fn get_neighbors(&self, coord: &Coord) -> impl Iterator<Item = Stone> + '_ {
         neighbors_coords(coord)
             .into_iter()
             .filter(move |x| self.coord_valid(x))
-            .map(move |x| Stone { coord: x, color: self[x] })
+            .map(move |x| Stone {
+                coord: x,
+                color: self[x],
+            })
     }
 
     ///
     /// Get all the stones that are neighbor to the coord except empty intersections
     ///
     #[inline]
-    pub fn get_neighbors_stones(&self, coord: &Coord) -> impl Iterator<Item=Stone> + '_ {
-        self.get_neighbors(coord)
-            .filter(|s| s.color != Color::None)
+    pub fn get_neighbors_stones(&self, coord: &Coord) -> impl Iterator<Item = Stone> + '_ {
+        self.get_neighbors(coord).filter(|s| s.color != Color::None)
     }
 
     ///
     /// Get all the stones except "Empty stones"
     ///
     #[inline]
-    pub fn get_stones(&self) -> impl Iterator<Item=Stone> + '_ {
+    pub fn get_stones(&self) -> impl Iterator<Item = Stone> + '_ {
         let coord_util = CoordUtil::new(self.size, self.size);
-        self.tab.iter()
+        self.tab
+            .iter()
             .enumerate()
             .filter(|(_index, t)| **t != Color::None)
-            .map(move |(index, t)|
-                Stone { coord: coord_util.from(index), color: *t })
+            .map(move |(index, t)| Stone {
+                coord: coord_util.from(index),
+                color: *t,
+            })
     }
 
     ///
     /// Get stones by their color.
     ///
     #[inline]
-    pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item=Stone> + '_ {
+    pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item = Stone> + '_ {
         self.tab
             .iter()
             .enumerate()
             .filter(move |(_index, t)| **t == color)
-            .map(move |(index, t)|
-                Stone { coord: self.coord_util.from(index), color: *t })
+            .map(move |(index, t)| Stone {
+                coord: self.coord_util.from(index),
+                color: *t,
+            })
     }
 
     ///
     /// Returns the empty stones connected to the point
     ///
     #[inline]
-    pub fn get_liberties(&self, point: &Stone) -> impl Iterator<Item=Stone> + '_ {
+    pub fn get_liberties(&self, point: &Stone) -> impl Iterator<Item = Stone> + '_ {
         self.get_neighbors(&point.coord)
             .filter(|s| s.color == Color::None)
     }
@@ -195,13 +207,11 @@ impl Goban {
         let mut buff = String::new();
         for i in 0..self.size {
             for j in 0..self.size {
-                buff.push(
-                    match self[(i, j)] {
-                        Color::White => WHITE_STONE,
-                        Color::Black => BLACK_STONE,
-                        Color::None => EMPTY_STONE,
-                    }
-                );
+                buff.push(match self[(i, j)] {
+                    Color::White => WHITE_STONE,
+                    Color::Black => BLACK_STONE,
+                    Color::None => EMPTY_STONE,
+                });
             }
             buff.push('\n');
         }
@@ -215,13 +225,11 @@ impl Goban {
         let mut buff = String::new();
         for i in 0..self.size {
             for j in 0..self.size {
-                buff.push(
-                    match self[(i, j)] {
-                        Color::White => WHITE_STONE,
-                        Color::Black => BLACK_STONE,
-                        Color::None => EMPTY_STONE,
-                    }
-                );
+                buff.push(match self[(i, j)] {
+                    Color::White => WHITE_STONE,
+                    Color::Black => BLACK_STONE,
+                    Color::None => EMPTY_STONE,
+                });
             }
             buff.push('\n');
         }

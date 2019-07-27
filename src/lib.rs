@@ -25,5 +25,3 @@ extern crate getset;
 
 pub mod pieces;
 pub mod rules;
-
-
