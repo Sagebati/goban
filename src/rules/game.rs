@@ -152,7 +152,7 @@ impl Game {
     pub fn legals(&self) -> impl Iterator<Item = Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
-                color: self.turn.into(),
+                color: self.turn.get_stone_color(),
                 coord: s,
             })
             .filter(move |s| {
@@ -183,9 +183,9 @@ impl Game {
                 self.passes += 1;
             }
             Move::Play(x, y) => {
-                let stone_color: Color = self.turn.into();
+                let stone_color: Color = self.turn.get_stone_color();
                 self.goban
-                    .push(&(*x, *y), self.turn.into())
+                    .push(&(*x, *y), stone_color)
                     .expect(&format!(
                         "Put the stone in ({},{}) of color {}",
                         x, y, stone_color
@@ -217,7 +217,7 @@ impl Game {
                 Move::Play(x, y) => {
                     let stone = Stone {
                         coord: (*x, *y),
-                        color: self.turn.into(),
+                        color: self.turn.get_stone_color(),
                     };
                     if let Some(c) = self.rule.move_validation(self, &stone) {
                         Err(c)
@@ -330,7 +330,7 @@ impl Game {
         if goban_test.has_liberties(stone) {
             false
         } else {
-            let opponent_stone_color: Color = (!self.turn).into();
+            let opponent_stone_color: Color = (!self.turn).get_stone_color();
             // Test if the connected stones are also without liberties.
             if goban_test.is_group_dead(&goban_test.bfs(&stone)) {
                 // if the chain has no liberties then look if enemy stones are captured
