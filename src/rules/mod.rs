@@ -24,8 +24,8 @@ impl Not for Player {
     }
 }
 
-impl Into<Color> for Player {
-    fn into(self) -> Color {
+impl Player {
+    fn get_stone_color(&self) -> Color {
         match self {
             Player::Black => Color::Black,
             Player::White => Color::White,
@@ -105,5 +105,9 @@ impl Rule {
                 }
             }
         }
+    }
+
+    pub fn is_suicide_valid(&self) -> bool {
+        false
     }
 }

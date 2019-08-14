@@ -1,9 +1,8 @@
-use rand::{RngCore, SeedableRng};
-use std::ops::Index;
-use crate::pieces::util::coord::Coord;
 use crate::pieces::stones::Color;
+use crate::pieces::util::coord::Coord;
+use rand::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
-
+use std::ops::Index;
 
 const SEED: u64 = 172_147_124;
 
@@ -17,15 +16,12 @@ impl ZobristTable {
     fn new(n: usize) -> Self {
         let mut rng = XorShiftRng::seed_from_u64(SEED);
         let mut hashes = vec![vec![0; 2]; 19 * 19];
-        for i in 0..n*n {
+        for i in 0..n * n {
             for j in 0..2 {
                 hashes[i][j] = rng.next_u64();
             }
         }
-        ZobristTable {
-            hashes,
-            n,
-        }
+        ZobristTable { hashes, n }
     }
 }
 
@@ -35,10 +31,9 @@ impl Index<(Coord, Color)> for ZobristTable {
     fn index(&self, index: (Coord, Color)) -> &Self::Output {
         let x = index.0;
         let color = index.1;
-        &self.hashes[x.0 * self.n + x.1][(color as u8 - 1 )as usize]
+        &self.hashes[x.0 * self.n + x.1][(color as u8 - 1) as usize]
     }
 }
-
 
 lazy_static! {
     pub static ref ZOBRIST19: ZobristTable = ZobristTable::new(19);
