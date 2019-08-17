@@ -565,4 +565,10 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn sgf_test() {
+        let mut game  =
+            Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
+    }
 }

@@ -6,6 +6,7 @@ use std::ops::Not;
 
 pub mod game;
 pub mod graph;
+pub mod game_builder;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum Player {
@@ -50,7 +51,7 @@ pub enum PlayError {
 /// This enum describes the rules for the game.
 /// for example in chinese rules we don't count prisoners.
 ///
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Copy)]
 pub enum Rule {
     Japanese,
     Chinese,
@@ -109,5 +110,13 @@ impl Rule {
 
     pub fn is_suicide_valid(&self) -> bool {
         false
+    }
+
+    pub fn from_sgf_code(s: &str) -> Result<Rule, String> {
+        match s {
+            "JAP" => Ok(Rule::Japanese),
+            "CHI" => Ok(Rule::Chinese),
+            _ => Err("The rule is not implemented yet.".to_string())
+        }
     }
 }

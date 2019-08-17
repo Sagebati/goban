@@ -7,8 +7,10 @@ use crate::rules::PlayError;
 use crate::rules::Player;
 use crate::rules::Rule;
 use std::collections::HashSet;
+use crate::rules::Rule::Japanese;
+use sgf_parser::SgfError;
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GobanSizes {
     Nineteen,
     Nine,
@@ -25,8 +27,19 @@ impl Into<usize> for GobanSizes {
     }
 }
 
+impl From<usize> for GobanSizes {
+    fn from(x: usize) -> Self {
+        match x {
+            9 => Self::Nine,
+            13 => Self::Thirteen,
+            19 => Self::Nineteen,
+            _ => panic!("Not implemented for others size than 9,13,19")
+        }
+    }
+}
+
 /// Enum for playing in the Goban.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Move {
     Pass,
     Resign,
@@ -43,18 +56,16 @@ impl From<Coord> for Move {
 pub struct Game {
     #[get = "pub"]
     goban: Goban,
+
     passes: u8,
 
     #[get = "pub"]
     prisoners: (u32, u32),
 
     /// None if none resigned
-    /// true if the white resigned
-    /// false if the black resigned
+    /// the player in the option is the plater who resigned.
     resigned: Option<Player>,
 
-    /// Bool true when is white turn
-    /// false when is black turn
     #[get = "pub"]
     turn: Player,
 
@@ -97,6 +108,14 @@ impl Game {
             handicap,
             hashes,
         }
+    }
+
+    pub fn from_sgf(sgf_str: &str) -> Result<Game, SgfError> {
+        let game_tree = sgf_parser::parse(sgf_str)?;
+        for x in game_tree.iter().pick_variation(1) {
+            println!("{:?}", x)
+        }
+        Ok(Game::new(GobanSizes::Nineteen, Japanese))
     }
 }
 
@@ -141,7 +160,7 @@ impl Game {
     ///
     /// Generate all moves on all intersections.
     ///
-    fn pseudo_legals(&self) -> impl Iterator<Item = Coord> + '_ {
+    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.goban.get_stones_by_color(Color::None).map(|s| s.coord)
     }
 
@@ -149,7 +168,7 @@ impl Game {
     /// Returns a list with legals moves,
     /// In the list will appear suicides moves, and ko moves.
     ///
-    pub fn legals(&self) -> impl Iterator<Item = Coord> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
@@ -388,15 +407,15 @@ impl Game {
         for groups_of_stones in self
             .goban
             .get_groups_of_stones_color_without_liberties(color)
-        {
-            if self.goban.is_group_dead(&groups_of_stones) {
-                self.goban.push_many(
-                    groups_of_stones.iter().map(|point| &point.coord),
-                    Color::None,
-                );
-                number_of_stones_captured += groups_of_stones.len();
+            {
+                if self.goban.is_group_dead(&groups_of_stones) {
+                    self.goban.push_many(
+                        groups_of_stones.iter().map(|point| &point.coord),
+                        Color::None,
+                    );
+                    number_of_stones_captured += groups_of_stones.len();
+                }
             }
-        }
         number_of_stones_captured
     }
 }
