@@ -13,6 +13,9 @@ keywords=["go","goban","Igo","Baduk"]
 gitlab = {repository ="Sabati/goban"}
 maintenance = {status = "actively-developed"}
 
+[profile.release]
+lto = true
+
 [dependencies]
 getset = "0.0.7"
 lazy_static = "1.3.0"

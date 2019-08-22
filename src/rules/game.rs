@@ -8,7 +8,8 @@ use crate::rules::Player;
 use crate::rules::Rule;
 use std::collections::HashSet;
 use crate::rules::Rule::Japanese;
-use sgf_parser::SgfError;
+use sgf_parser::{SgfError, SgfToken};
+use crate::rules::game_builder::GameBuilder;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GobanSizes {
@@ -30,9 +31,9 @@ impl Into<usize> for GobanSizes {
 impl From<usize> for GobanSizes {
     fn from(x: usize) -> Self {
         match x {
-            9 => Self::Nine,
-            13 => Self::Thirteen,
-            19 => Self::Nineteen,
+            9 => GobanSizes::Nine,
+            13 => GobanSizes::Thirteen,
+            19 => GobanSizes::Nineteen,
             _ => panic!("Not implemented for others size than 9,13,19")
         }
     }
@@ -112,8 +113,39 @@ impl Game {
 
     pub fn from_sgf(sgf_str: &str) -> Result<Game, SgfError> {
         let game_tree = sgf_parser::parse(sgf_str)?;
-        for x in game_tree.iter().pick_variation(1) {
-            println!("{:?}", x)
+        let mut gamebuilder = GameBuilder::new();
+        let mut first = true;
+        let mut game: Option<Game> = None;
+
+        for node in game_tree.iter() {
+            dbg!(node);
+            if first {
+                // Game information
+                for token in &node.tokens {
+                    if token.is_root_token() {
+                        match token {
+                            SgfToken::Komi(komi) => {gamebuilder.komi(*komi);},
+                            SgfToken::Size(x, y) => {gamebuilder.size(*x as usize);},
+                            _ => ()
+                        }
+                    }
+                }
+                game = Some(gamebuilder.build().expect("Build the game"));
+                first = false;
+            } else {
+                if let Some(g) = &mut game {
+                    if !node.tokens.is_empty() {
+                        let token = node.tokens.first().unwrap();
+                        if let SgfToken::Move {color, coordinate } = token {
+                            g.play(&Move::Play((coordinate.0-1) as usize, (coordinate.1-1) as
+                                usize));
+                            g.display();
+                        }
+                    }
+                } else {
+                    panic!("Game not init")
+                }
+            }
         }
         Ok(Game::new(GobanSizes::Nineteen, Japanese))
     }

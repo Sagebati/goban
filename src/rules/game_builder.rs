@@ -4,7 +4,7 @@ use crate::rules::game::{Game, GobanSizes};
 use crate::rules::Rule;
 use crate::rules::Rule::Chinese;
 
-struct GameBuilder {
+pub struct GameBuilder {
     size: usize,
     komi: f32,
     player_black: String,
@@ -14,7 +14,7 @@ struct GameBuilder {
 }
 
 impl GameBuilder {
-    fn new() -> GameBuilder {
+    pub fn new() -> GameBuilder {
         GameBuilder {
             size: 19,
             komi: 7.5,
@@ -26,22 +26,22 @@ impl GameBuilder {
     }
 
 
-    fn handicap(&mut self, points: &[Coord]) -> &mut Self {
+    pub fn handicap(&mut self, points: &[Coord]) -> &mut Self {
         self.handicap_points = Some(points.to_vec());
         self
     }
 
-    fn size(&mut self, size: usize) -> &mut Self {
+    pub fn size(&mut self, size: usize) -> &mut Self {
         self.size = size;
         self
     }
 
-    fn komi(&mut self, komi: f32) -> &mut Self {
+    pub fn komi(&mut self, komi: f32) -> &mut Self {
         self.komi = komi;
         self
     }
 
-    fn build(&self) -> Result<Game, String> {
+    pub fn build(&self) -> Result<Game, String> {
         let mut g = Game::new(GobanSizes::from(self.size), self.rule);
         g.set_komi(self.komi);
         if let Some(handicap_stones) = &self.handicap_points {

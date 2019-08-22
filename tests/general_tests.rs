@@ -69,8 +69,8 @@ mod tests {
 
     #[test]
     fn some_plays() {
-        let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
-        let mut i = 35;
+        let mut g = Game::new(GobanSizes::Nineteen, Rule::Chinese);
+        let mut i = 300;
         while !g.legals().count() != 0 && i != 0 {
             g.play(
                 &g.legals()
