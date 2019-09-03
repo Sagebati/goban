@@ -17,7 +17,7 @@ pub fn perft(pos: &Game, depth: u8) -> u64 {
             moves
                 .map(|m| {
                     let mut child = pos.clone();
-                    child.play(&Move::Play(m.0, m.1));
+                    child.play(Move::Play(m.0, m.1));
                     perft(&child, depth - 1)
                 })
                 .sum()
@@ -27,9 +27,9 @@ pub fn perft(pos: &Game, depth: u8) -> u64 {
 
 pub fn perft_bench(_c: &mut Criterion) {
     let g = Game::new(GobanSizes::Nineteen, Japanese);
-    let deep = 5;
+    let deep = 4;
     let criterion: Criterion = Default::default();
-    criterion.sample_size(2).bench_function_over_inputs(
+    criterion.sample_size(10).bench_function_over_inputs(
         "perft",
         move |b, size| {
             b.iter(|| {

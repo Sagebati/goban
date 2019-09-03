@@ -17,7 +17,7 @@ mod tests {
     #[test]
     fn goban() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push(&(1, 2), Color::White)
+        g.push((1, 2), Color::White)
             .expect("Put the stone in the goban");
         println!("{}", g.pretty_string());
         assert!(true)
@@ -26,9 +26,9 @@ mod tests {
     #[test]
     fn goban_new_array() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push(&(1, 2), Color::White)
+        g.push((1, 2), Color::White)
             .expect("Put the stone in the goban");
-        g.push(&(1, 3), Color::Black)
+        g.push((1, 3), Color::Black)
             .expect("Put the stone in the goabn");
         let tab = g.tab();
         let g2 = Goban::from_array(&tab, Order::RowMajor);
@@ -38,9 +38,9 @@ mod tests {
     #[test]
     fn passes() {
         let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
-        g.play(&Move::Play(3, 3));
-        g.play(&Move::Pass);
-        g.play(&Move::Play(4, 3));
+        g.play(Move::Play(3, 3));
+        g.play(Move::Pass);
+        g.play(Move::Play(4, 3));
         let goban: &Goban = g.goban();
         assert_eq!(goban[(4, 3)], Color::Black);
     }
@@ -48,18 +48,18 @@ mod tests {
     #[test]
     fn get_all_stones() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push(&(1, 2), Color::White)
+        g.push((1, 2), Color::White)
             .expect("Put the stone in the goban");
-        g.push(&(0, 0), Color::Black)
+        g.push((0, 0), Color::Black)
             .expect("Put the stone in the goban");
 
         let expected = vec![
             Stone {
-                coord: (0, 0),
+                coordinates: (0, 0),
                 color: Color::Black,
             },
             Stone {
-                coord: (1, 2),
+                coordinates: (1, 2),
                 color: Color::White,
             },
         ];
@@ -73,7 +73,7 @@ mod tests {
         let mut i = 300;
         while !g.legals().count() != 0 && i != 0 {
             g.play(
-                &g.legals()
+                g.legals()
                     .map(|coord| Move::Play(coord.0, coord.1))
                     .choose(&mut rand::thread_rng())
                     .unwrap(),
@@ -104,7 +104,7 @@ mod tests {
         let mut i = 40;
         while !g.legals().count() != 0 && i != 0 {
             g.play(
-                &g.legals()
+                g.legals()
                     .map(|coord| Move::Play(coord.0, coord.1))
                     .choose(&mut rand::thread_rng())
                     .unwrap(),
@@ -455,7 +455,7 @@ mod tests {
                 Move::Pass => Move::Pass,
                 _ => unreachable!(),
             };
-            g.play_with_verifications(&to_play).unwrap();
+            g.play_with_verifications(to_play).unwrap();
             g.display();
         }
         let score = match g.outcome().unwrap() {
@@ -472,19 +472,19 @@ mod tests {
     fn atari() {
         let mut goban = Goban::new(9);
         let s = Stone {
-            coord: (4, 4),
+            coordinates: (4, 4),
             color: Color::Black,
         };
-        goban.push_stone(&s).expect("Put the stone");
+        goban.push_stone(s).expect("Put the stone");
         println!("{}", goban.pretty_string());
         let cl = goban.clone();
-        let x = cl.get_liberties(&s);
+        let x = cl.get_liberties(s);
 
         x.for_each(|s| {
-            println!("{:?}", s.coord);
+            println!("{:?}", s.coordinates);
             goban
-                .push_stone(&Stone {
-                    coord: s.coord,
+                .push_stone(Stone {
+                    coordinates: s.coordinates,
                     color: Color::White,
                 })
                 .expect("Put the stone");
@@ -492,17 +492,17 @@ mod tests {
 
         println!("{}", goban.pretty_string());
 
-        assert_eq!(goban.get_liberties(&s).count(), 0);
+        assert_eq!(goban.get_liberties(s).count(), 0);
     }
 
     #[test]
     fn atari_2() {
         let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
-        g.play(&Move::Play(1, 0)); // B
+        g.play(Move::Play(1, 0)); // B
         println!("{}", g.goban().pretty_string());
-        g.play(&Move::Play(0, 0)); // W
+        g.play(Move::Play(0, 0)); // W
         println!("{}", g.goban().pretty_string());
-        g.play(&Move::Play(0, 1)); // B
+        g.play(Move::Play(0, 1)); // B
         println!("{}", g.goban().pretty_string());
         // Atari
         assert_eq!(g.goban()[(0, 0)], Color::None);
@@ -511,8 +511,8 @@ mod tests {
     #[test]
     fn game_finished() {
         let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
-        g.play(&Move::Pass);
-        g.play(&Move::Pass);
+        g.play(Move::Pass);
+        g.play(Move::Pass);
 
         assert_eq!(g.over(), true)
     }
@@ -520,14 +520,14 @@ mod tests {
     #[test]
     fn score_calcul() {
         let mut g = Game::new(GobanSizes::Nine, Rule::Japanese);
-        g.play(&Move::Play(4, 4));
-        g.play(&Move::Pass);
-        g.play(&Move::Pass);
+        g.play(Move::Play(4, 4));
+        g.play(Move::Pass);
+        g.play(Move::Pass);
         let score = match g.outcome() {
             Some(EndGame::Score(black, white)) => Ok((black, white)),
             _ => Err("Game not finished"),
         }
-        .expect("Game finished");
+            .expect("Game finished");
         assert_eq!(score.0, 80.); //Black
         assert_eq!(score.1, 5.5); //White
     }
@@ -535,14 +535,14 @@ mod tests {
     #[test]
     fn score_calcul_chinese() {
         let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
-        g.play(&Move::Play(4, 4));
-        g.play(&Move::Pass);
-        g.play(&Move::Pass);
+        g.play(Move::Play(4, 4));
+        g.play(Move::Pass);
+        g.play(Move::Pass);
         let score = match g.outcome() {
             Some(EndGame::Score(black, white)) => Ok((black, white)),
             _ => Err("Game not finished"),
         }
-        .expect("Game finished");
+            .expect("Game finished");
         assert_eq!(score.0, 81.); //Black
         assert_eq!(score.1, 5.5); //White
     }
@@ -567,8 +567,57 @@ mod tests {
     }
 
     #[test]
+    fn ko_test() {
+        let mut game: Game = Default::default();
+        game.play(Move::Play(0, 3)); // black
+        println!("{}", game);
+        game.play(Move::Play(0, 2)); // white
+        println!("{}", game);
+        game.play(Move::Play(1, 4)); // black
+        println!("{}", game);
+        game.play(Move::Play(2, 2)); // white
+        println!("{}", game);
+        game.play(Move::Play(2, 3)); // black
+        println!("{}", game);
+        game.play(Move::Play(1, 1)); // white
+        println!("{}", game);
+        game.play(Move::Play(1, 2)); // black
+        println!("{}", game);
+        game.play(Move::Play(1, 3)); // white takes
+        println!("{}", game);
+        //game.play(Move::Play(1, 2)); // black takes back
+        //println!("{}", game);
+        // ko
+        assert!(game.ko(Stone { coordinates: (1, 2), color: Color::Black }));
+        assert!(!game.legals().any(|m| m == (1, 2)));
+        assert!(game.play_with_verifications(Move::Play(1, 2)).is_err());
+        assert!(game.super_ko(Stone{ coordinates:(1, 2), color: Color::Black}));
+    }
+
+    #[test]
+    fn suicide_test(){
+        let mut game: Game = Default::default();
+        game.play(Move::Play(0, 2)); // black
+        println!("{}", game);
+        game.play(Move::Play(0, 0)); // white
+        println!("{}", game);
+        game.play(Move::Play(1, 1)); // black
+        println!("{}", game);
+        game.play(Move::Play(1, 0)); // white
+        println!("{}", game);
+        game.play(Move::Play(2, 0)); // black
+        println!("{}", game);
+        //game.play(Move::Play(0, 1)); // white suicide whith
+        //println!("{}", game);
+        // suicide
+        assert!(game.is_suicide(Stone { coordinates: (0, 1), color: Color::White }));
+        assert!(!game.legals().any(|m| m == (0, 1)));
+        assert!(game.play_with_verifications(Move::Play(0, 1)).is_err());
+    }
+
+    #[test]
     fn sgf_test() {
-        let mut game  =
+        let mut game =
             Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
     }
 }

@@ -85,21 +85,12 @@ impl Rule {
     ///
     /// Specify the constraints in the move validation by rule.
     ///
-    pub fn move_validation(&self, game: &Game, stone: &Stone) -> Option<PlayError> {
+    pub fn move_validation(&self, game: &Game, stone: Stone) -> Option<PlayError> {
         match self {
-            Rule::Japanese => {
+            Rule::Japanese | Rule::Chinese => {
                 if game.is_suicide(stone) {
                     Some(PlayError::Suicide)
-                } else if game.is_ko(stone) {
-                    Some(PlayError::Ko)
-                } else {
-                    None
-                }
-            }
-            Rule::Chinese => {
-                if game.is_suicide(stone) {
-                    Some(PlayError::Suicide)
-                } else if game.is_ko(stone) {
+                } else if game.ko(stone) {
                     Some(PlayError::Ko)
                 } else {
                     None

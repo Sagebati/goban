@@ -19,7 +19,7 @@ pub mod coord {
         order: Order,
     }
 
-    pub fn neighbors_coords(coord: &Coord) -> Vec<Coord> {
+    pub fn neighbors_coords(coord: Coord) -> Vec<Coord> {
         vec![
             (coord.0.wrapping_add(1), coord.1),
             (coord.0.wrapping_sub(1), coord.1),
@@ -45,7 +45,7 @@ pub mod coord {
         }
 
         #[inline]
-        pub fn to(&self, coord: &Coord) -> usize {
+        pub fn to(&self, coord: Coord) -> usize {
             match self.order {
                 Order::ColumnMajor => (coord.0 * self.n_cols + coord.1 % self.n_rows),
                 Order::RowMajor => (coord.0 * self.n_rows + coord.1 % self.n_cols),

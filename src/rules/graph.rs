@@ -14,7 +14,7 @@ impl Goban {
     pub fn is_group_dead(&self, stones: &HashSet<Stone>) -> bool {
         !stones // If there is one stone connected who has liberties, they are not captured.
             .iter()
-            .any(|s| self.has_liberties(s))
+            .any(|s| self.has_liberties(*s))
     }
 
     ///
@@ -25,7 +25,7 @@ impl Goban {
         let stones_without_liberties = self
             // get all stones without liberties
             .get_stones()
-            .filter(|point| !self.has_liberties(point));
+            .filter(|point| !self.has_liberties(*point));
 
         self.get_groups_by_stone(stones_without_liberties)
     }
@@ -45,7 +45,7 @@ impl Goban {
         let stones_without_libnerties = self
             .get_stones_by_color(color)
             // get all stones without liberties
-            .filter(|point| !self.has_liberties(point));
+            .filter(|point| !self.has_liberties(*point));
         self.get_groups_by_stone(stones_without_libnerties)
     }
 
@@ -56,19 +56,19 @@ impl Goban {
     /// Ex: Passing a function to this will return all the points of same color connected to
     /// the stone.
     ///
-    pub fn bfs(&self, point: &Stone) -> HashSet<Stone> {
+    pub fn bfs(&self, point: Stone) -> HashSet<Stone> {
         let mut explored: HashSet<Stone> = HashSet::new();
         explored.insert(point.clone());
 
         let mut to_explore: Vec<Stone> = self
-            .get_neighbors(&point.coord)
+            .get_neighbors(point.coordinates)
             .filter(|p| p.color == point.color)
             .collect(); // Acquiring all the neighbors
 
         while let Some(stone_to_explore) = to_explore.pop() {
             // exploring the graph
             explored.insert(stone_to_explore.clone());
-            self.get_neighbors(&stone_to_explore.coord)
+            self.get_neighbors(stone_to_explore.coordinates)
                 .filter(|p| p.color == point.color && !explored.contains(p))
                 .for_each(|s| to_explore.push(s));
         }
@@ -86,7 +86,7 @@ impl Goban {
             let is_handled = groups_of_stones.iter().any(|set| set.contains(&stone));
 
             if !is_handled {
-                groups_of_stones.push(self.bfs(&stone))
+                groups_of_stones.push(self.bfs(stone))
             }
         }
         groups_of_stones

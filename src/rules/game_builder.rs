@@ -7,8 +7,8 @@ use crate::rules::Rule::Chinese;
 pub struct GameBuilder {
     size: usize,
     komi: f32,
-    player_black: String,
-    player_white: String,
+    black_player: String,
+    white_player: String,
     rule: Rule,
     handicap_points: Option<Vec<Coord>>,
 }
@@ -18,8 +18,8 @@ impl GameBuilder {
         GameBuilder {
             size: 19,
             komi: 7.5,
-            player_black: "".to_string(),
-            player_white: "".to_string(),
+            black_player: "".to_string(),
+            white_player: "".to_string(),
             handicap_points: None,
             rule: Chinese,
         }
@@ -38,6 +38,16 @@ impl GameBuilder {
 
     pub fn komi(&mut self, komi: f32) -> &mut Self {
         self.komi = komi;
+        self
+    }
+
+    pub fn black_player(&mut self, black_player_name: &str) -> &mut Self {
+        self.black_player = black_player_name.to_string();
+        self
+    }
+
+    pub fn white_player(&mut self, white_player_name: &str) -> &mut Self {
+        self.white_player = white_player_name.to_string();
         self
     }
 

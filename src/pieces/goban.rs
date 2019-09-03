@@ -72,7 +72,7 @@ impl Goban {
             })
             .filter(|s| *(*s).1 != Color::None)
             .for_each(|coord_color| {
-                g.push(&coord_color.0, *coord_color.1)
+                g.push(coord_color.0, *coord_color.1)
                     .expect("Play the stone");
             });
         g
@@ -83,7 +83,7 @@ impl Goban {
     /// default (line, column)
     /// the (0,0) point is in the top left.
     ///
-    pub fn push(&mut self, point: &Coord, color: Color) -> Result<&mut Goban, String> {
+    pub fn push(&mut self, point: Coord, color: Color) -> Result<&mut Goban, String> {
         if self.coord_valid(point) {
             let i = self.coord_util.to(point);
             match color {
@@ -99,11 +99,11 @@ impl Goban {
                 }
             }
             if color == Color::None {
-                self.hash ^= self.zobrist[(*point, self[*point])];
+                self.hash ^= self.zobrist[(point, self[point])];
             } else {
-                self.hash ^= self.zobrist[(*point, color)];
+                self.hash ^= self.zobrist[(point, color)];
             }
-            self[*point] = color;
+            self[point] = color;
             Ok(self)
         } else {
             Err(format!(
@@ -117,7 +117,7 @@ impl Goban {
     /// Put many stones.
     ///
     #[inline]
-    pub fn push_many<'a>(&'a mut self, coords: impl Iterator<Item = &'a Coord>, value: Color) {
+    pub fn push_many(&mut self, coords: impl Iterator<Item=Coord>, value: Color) {
         coords.for_each(|c| {
             self.push(c, value)
                 .expect("Add one of the stones to the goban.");
@@ -125,20 +125,20 @@ impl Goban {
     }
 
     #[inline]
-    pub fn push_stone(&mut self, stone: &Stone) -> Result<&mut Goban, String> {
-        self.push(&stone.coord, stone.color)
+    pub fn push_stone(&mut self, stone: Stone) -> Result<&mut Goban, String> {
+        self.push(stone.coordinates, stone.color)
     }
 
     ///
     /// Get all the neighbors to the coordinate
     ///
     #[inline]
-    pub fn get_neighbors(&self, coord: &Coord) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_neighbors(&self, coord: Coord) -> impl Iterator<Item = Stone> + '_ {
         neighbors_coords(coord)
             .into_iter()
-            .filter(move |x| self.coord_valid(x))
+            .filter(move |x| self.coord_valid(*x))
             .map(move |x| Stone {
-                coord: x,
+                coordinates: x,
                 color: self[x],
             })
     }
@@ -147,7 +147,7 @@ impl Goban {
     /// Get all the stones that are neighbor to the coord except empty intersections
     ///
     #[inline]
-    pub fn get_neighbors_stones(&self, coord: &Coord) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_neighbors_stones(&self, coord: Coord) -> impl Iterator<Item = Stone> + '_ {
         self.get_neighbors(coord).filter(|s| s.color != Color::None)
     }
 
@@ -162,7 +162,7 @@ impl Goban {
             .enumerate()
             .filter(|(_index, t)| **t != Color::None)
             .map(move |(index, t)| Stone {
-                coord: coord_util.from(index),
+                coordinates: coord_util.from(index),
                 color: *t,
             })
     }
@@ -177,7 +177,7 @@ impl Goban {
             .enumerate()
             .filter(move |(_index, t)| **t == color)
             .map(move |(index, t)| Stone {
-                coord: self.coord_util.from(index),
+                coordinates: self.coord_util.from(index),
                 color: *t,
             })
     }
@@ -186,8 +186,8 @@ impl Goban {
     /// Returns the empty stones connected to the point
     ///
     #[inline]
-    pub fn get_liberties(&self, point: &Stone) -> impl Iterator<Item = Stone> + '_ {
-        self.get_neighbors(&point.coord)
+    pub fn get_liberties(&self, point: Stone) -> impl Iterator<Item = Stone> + '_ {
+        self.get_neighbors(point.coordinates)
             .filter(|s| s.color == Color::None)
     }
 
@@ -195,7 +195,7 @@ impl Goban {
     /// Returns the number of liberties of the stone.
     ///
     #[inline]
-    pub fn get_nb_liberties(&self, point: &Stone) -> u8 {
+    pub fn get_nb_liberties(&self, point: Stone) -> u8 {
         self.get_liberties(point).count() as u8
     }
 
@@ -203,7 +203,7 @@ impl Goban {
     /// Returns true if the stone has liberties.
     ///
     #[inline]
-    pub fn has_liberties(&self, point: &Stone) -> bool {
+    pub fn has_liberties(&self, point: Stone) -> bool {
         self.get_liberties(point).any(|s| Color::None == s.color)
     }
 
@@ -247,7 +247,7 @@ impl Goban {
     /// Return true if the coord is in the goban.
     ///
     #[inline]
-    fn coord_valid(&self, coord: &Coord) -> bool {
+    fn coord_valid(&self, coord: Coord) -> bool {
         coord.0 < self.size && coord.1 < self.size
     }
 }
@@ -260,7 +260,7 @@ impl Display for Goban {
 
 impl PartialEq for Goban {
     fn eq(&self, other: &Goban) -> bool {
-        other.tab == self.tab
+        other.hash == self.hash
     }
 }
 
@@ -270,13 +270,13 @@ impl Index<Coord> for Goban {
     type Output = Color;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
-        &self.tab[self.coord_util.to(&index)]
+        &self.tab[self.coord_util.to(index)]
     }
 }
 
 impl IndexMut<Coord> for Goban {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
-        &mut self.tab[self.coord_util.to(&index)]
+        &mut self.tab[self.coord_util.to(index)]
     }
 }
 
