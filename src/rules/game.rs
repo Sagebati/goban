@@ -309,7 +309,7 @@ impl Game {
         let mut scores: (f32, f32) = (0., 0.); // Black & White
         let empty_groups = self
             .goban
-            .get_groups_by_stone(self.goban.get_stones_by_color(Color::None));
+            .get_strings_from_stones(self.goban.get_stones_by_color(Color::None));
         for group in empty_groups {
             let mut neutral = (false, false);
             for empty_intersection in &group {
@@ -349,6 +349,17 @@ impl Game {
         res
     }
 
+    pub fn will_capture(&self, point: Coord) -> bool {
+        for stone in self.goban.get_neighbors(point)
+            .filter(|s|s.color != Color::None && s.color != self.turn.get_stone_color()) {
+            if self.goban.count_string_liberties(&self.goban.get_string_from_stone(stone)) ==
+                1 {
+                return true;
+            }
+        }
+        false
+    }
+
     ///
     /// Put the handicap stones on the goban.
     /// Does not override previous setting ! .
@@ -385,13 +396,13 @@ impl Game {
             false
         } else {
             // Test if the connected stones are also without liberties.
-            if goban_test.is_group_dead(&goban_test.bfs(stone)) {
+            if goban_test.is_string_dead(&goban_test.get_string_from_stone(stone)) {
                 // if the chain has no liberties then look if enemy stones are captured
                 !goban_test
                     .get_neighbors(stone.coordinates)
                     .filter(|s| s.color == (!self.turn).get_stone_color())
-                    .map(|s| goban_test.bfs(s))
-                    .any(|chain_of_stones| goban_test.is_group_dead(&chain_of_stones))
+                    .map(|s| goban_test.get_string_from_stone(s))
+                    .any(|chain_of_stones| goban_test.is_string_dead(&chain_of_stones))
             } else {
                 false
             }
@@ -405,6 +416,8 @@ impl Game {
     pub fn ko(&self, stone: Stone) -> bool {
         if self.plays.len() <= 2 {
             false
+        } else if !self.will_capture(stone.coordinates) {
+            false
         } else {
             let mut game = self.clone();
             game.play(Move::Play(stone.coordinates.0, stone.coordinates.1));
@@ -417,7 +430,7 @@ impl Game {
     ///
     pub fn super_ko(&self, stone: Stone) -> bool {
         let mut game = self.clone();
-        game.play(Move::Play(stone.coordinates.0,stone.coordinates.1));
+        game.play(Move::Play(stone.coordinates.0, stone.coordinates.1));
 
         self.hashes.contains(game.goban.hash())
     }
@@ -441,9 +454,9 @@ impl Game {
         let mut number_of_stones_captured = 0;
         for groups_of_stones in self
             .goban
-            .get_groups_of_stones_color_without_liberties(color)
+            .get_strings_of_stones_without_liberties_wth_color(color)
             {
-                if self.goban.is_group_dead(&groups_of_stones) {
+                if self.goban.is_string_dead(&groups_of_stones) {
                     self.goban.push_many(
                         groups_of_stones.iter().map(|point| point.coordinates),
                         Color::None,

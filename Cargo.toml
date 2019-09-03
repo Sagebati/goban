@@ -15,7 +15,6 @@ maintenance = {status = "actively-developed"}
 
 [profile.release]
 lto = true
-debug = true
 
 [dependencies]
 getset = "0.0.7"
