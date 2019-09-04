@@ -5,8 +5,8 @@ use crate::rules::game::Game;
 use std::ops::Not;
 
 pub mod game;
-pub mod graph;
 pub mod game_builder;
+pub mod graph;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum Player {
@@ -26,7 +26,7 @@ impl Not for Player {
 }
 
 impl Player {
-    fn get_stone_color(&self) -> Color {
+    fn get_stone_color(self) -> Color {
         match self {
             Player::Black => Color::Black,
             Player::White => Color::White,
@@ -61,7 +61,7 @@ impl Rule {
     ///
     /// Count the points of the game
     ///
-    pub fn count_points(&self, game: &Game) -> (f32, f32) {
+    pub fn count_points(self, game: &Game) -> (f32, f32) {
         match self {
             Rule::Japanese => {
                 let mut scores = game.calculate_territories();
@@ -85,7 +85,7 @@ impl Rule {
     ///
     /// Specify the constraints in the move validation by rule.
     ///
-    pub fn move_validation(&self, game: &Game, stone: Stone) -> Option<PlayError> {
+    pub fn move_validation(self, game: &Game, stone: Stone) -> Option<PlayError> {
         match self {
             Rule::Japanese | Rule::Chinese => {
                 if game.is_suicide(stone) {
@@ -99,7 +99,7 @@ impl Rule {
         }
     }
 
-    pub fn is_suicide_valid(&self) -> bool {
+    pub fn is_suicide_valid(self) -> bool {
         false
     }
 
@@ -107,7 +107,7 @@ impl Rule {
         match s {
             "JAP" => Ok(Rule::Japanese),
             "CHI" => Ok(Rule::Chinese),
-            _ => Err("The rule is not implemented yet.".to_string())
+            _ => Err("The rule is not implemented yet.".to_string()),
         }
     }
 }

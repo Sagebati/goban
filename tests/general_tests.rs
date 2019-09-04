@@ -527,7 +527,7 @@ mod tests {
             Some(EndGame::Score(black, white)) => Ok((black, white)),
             _ => Err("Game not finished"),
         }
-            .expect("Game finished");
+        .expect("Game finished");
         assert_eq!(score.0, 80.); //Black
         assert_eq!(score.1, 5.5); //White
     }
@@ -542,7 +542,7 @@ mod tests {
             Some(EndGame::Score(black, white)) => Ok((black, white)),
             _ => Err("Game not finished"),
         }
-            .expect("Game finished");
+        .expect("Game finished");
         assert_eq!(score.0, 81.); //Black
         assert_eq!(score.1, 5.5); //White
     }
@@ -588,14 +588,20 @@ mod tests {
         //game.play(Move::Play(1, 2)); // black takes back
         //println!("{}", game);
         // ko
-        assert!(game.ko(Stone { coordinates: (1, 2), color: Color::Black }));
+        assert!(game.ko(Stone {
+            coordinates: (1, 2),
+            color: Color::Black
+        }));
         assert!(!game.legals().any(|m| m == (1, 2)));
         assert!(game.play_with_verifications(Move::Play(1, 2)).is_err());
-        assert!(game.super_ko(Stone{ coordinates:(1, 2), color: Color::Black}));
+        assert!(game.super_ko(Stone {
+            coordinates: (1, 2),
+            color: Color::Black
+        }));
     }
 
     #[test]
-    fn suicide_test(){
+    fn suicide_test() {
         let mut game: Game = Default::default();
         game.play(Move::Play(0, 2)); // black
         println!("{}", game);
@@ -610,14 +616,16 @@ mod tests {
         //game.play(Move::Play(0, 1)); // white suicide whith
         //println!("{}", game);
         // suicide
-        assert!(game.is_suicide(Stone { coordinates: (0, 1), color: Color::White }));
+        assert!(game.is_suicide(Stone {
+            coordinates: (0, 1),
+            color: Color::White
+        }));
         assert!(!game.legals().any(|m| m == (0, 1)));
         assert!(game.play_with_verifications(Move::Play(0, 1)).is_err());
     }
 
     #[test]
     fn sgf_test() {
-        let mut game =
-            Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
+        let mut game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
     }
 }

@@ -1,8 +1,8 @@
-use std::string::ToString;
 use crate::pieces::util::coord::Coord;
 use crate::rules::game::{Game, GobanSizes};
 use crate::rules::Rule;
 use crate::rules::Rule::Chinese;
+use std::string::ToString;
 
 pub struct GameBuilder {
     size: usize,
@@ -24,7 +24,6 @@ impl GameBuilder {
             rule: Chinese,
         }
     }
-
 
     pub fn handicap(&mut self, points: &[Coord]) -> &mut Self {
         self.handicap_points = Some(points.to_vec());
@@ -58,5 +57,11 @@ impl GameBuilder {
             g.put_handicap(handicap_stones);
         }
         Ok(g)
+    }
+}
+
+impl Default for GameBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -117,7 +117,7 @@ impl Goban {
     /// Put many stones.
     ///
     #[inline]
-    pub fn push_many(&mut self, coords: impl Iterator<Item=Coord>, value: Color) {
+    pub fn push_many(&mut self, coords: impl Iterator<Item = Coord>, value: Color) {
         coords.for_each(|c| {
             self.push(c, value)
                 .expect("Add one of the stones to the goban.");

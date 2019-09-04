@@ -2,14 +2,14 @@ use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use crate::pieces::util::coord::Coord;
+use crate::rules::game_builder::GameBuilder;
 use crate::rules::EndGame;
 use crate::rules::PlayError;
 use crate::rules::Player;
 use crate::rules::Rule;
-use std::collections::HashSet;
 use crate::rules::Rule::Japanese;
 use sgf_parser::{SgfError, SgfToken};
-use crate::rules::game_builder::GameBuilder;
+use std::collections::HashSet;
 use std::fmt::{Display, Error, Formatter};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -35,7 +35,7 @@ impl From<usize> for GobanSizes {
             9 => GobanSizes::Nine,
             13 => GobanSizes::Thirteen,
             19 => GobanSizes::Nineteen,
-            _ => panic!("Not implemented for others size than 9,13,19")
+            _ => panic!("Not implemented for others size than 9,13,19"),
         }
     }
 }
@@ -125,28 +125,32 @@ impl Game {
                 for token in &node.tokens {
                     if token.is_root_token() {
                         match token {
-                            SgfToken::Komi(komi) => { gamebuilder.komi(*komi); }
-                            SgfToken::Size(x, _y) => { gamebuilder.size(*x as usize); }
+                            SgfToken::Komi(komi) => {
+                                gamebuilder.komi(*komi);
+                            }
+                            SgfToken::Size(x, _y) => {
+                                gamebuilder.size(*x as usize);
+                            }
                             //TODO another options
-                            _ => ()
+                            _ => (),
                         }
                     }
                 }
                 game = Some(gamebuilder.build().expect("Build the game"));
                 first = false;
-            } else {
-                if let Some(g) = &mut game {
-                    if !node.tokens.is_empty() {
-                        let token = node.tokens.first().unwrap();
-                        if let SgfToken::Move { color: _, coordinate } = token {
-                            g.play(Move::Play((coordinate.0 - 1) as usize, (coordinate.1 - 1) as
-                                usize));
-                            g.display();
-                        }
+            } else if let Some(g) = &mut game {
+                if !node.tokens.is_empty() {
+                    let token = node.tokens.first().unwrap();
+                    if let SgfToken::Move { coordinate, .. } = token {
+                        g.play(Move::Play(
+                            (coordinate.0 - 1) as usize,
+                            (coordinate.1 - 1) as usize,
+                        ));
+                        g.display();
                     }
-                } else {
-                    panic!("Game not init")
                 }
+            } else {
+                panic!("Game not init")
             }
         }
         Ok(Game::new(GobanSizes::Nineteen, Japanese))
@@ -194,15 +198,17 @@ impl Game {
     ///
     /// Generate all moves on all intersections.
     ///
-    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
-        self.goban.get_stones_by_color(Color::None).map(|s| s.coordinates)
+    fn pseudo_legals(&self) -> impl Iterator<Item = Coord> + '_ {
+        self.goban
+            .get_stones_by_color(Color::None)
+            .map(|s| s.coordinates)
     }
 
     ///
     /// Returns a list with legals moves,
     /// In the list will appear suicides moves, and ko moves.
     ///
-    pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item = Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
@@ -238,12 +244,10 @@ impl Game {
             }
             Move::Play(x, y) => {
                 let stone_color: Color = self.turn.get_stone_color();
-                self.goban
-                    .push((x, y), stone_color)
-                    .expect(&format!(
-                        "Put the stone in ({},{}) of color {}",
-                        x, y, stone_color
-                    ));
+                self.goban.push((x, y), stone_color).expect(&format!(
+                    "Put the stone in ({},{}) of color {}",
+                    x, y, stone_color
+                ));
                 self.remove_captured_stones();
                 self.plays.push(self.goban.clone()); // Keep the history of the game
                 self.hashes.insert(*self.goban.hash());
@@ -353,10 +357,16 @@ impl Game {
     }
 
     pub fn will_capture(&self, point: Coord) -> bool {
-        for stone in self.goban.get_neighbors(point)
-            .filter(|s| s.color != Color::None && s.color != self.turn.get_stone_color()) {
-            if self.goban.count_string_liberties(&self.goban.get_string_from_stone(stone)) ==
-                1 {
+        for stone in self
+            .goban
+            .get_neighbors(point)
+            .filter(|s| s.color != Color::None && s.color != self.turn.get_stone_color())
+        {
+            if self
+                .goban
+                .count_string_liberties(&self.goban.get_string_from_stone(stone))
+                == 1
+            {
                 return true;
             }
         }
@@ -393,7 +403,8 @@ impl Game {
     ///
     pub fn is_suicide(&self, stone: Stone) -> bool {
         let mut goban_test: Goban = self.goban().clone();
-        goban_test.push_stone(stone)
+        goban_test
+            .push_stone(stone)
             .expect("Play the stone for verification if it's suicide");
 
         if goban_test.has_liberties(stone) {
@@ -418,9 +429,7 @@ impl Game {
     /// If the goban is in the configuration of the two plays ago returns true
     ///
     pub fn ko(&self, stone: Stone) -> bool {
-        if self.plays.len() <= 2 {
-            false
-        } else if !self.will_capture(stone.coordinates) {
+        if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
             let mut game = self.clone();
@@ -459,15 +468,15 @@ impl Game {
         for groups_of_stones in self
             .goban
             .get_strings_of_stones_without_liberties_wth_color(color)
-            {
-                if self.goban.is_string_dead(&groups_of_stones) {
-                    self.goban.push_many(
-                        groups_of_stones.iter().map(|point| point.coordinates),
-                        Color::None,
-                    );
-                    number_of_stones_captured += groups_of_stones.len();
-                }
+        {
+            if self.goban.is_string_dead(&groups_of_stones) {
+                self.goban.push_many(
+                    groups_of_stones.iter().map(|point| point.coordinates),
+                    Color::None,
+                );
+                number_of_stones_captured += groups_of_stones.len();
             }
+        }
         number_of_stones_captured
     }
 }

@@ -76,7 +76,7 @@ impl Goban {
 
         while let Some(stone_to_explore) = to_explore.pop() {
             // exploring the graph
-            explored.insert(stone_to_explore.clone());
+            explored.insert(stone_to_explore);
             self.get_neighbors(stone_to_explore.coordinates)
                 .filter(|p| p.color == stone.color && !explored.contains(p))
                 .for_each(|s| to_explore.push(s));
@@ -90,7 +90,10 @@ impl Goban {
     /// Use a breadth first search to deduce the groups of connected stones.
     /// Get stones connected. [[x,y,z],[a,e,r]] example of return.
     ///
-    pub fn get_strings_from_stones(&self, stones: impl Iterator<Item=Stone>) -> Vec<HashSet<Stone>> {
+    pub fn get_strings_from_stones(
+        &self,
+        stones: impl Iterator<Item = Stone>,
+    ) -> Vec<HashSet<Stone>> {
         let mut groups_of_stones: Vec<HashSet<Stone>> = Vec::new();
         for stone in stones {
             // if the stone is already in a group of stones
