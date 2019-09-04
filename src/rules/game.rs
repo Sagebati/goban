@@ -23,8 +23,8 @@ impl Into<usize> for GobanSizes {
     fn into(self) -> usize {
         match self {
             GobanSizes::Nine => 9,
-            GobanSizes::Nineteen => 19,
             GobanSizes::Thirteen => 13,
+            GobanSizes::Nineteen => 19,
         }
     }
 }
@@ -229,11 +229,12 @@ impl Game {
     /// Method to play on the goban or pass.
     /// (0,0) is in the top left corner of the goban.
     ///
-    pub fn play(&mut self, play: Move) {
+    pub fn play(&mut self, play: Move) -> &mut Self {
         match play {
             Move::Pass => {
                 self.turn = !self.turn;
                 self.passes += 1;
+                self
             }
             Move::Play(x, y) => {
                 let stone_color: Color = self.turn.get_stone_color();
@@ -248,9 +249,11 @@ impl Game {
                 self.hashes.insert(*self.goban.hash());
                 self.turn = !self.turn;
                 self.passes = 0;
+                self
             }
             Move::Resign => {
                 self.resigned = Some(self.turn);
+                self
             }
         }
     }
@@ -258,14 +261,14 @@ impl Game {
     ///
     /// Method to play but it verifies if the play is legal or not.
     ///
-    pub fn play_with_verifications(&mut self, play: Move) -> Result<(), PlayError> {
+    pub fn play_with_verifications(&mut self, play: Move) -> Result<&mut Game, PlayError> {
         if self.passes == 2 {
             Err(PlayError::GamePaused)
         } else {
             match play {
                 Move::Pass => {
                     self.passes += 1;
-                    Ok(())
+                    Ok(self)
                 }
                 Move::Play(x, y) => {
                     let stone = Stone {
@@ -276,12 +279,12 @@ impl Game {
                         Err(c)
                     } else {
                         self.play(play);
-                        Ok(())
+                        Ok(self)
                     }
                 }
                 Move::Resign => {
                     self.resigned = Some(self.turn);
-                    Ok(())
+                    Ok(self)
                 }
             }
         }
@@ -351,7 +354,7 @@ impl Game {
 
     pub fn will_capture(&self, point: Coord) -> bool {
         for stone in self.goban.get_neighbors(point)
-            .filter(|s|s.color != Color::None && s.color != self.turn.get_stone_color()) {
+            .filter(|s| s.color != Color::None && s.color != self.turn.get_stone_color()) {
             if self.goban.count_string_liberties(&self.goban.get_string_from_stone(stone)) ==
                 1 {
                 return true;
@@ -390,7 +393,8 @@ impl Game {
     ///
     pub fn is_suicide(&self, stone: Stone) -> bool {
         let mut goban_test: Goban = self.goban().clone();
-        goban_test.push_stone(stone).expect("Play the stone");
+        goban_test.push_stone(stone)
+            .expect("Play the stone for verification if it's suicide");
 
         if goban_test.has_liberties(stone) {
             false
@@ -400,9 +404,9 @@ impl Game {
                 // if the chain has no liberties then look if enemy stones are captured
                 !goban_test
                     .get_neighbors(stone.coordinates)
-                    .filter(|s| s.color == (!self.turn).get_stone_color())
+                    .filter(|neigbor_stone| neigbor_stone.color == (!self.turn).get_stone_color())
                     .map(|s| goban_test.get_string_from_stone(s))
-                    .any(|chain_of_stones| goban_test.is_string_dead(&chain_of_stones))
+                    .any(|string_of_stones| goban_test.is_string_dead(&string_of_stones))
             } else {
                 false
             }

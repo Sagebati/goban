@@ -21,11 +21,11 @@ impl Goban {
     /// Count the liberties of a string
     ///
     pub fn count_string_liberties(&self, string: &HashSet<Stone>) -> u8 {
-        let res:HashSet<Stone>=string
+        string
             .iter()
             .flat_map(|s| self.get_liberties(*s))
-            .collect();
-        res.len() as u8
+            .collect::<HashSet<Stone>>()
+            .len() as u8
     }
 
     ///
@@ -65,20 +65,20 @@ impl Goban {
     /// stone is.
     /// It will return the stone alone if it's lonely
     ///
-    pub fn get_string_from_stone(&self, point: Stone) -> HashSet<Stone> {
+    pub fn get_string_from_stone(&self, stone: Stone) -> HashSet<Stone> {
         let mut explored: HashSet<Stone> = HashSet::new();
-        explored.insert(point.clone());
+        explored.insert(stone);
 
         let mut to_explore: Vec<Stone> = self
-            .get_neighbors(point.coordinates)
-            .filter(|p| p.color == point.color)
+            .get_neighbors(stone.coordinates)
+            .filter(|p| p.color == stone.color)
             .collect(); // Acquiring all the neighbors
 
         while let Some(stone_to_explore) = to_explore.pop() {
             // exploring the graph
             explored.insert(stone_to_explore.clone());
             self.get_neighbors(stone_to_explore.coordinates)
-                .filter(|p| p.color == point.color && !explored.contains(p))
+                .filter(|p| p.color == stone.color && !explored.contains(p))
                 .for_each(|s| to_explore.push(s));
         }
         explored
