@@ -1,11 +1,11 @@
 //! Module for ruling in the game of go.
 
-
-use crate::pieces::stones::{Stone, Color};
+use crate::pieces::stones::{Color, Stone};
 use crate::rules::game::Game;
 use std::ops::Not;
 
 pub mod game;
+pub mod game_builder;
 pub mod graph;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
@@ -19,17 +19,17 @@ impl Not for Player {
 
     fn not(self) -> Self::Output {
         match self {
-            Player::Black=> Player::White,
-            Player::White => Player::Black
+            Player::Black => Player::White,
+            Player::White => Player::Black,
         }
     }
 }
 
-impl Into<Color> for Player {
-    fn into(self) -> Color {
+impl Player {
+    fn get_stone_color(self) -> Color {
         match self {
             Player::Black => Color::Black,
-            Player::White => Color::White
+            Player::White => Color::White,
         }
     }
 }
@@ -51,7 +51,7 @@ pub enum PlayError {
 /// This enum describes the rules for the game.
 /// for example in chinese rules we don't count prisoners.
 ///
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Copy)]
 pub enum Rule {
     Japanese,
     Chinese,
@@ -61,7 +61,7 @@ impl Rule {
     ///
     /// Count the points of the game
     ///
-    pub fn count_points(&self, game: &Game) -> (f32, f32) {
+    pub fn count_points(self, game: &Game) -> (f32, f32) {
         match self {
             Rule::Japanese => {
                 let mut scores = game.calculate_territories();
@@ -85,26 +85,29 @@ impl Rule {
     ///
     /// Specify the constraints in the move validation by rule.
     ///
-    pub fn move_validation(&self, game: &Game, stone: &Stone) -> Option<PlayError> {
+    pub fn move_validation(self, game: &Game, stone: Stone) -> Option<PlayError> {
         match self {
-            Rule::Japanese => {
+            Rule::Japanese | Rule::Chinese => {
                 if game.is_suicide(stone) {
                     Some(PlayError::Suicide)
-                } else if game.is_ko(stone) {
+                } else if game.ko(stone) {
                     Some(PlayError::Ko)
                 } else {
                     None
                 }
             }
-            Rule::Chinese => {
-                if game.is_suicide(stone) {
-                    Some(PlayError::Suicide)
-                } else if game.is_ko(stone) {
-                    Some(PlayError::Ko)
-                } else {
-                    None
-                }
-            }
+        }
+    }
+
+    pub fn is_suicide_valid(self) -> bool {
+        false
+    }
+
+    pub fn from_sgf_code(s: &str) -> Result<Rule, String> {
+        match s {
+            "JAP" => Ok(Rule::Japanese),
+            "CHI" => Ok(Rule::Chinese),
+            _ => Err("The rule is not implemented yet.".to_string()),
         }
     }
 }

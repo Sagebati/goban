@@ -1,9 +1,9 @@
 //! Module with all needed to play.
 
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fmt::Error;
 use crate::pieces::util::coord::Coord;
+use std::fmt::Display;
+use std::fmt::Error;
+use std::fmt::Formatter;
 
 pub const WHITE_STONE: char = '⚫';
 pub const BLACK_STONE: char = '⚪';
@@ -19,9 +19,9 @@ pub enum Color {
 }
 
 /// Stone on a goban.
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug, Copy)]
 pub struct Stone {
-    pub coord: Coord,
+    pub coordinates: Coord,
     pub color: Color,
 }
 
@@ -31,17 +31,17 @@ impl From<u8> for Color {
             2 => Color::White,
             1 => Color::Black,
             0 => Color::None,
-            _ => panic!("Error int the conversion from u8 to Stone")
+            _ => panic!("Error int the conversion from u8 to Stone"),
         }
     }
 }
 
 impl Display for Color {
-    fn fmt(&self, f: &mut Formatter<>) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         let color_str = match self {
             Color::White => "White",
             Color::Black => "Black",
-            Color::None => "Empty"
+            Color::None => "Empty",
         };
         write!(f, "{}", color_str)
     }

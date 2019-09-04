@@ -9,7 +9,7 @@
 //!       let mut i = 35;
 //!        while !g.legals().count() != 0 && i != 0 {
 //!            g.play(
-//!                &g.legals().map(|coord| Move::Play(coord.0, coord.1))
+//!                g.legals().map(|coord| Move::Play(coord.0, coord.1))
 //!                    .choose(&mut rand::thread_rng())
 //!                    .unwrap());
 //!            i -= 1;
@@ -19,11 +19,8 @@
 
 #[macro_use]
 extern crate getset;
-
-//#[macro_use]
-//extern crate lazy_static;
+#[macro_use]
+extern crate lazy_static;
 
 pub mod pieces;
 pub mod rules;
-
-
