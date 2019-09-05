@@ -7,13 +7,15 @@
 //!
 //!     let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
 //!       let mut i = 35;
-//!        while !g.legals().count() != 0 && i != 0 {
+//!        while !g.over() && i != 0 {
 //!            g.play(
-//!                g.legals().map(|coord| Move::Play(coord.0, coord.1))
+//!                 // legals return an iterator on (x,y) points
+//!                g.legals()
 //!                    .choose(&mut rand::thread_rng())
-//!                    .unwrap());
+//!                    .map(|point| Move::Play(point.0,point.1))
+//!                     .unwrap());
 //!            i -= 1;
-//!            println!("{}", g.goban().pretty_string());
+//!            println!("{}", g);
 //!        }
 //! ```
 

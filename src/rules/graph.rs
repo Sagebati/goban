@@ -85,7 +85,7 @@ impl Goban {
     }
 
     ///
-    /// Pass a iterator of stones [x,a] and It will compute the string fo stones connected to these
+    /// Pass a iterator of stones [x,a] and It will compute the string of each stone
     /// stones.
     /// Use a breadth first search to deduce the groups of connected stones.
     /// Get stones connected. [[x,y,z],[a,e,r]] example of return.
@@ -94,7 +94,7 @@ impl Goban {
         &self,
         stones: impl Iterator<Item = Stone>,
     ) -> Vec<HashSet<Stone>> {
-        let mut groups_of_stones: Vec<HashSet<Stone>> = Vec::new();
+        let mut groups_of_stones: Vec<HashSet<Stone>> = Default::default();
         for stone in stones {
             // if the stone is already in a group of stones
             let is_handled = groups_of_stones.iter().any(|set| set.contains(&stone));
