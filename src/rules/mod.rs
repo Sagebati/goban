@@ -6,7 +6,6 @@ use std::ops::Not;
 
 pub mod game;
 pub mod game_builder;
-pub mod graph;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum Player {
@@ -64,7 +63,7 @@ impl Rule {
     pub fn count_points(self, game: &Game) -> (f32, f32) {
         match self {
             Rule::Japanese => {
-                let mut scores = game.calculate_territories();
+                let mut scores = game.goban().calculate_territories();
                 scores.0 += game.prisoners().0 as f32;
                 scores.1 += game.prisoners().1 as f32;
                 scores.1 += game.komi();
@@ -73,8 +72,8 @@ impl Rule {
             }
             Rule::Chinese => {
                 // Territories in seki are not counted
-                let mut scores = game.calculate_territories();
-                let ns = game.number_of_stones();
+                let mut scores = game.goban().calculate_territories();
+                let ns = game.goban().number_of_stones();
                 scores.0 += ns.0 as f32;
                 scores.1 += ns.1 as f32;
                 scores.1 += game.komi();

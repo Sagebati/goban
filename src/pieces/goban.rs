@@ -10,6 +10,7 @@ use std::ops::{Index, IndexMut};
 
 ///
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
+/// only square boards are possible for the moment.
 ///
 #[derive(Clone, Getters, Setters, Debug)]
 pub struct Goban {
@@ -241,6 +242,55 @@ impl Goban {
             buff.push('\n');
         }
         buff
+    }
+
+    ///
+    /// Get number of stones on the goban.
+    /// (number of black stones, number of white stones)
+    ///
+    pub fn number_of_stones(&self) -> (u32, u32) {
+        let mut res: (u32, u32) = (0, 0);
+        self.get_stones().for_each(|stone| match stone.color {
+            Color::Black => {
+                res.0 += 1;
+            }
+            Color::White => {
+                res.1 += 1;
+            }
+            _ => unreachable!(),
+        });
+        res
+    }
+
+    ///
+    /// Calculates a score for the endgame. It's a naive implementation, it counts only
+    /// territories with the same color surrounding them.
+    ///
+    /// Returns (black territory,  white territory)
+    ///
+    pub fn calculate_territories(&self) -> (f32, f32) {
+        let mut scores: (f32, f32) = (0., 0.); // Black & White
+        let empty_strings = self
+            .get_strings_from_stones(self.get_stones_by_color(Color::None));
+        for group in empty_strings {
+            let mut neutral = (false, false);
+            for empty_intersection in &group {
+                for stone in self.get_neighbors(empty_intersection.coordinates) {
+                    if stone.color == Color::White {
+                        neutral.1 = true; // found white stone
+                    }
+                    if stone.color == Color::Black {
+                        neutral.0 = true; // found black stone
+                    }
+                }
+            }
+            if neutral.0 && !neutral.1 {
+                scores.0 += group.len() as f32;
+            } else if !neutral.0 && neutral.1 {
+                scores.1 += group.len() as f32;
+            }
+        }
+        (scores.0, scores.1)
     }
 
     ///

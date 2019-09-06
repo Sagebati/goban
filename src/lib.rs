@@ -7,7 +7,7 @@
 //!
 //!     let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
 //!       let mut i = 35;
-//!        while !g.over() && i != 0 {
+//!        while !g.is_over() && i != 0 {
 //!            g.play(
 //!                 // legals return an iterator on (x,y) points
 //!                g.legals()

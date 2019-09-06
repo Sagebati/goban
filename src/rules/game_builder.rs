@@ -5,7 +5,7 @@ use crate::rules::Rule::Chinese;
 use std::string::ToString;
 
 pub struct GameBuilder {
-    size: usize,
+    size: (u32,u32),
     komi: f32,
     black_player: String,
     white_player: String,
@@ -16,8 +16,8 @@ pub struct GameBuilder {
 impl GameBuilder {
     pub fn new() -> GameBuilder {
         GameBuilder {
-            size: 19,
-            komi: 7.5,
+            size: (19, 19),
+            komi: 0.,
             black_player: "".to_string(),
             white_player: "".to_string(),
             handicap_points: None,
@@ -30,7 +30,7 @@ impl GameBuilder {
         self
     }
 
-    pub fn size(&mut self, size: usize) -> &mut Self {
+    pub fn size(&mut self, size: (u32, u32)) -> &mut Self {
         self.size = size;
         self
     }
@@ -51,7 +51,7 @@ impl GameBuilder {
     }
 
     pub fn build(&self) -> Result<Game, String> {
-        let mut g = Game::new(GobanSizes::from(self.size), self.rule);
+        let mut g = Game::new(GobanSizes::from(self.size.0 as usize), self.rule);
         g.set_komi(self.komi);
         if let Some(handicap_stones) = &self.handicap_points {
             g.put_handicap(handicap_stones);

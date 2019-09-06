@@ -13,6 +13,7 @@ mod tests {
     use goban::rules::Rule;
     use rand::seq::IteratorRandom;
     use std::collections::BTreeSet;
+    use goban::pieces::stones::Color::Black;
 
     #[test]
     fn goban() {
@@ -71,7 +72,7 @@ mod tests {
     fn some_plays() {
         let mut g = Game::new(GobanSizes::Nineteen, Rule::Chinese);
         let mut i = 300;
-        while !g.over() && i != 0 {
+        while !g.is_over() && i != 0 {
             g.play(
                 g.legals()
                     .choose(&mut rand::thread_rng())
@@ -456,7 +457,7 @@ mod tests {
                 _ => unreachable!(),
             };
             g.play_with_verifications(to_play).unwrap();
-            g.display();
+            println!("{}", g)
         }
         let score = match g.outcome().unwrap() {
             EndGame::WinnerByResign(_player) => panic!("There is no winner by resign in this game"),
@@ -514,7 +515,7 @@ mod tests {
         g.play(Move::Pass);
         g.play(Move::Pass);
 
-        assert_eq!(g.over(), true)
+        assert_eq!(g.is_over(), true)
     }
 
     #[test]
@@ -527,9 +528,66 @@ mod tests {
             Some(EndGame::Score(black, white)) => Ok((black, white)),
             _ => Err("Game not finished"),
         }
-        .expect("Game finished");
+            .expect("Game finished");
         assert_eq!(score.0, 80.); //Black
         assert_eq!(score.1, 5.5); //White
+    }
+
+    #[test]
+    fn score_calcul2() {
+        let mut g = Game::new(GobanSizes::Nineteen, Rule::Chinese);
+        g.set_komi(0.);
+        (0..38).for_each(
+            |x|
+                { g.play_with_verifications(Play(if x % 2 == 0 { 9 } else { 8 }, x / 2)).unwrap(); }
+        );
+
+        println!("{}", g);
+        let score = g.calculate_score();
+        assert_eq!(score, (10. * 19., 9. * 19.));
+        let mut goban: Goban = g.goban().clone();
+        goban.push_many(
+            {
+                let mut vec = vec![];
+                (9..19).for_each(|x| {
+                    vec.push((x, 3))
+                });
+                vec
+            }.into_iter()
+            ,
+            Color::Black,
+        );
+        goban.push_many(
+            vec![
+                (11, 6),
+                (11, 7),
+                (11, 8),
+                (12, 6),
+                (12, 8),
+                (13, 6),
+                (13, 7),
+                (13, 8)
+            ].into_iter(),
+            Color::White,
+        );
+
+        let terr = goban.calculate_territories();
+        assert_eq!(terr, (27., 8. * 19. + 1.));
+
+        goban.push_many(
+            vec![
+                (17,18),
+                (18,17),
+                (18,15),
+                (17,16),
+                (16,17),
+                (15,18)
+            ].into_iter(),Black
+        );
+
+        let terr = goban.calculate_territories();
+        println!("{}",goban);
+        assert_eq!(terr, (27. + 4., 8. * 19. + 1.));
     }
 
     #[test]
@@ -542,7 +600,7 @@ mod tests {
             Some(EndGame::Score(black, white)) => Ok((black, white)),
             _ => Err("Game not finished"),
         }
-        .expect("Game finished");
+            .expect("Game finished");
         assert_eq!(score.0, 81.); //Black
         assert_eq!(score.1, 5.5); //White
     }
@@ -590,13 +648,13 @@ mod tests {
         // ko
         assert!(game.ko(Stone {
             coordinates: (1, 2),
-            color: Color::Black
+            color: Color::Black,
         }));
         assert!(!game.legals().any(|m| m == (1, 2)));
         assert!(game.play_with_verifications(Move::Play(1, 2)).is_err());
         assert!(game.super_ko(Stone {
             coordinates: (1, 2),
-            color: Color::Black
+            color: Color::Black,
         }));
     }
 
@@ -618,7 +676,7 @@ mod tests {
         // suicide
         assert!(game.is_suicide(Stone {
             coordinates: (0, 1),
-            color: Color::White
+            color: Color::White,
         }));
         assert!(!game.legals().any(|m| m == (0, 1)));
         assert!(game.play_with_verifications(Move::Play(0, 1)).is_err());
@@ -626,6 +684,7 @@ mod tests {
 
     #[test]
     fn sgf_test() {
-        let mut game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
+        let game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
+        println!("score : {:?}", game.calculate_score())
     }
 }

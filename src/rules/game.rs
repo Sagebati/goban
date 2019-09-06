@@ -119,7 +119,6 @@ impl Game {
         let mut game: Option<Game> = None;
 
         for node in game_tree.iter() {
-            dbg!(node);
             if first {
                 // Game information
                 for token in &node.tokens {
@@ -128,8 +127,8 @@ impl Game {
                             SgfToken::Komi(komi) => {
                                 gamebuilder.komi(*komi);
                             }
-                            SgfToken::Size(x, _y) => {
-                                gamebuilder.size(*x as usize);
+                            SgfToken::Size(x, y) => {
+                                gamebuilder.size((*x, *y));
                             }
                             //TODO another options
                             _ => (),
@@ -142,15 +141,20 @@ impl Game {
                 if !node.tokens.is_empty() {
                     let token = node.tokens.first().unwrap();
                     if let SgfToken::Move { coordinate, .. } = token {
-                        g.play(Move::Play(
-                            (coordinate.0 - 1) as usize,
+                        let new_coordinates = (
                             (coordinate.1 - 1) as usize,
-                        ));
-                        g.display();
+                            (coordinate.0 - 1) as usize
+                        );
+                        g.play_with_verifications(Move::Play(
+                            new_coordinates.0,
+                            new_coordinates.1,
+                        )).unwrap();
+                        dbg!(new_coordinates);
+                        println!("{}", g)
                     }
                 }
             } else {
-                panic!("Game not init")
+                panic!("Game not constructed")
             }
         }
         Ok(Game::new(GobanSizes::Nineteen, Japanese))
@@ -168,7 +172,7 @@ impl Game {
     ///
     /// True when the game is over (two passes, or no more legals moves, Resign)
     ///
-    pub fn over(&self) -> bool {
+    pub fn is_over(&self) -> bool {
         if let Some(_x) = self.resigned {
             true
         } else {
@@ -181,7 +185,7 @@ impl Game {
     /// None if the game is not finished
     ///
     pub fn outcome(&self) -> Option<EndGame> {
-        if !self.over() {
+        if !self.is_over() {
             None
         } else if let Some(x) = self.resigned {
             if x == Player::White {
@@ -198,7 +202,7 @@ impl Game {
     ///
     /// Generate all moves on all intersections.
     ///
-    fn pseudo_legals(&self) -> impl Iterator<Item = Coord> + '_ {
+    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.goban
             .get_stones_by_color(Color::None)
             .map(|s| s.coordinates)
@@ -208,7 +212,7 @@ impl Game {
     /// Returns a list with legals moves,
     /// In the list will appear suicides moves, and ko moves.
     ///
-    pub fn legals(&self) -> impl Iterator<Item = Coord> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
@@ -222,13 +226,6 @@ impl Game {
                 }
             })
             .map(|s| (s.coordinates.0, s.coordinates.1))
-    }
-
-    ///
-    /// Prints the goban.
-    ///
-    pub fn display(&self) {
-        println!("{}", self.goban.pretty_string());
     }
 
     ///
@@ -306,70 +303,20 @@ impl Game {
         self
     }
 
-    ///
-    /// Calculates a score for the endgame. It's a naive implementation, it counts only
-    /// territories with the same color surrounding them.
-    ///
-    /// Returns (black territory,  white territory)
-    ///
-    pub fn calculate_territories(&self) -> (f32, f32) {
-        let mut scores: (f32, f32) = (0., 0.); // Black & White
-        let empty_groups = self
-            .goban
-            .get_strings_from_stones(self.goban.get_stones_by_color(Color::None));
-        for group in empty_groups {
-            let mut neutral = (false, false);
-            for empty_intersection in &group {
-                for stone in self.goban.get_neighbors(empty_intersection.coordinates) {
-                    if stone.color == Color::White {
-                        neutral.1 = true; // found white stone
-                    }
-                    if stone.color == Color::Black {
-                        neutral.0 = true; // found black stone
-                    }
-                }
-            }
-            if neutral.0 && !neutral.1 {
-                scores.0 += group.len() as f32;
-            } else if !neutral.0 && neutral.1 {
-                scores.1 += group.len() as f32;
-            }
-        }
-        (scores.0, scores.1)
-    }
-
-    ///
-    /// Get number of stones on the goban.
-    /// (number of black stones, number of white stones)
-    ///
-    pub fn number_of_stones(&self) -> (u32, u32) {
-        let mut res: (u32, u32) = (0, 0);
-        self.goban.get_stones().for_each(|stone| match stone.color {
-            Color::Black => {
-                res.0 += 1;
-            }
-            Color::White => {
-                res.1 += 1;
-            }
-            _ => unreachable!(),
-        });
-        res
-    }
-
     pub fn will_capture(&self, point: Coord) -> bool {
         for stone in self
             .goban
             .get_neighbors(point)
             .filter(|s| s.color != Color::None && s.color != self.turn.get_stone_color())
-        {
-            if self
-                .goban
-                .count_string_liberties(&self.goban.get_string_from_stone(stone))
-                == 1
             {
-                return true;
+                if self
+                    .goban
+                    .count_string_liberties(&self.goban.get_string_from_stone(stone))
+                    == 1
+                {
+                    return true;
+                }
             }
-        }
         false
     }
 
@@ -468,15 +415,15 @@ impl Game {
         for groups_of_stones in self
             .goban
             .get_strings_of_stones_without_liberties_wth_color(color)
-        {
-            if self.goban.is_string_dead(&groups_of_stones) {
-                self.goban.push_many(
-                    groups_of_stones.iter().map(|point| point.coordinates),
-                    Color::None,
-                );
-                number_of_stones_captured += groups_of_stones.len();
+            {
+                if self.goban.is_string_dead(&groups_of_stones) {
+                    self.goban.push_many(
+                        groups_of_stones.iter().map(|point| point.coordinates),
+                        Color::None,
+                    );
+                    number_of_stones_captured += groups_of_stones.len();
+                }
             }
-        }
         number_of_stones_captured
     }
 }
