@@ -16,6 +16,11 @@ maintenance = {status = "actively-developed"}
 [profile.release]
 lto = true
 
+[workspace]
+members = [
+    "sgf-parser"
+]
+
 [dependencies]
 getset = "0.0.7"
 lazy_static = "1.4.0"

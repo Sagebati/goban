@@ -2,6 +2,7 @@
 mod tests {
     use goban::pieces::goban::Goban;
     use goban::pieces::stones::Color;
+    use goban::pieces::stones::Color::Black;
     use goban::pieces::stones::Stone;
     use goban::pieces::util::coord::Order;
     use goban::pieces::zobrist::ZOBRIST19;
@@ -13,7 +14,6 @@ mod tests {
     use goban::rules::Rule;
     use rand::seq::IteratorRandom;
     use std::collections::BTreeSet;
-    use goban::pieces::stones::Color::Black;
 
     #[test]
     fn goban() {
@@ -528,7 +528,7 @@ mod tests {
             Some(EndGame::Score(black, white)) => Ok((black, white)),
             _ => Err("Game not finished"),
         }
-            .expect("Game finished");
+        .expect("Game finished");
         assert_eq!(score.0, 80.); //Black
         assert_eq!(score.1, 5.5); //White
     }
@@ -537,10 +537,10 @@ mod tests {
     fn score_calcul2() {
         let mut g = Game::new(GobanSizes::Nineteen, Rule::Chinese);
         g.set_komi(0.);
-        (0..38).for_each(
-            |x|
-                { g.play_with_verifications(Play(if x % 2 == 0 { 9 } else { 8 }, x / 2)).unwrap(); }
-        );
+        (0..38).for_each(|x| {
+            g.play_with_verifications(Play(if x % 2 == 0 { 9 } else { 8 }, x / 2))
+                .unwrap();
+        });
 
         println!("{}", g);
         let score = g.calculate_score();
@@ -549,12 +549,10 @@ mod tests {
         goban.push_many(
             {
                 let mut vec = vec![];
-                (9..19).for_each(|x| {
-                    vec.push((x, 3))
-                });
+                (9..19).for_each(|x| vec.push((x, 3)));
                 vec
-            }.into_iter()
-            ,
+            }
+            .into_iter(),
             Color::Black,
         );
         goban.push_many(
@@ -566,8 +564,9 @@ mod tests {
                 (12, 8),
                 (13, 6),
                 (13, 7),
-                (13, 8)
-            ].into_iter(),
+                (13, 8),
+            ]
+            .into_iter(),
             Color::White,
         );
 
@@ -575,18 +574,12 @@ mod tests {
         assert_eq!(terr, (27., 8. * 19. + 1.));
 
         goban.push_many(
-            vec![
-                (17,18),
-                (18,17),
-                (18,15),
-                (17,16),
-                (16,17),
-                (15,18)
-            ].into_iter(),Black
+            vec![(17, 18), (18, 17), (18, 15), (17, 16), (16, 17), (15, 18)].into_iter(),
+            Black,
         );
 
         let terr = goban.calculate_territories();
-        println!("{}",goban);
+        println!("{}", goban);
         assert_eq!(terr, (27. + 4., 8. * 19. + 1.));
     }
 
@@ -600,7 +593,7 @@ mod tests {
             Some(EndGame::Score(black, white)) => Ok((black, white)),
             _ => Err("Game not finished"),
         }
-            .expect("Game finished");
+        .expect("Game finished");
         assert_eq!(score.0, 81.); //Black
         assert_eq!(score.1, 5.5); //White
     }

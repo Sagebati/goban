@@ -270,8 +270,7 @@ impl Goban {
     ///
     pub fn calculate_territories(&self) -> (f32, f32) {
         let mut scores: (f32, f32) = (0., 0.); // Black & White
-        let empty_strings = self
-            .get_strings_from_stones(self.get_stones_by_color(Color::None));
+        let empty_strings = self.get_strings_from_stones(self.get_stones_by_color(Color::None));
         for group in empty_strings {
             let mut neutral = (false, false);
             for empty_intersection in &group {

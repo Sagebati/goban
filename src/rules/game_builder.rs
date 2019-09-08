@@ -5,7 +5,7 @@ use crate::rules::Rule::Chinese;
 use std::string::ToString;
 
 pub struct GameBuilder {
-    size: (u32,u32),
+    size: (u32, u32),
     komi: f32,
     black_player: String,
     white_player: String,

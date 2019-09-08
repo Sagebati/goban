@@ -7,7 +7,6 @@ use crate::rules::EndGame;
 use crate::rules::PlayError;
 use crate::rules::Player;
 use crate::rules::Rule;
-use crate::rules::Rule::Japanese;
 use sgf_parser::{SgfError, SgfToken};
 use std::collections::HashSet;
 use std::fmt::{Display, Error, Formatter};
@@ -140,24 +139,24 @@ impl Game {
             } else if let Some(g) = &mut game {
                 if !node.tokens.is_empty() {
                     let token = node.tokens.first().unwrap();
-                    if let SgfToken::Move { coordinate, .. } = token {
-                        let new_coordinates = (
-                            (coordinate.1 - 1) as usize,
-                            (coordinate.0 - 1) as usize
-                        );
-                        g.play_with_verifications(Move::Play(
-                            new_coordinates.0,
-                            new_coordinates.1,
-                        )).unwrap();
-                        dbg!(new_coordinates);
-                        println!("{}", g)
+                    if let SgfToken::Move {
+                        coordinate_or_pass, ..
+                    } = token
+                    {
+                        g.play_with_verifications(match coordinate_or_pass {
+                            Some(coordinate) => {
+                                Move::Play((coordinate.1 - 1) as usize, (coordinate.0 - 1) as usize)
+                            }
+                            None => Move::Pass,
+                        })
+                        .expect(&format!("Play the move read from the sgf"));
                     }
                 }
             } else {
                 panic!("Game not constructed")
             }
         }
-        Ok(Game::new(GobanSizes::Nineteen, Japanese))
+        Ok(game.expect("The game to be initialised from the sgf"))
     }
 }
 
@@ -202,7 +201,7 @@ impl Game {
     ///
     /// Generate all moves on all intersections.
     ///
-    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
+    fn pseudo_legals(&self) -> impl Iterator<Item = Coord> + '_ {
         self.goban
             .get_stones_by_color(Color::None)
             .map(|s| s.coordinates)
@@ -212,7 +211,7 @@ impl Game {
     /// Returns a list with legals moves,
     /// In the list will appear suicides moves, and ko moves.
     ///
-    pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item = Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
@@ -308,15 +307,15 @@ impl Game {
             .goban
             .get_neighbors(point)
             .filter(|s| s.color != Color::None && s.color != self.turn.get_stone_color())
+        {
+            if self
+                .goban
+                .count_string_liberties(&self.goban.get_string_from_stone(stone))
+                == 1
             {
-                if self
-                    .goban
-                    .count_string_liberties(&self.goban.get_string_from_stone(stone))
-                    == 1
-                {
-                    return true;
-                }
+                return true;
             }
+        }
         false
     }
 
@@ -415,15 +414,15 @@ impl Game {
         for groups_of_stones in self
             .goban
             .get_strings_of_stones_without_liberties_wth_color(color)
-            {
-                if self.goban.is_string_dead(&groups_of_stones) {
-                    self.goban.push_many(
-                        groups_of_stones.iter().map(|point| point.coordinates),
-                        Color::None,
-                    );
-                    number_of_stones_captured += groups_of_stones.len();
-                }
+        {
+            if self.goban.is_string_dead(&groups_of_stones) {
+                self.goban.push_many(
+                    groups_of_stones.iter().map(|point| point.coordinates),
+                    Color::None,
+                );
+                number_of_stones_captured += groups_of_stones.len();
             }
+        }
         number_of_stones_captured
     }
 }

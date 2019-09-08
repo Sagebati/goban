@@ -4,7 +4,7 @@
 //!
 
 pub mod goban;
+pub mod graph;
 pub mod stones;
 pub mod util;
 pub mod zobrist;
-pub mod graph;
