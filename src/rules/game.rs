@@ -42,7 +42,7 @@ impl From<usize> for GobanSizes {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Move {
     Pass,
-    Resign,
+    Resign(Player),
     Play(usize, usize),
 }
 
@@ -250,8 +250,8 @@ impl Game {
                 self.passes = 0;
                 self
             }
-            Move::Resign => {
-                self.resigned = Some(self.turn);
+            Move::Resign(player) => {
+                self.resigned = Some(player);
                 self
             }
         }
@@ -265,8 +265,8 @@ impl Game {
             Err(PlayError::GamePaused)
         } else {
             match play {
-                Move::Pass => {
-                    self.passes += 1;
+                Move::Pass | Move::Resign(_) => {
+                    self.play(play);
                     Ok(self)
                 }
                 Move::Play(x, y) => {
@@ -280,10 +280,6 @@ impl Game {
                         self.play(play);
                         Ok(self)
                     }
-                }
-                Move::Resign => {
-                    self.resigned = Some(self.turn);
-                    Ok(self)
                 }
             }
         }
