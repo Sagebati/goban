@@ -457,7 +457,7 @@ mod tests {
                 _ => unreachable!(),
             };
             g.play_with_verifications(to_play).unwrap();
-            println!("{}", g)
+            g.display_goban()
         }
         let score = match g.outcome().unwrap() {
             EndGame::WinnerByResign(_player) => panic!("There is no winner by resign in this game"),
@@ -542,7 +542,7 @@ mod tests {
                 .unwrap();
         });
 
-        println!("{}", g);
+        g.display_goban();
         let score = g.calculate_score();
         assert_eq!(score, (10. * 19., 9. * 19.));
         let mut goban: Goban = g.goban().clone();
@@ -621,21 +621,21 @@ mod tests {
     fn ko_test() {
         let mut game: Game = Default::default();
         game.play(Move::Play(0, 3)); // black
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(0, 2)); // white
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(1, 4)); // black
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(2, 2)); // white
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(2, 3)); // black
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(1, 1)); // white
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(1, 2)); // black
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(1, 3)); // white takes
-        println!("{}", game);
+        game.display_goban();
         //game.play(Move::Play(1, 2)); // black takes back
         //println!("{}", game);
         // ko
@@ -655,15 +655,15 @@ mod tests {
     fn suicide_test() {
         let mut game: Game = Default::default();
         game.play(Move::Play(0, 2)); // black
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(0, 0)); // white
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(1, 1)); // black
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(1, 0)); // white
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(2, 0)); // black
-        println!("{}", game);
+        game.display_goban();
         //game.play(Move::Play(0, 1)); // white suicide whith
         //println!("{}", game);
         // suicide

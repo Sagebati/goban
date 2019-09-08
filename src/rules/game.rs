@@ -9,7 +9,6 @@ use crate::rules::Player;
 use crate::rules::Rule;
 use sgf_parser::{SgfError, SgfToken};
 use std::collections::HashSet;
-use std::fmt::{Display, Error, Formatter};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GobanSizes {
@@ -149,7 +148,7 @@ impl Game {
                             }
                             None => Move::Pass,
                         })
-                        .expect(&format!("Play the move read from the sgf"));
+                            .expect(&format!("Play the move read from the sgf"));
                     }
                 }
             } else {
@@ -201,7 +200,7 @@ impl Game {
     ///
     /// Generate all moves on all intersections.
     ///
-    fn pseudo_legals(&self) -> impl Iterator<Item = Coord> + '_ {
+    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.goban
             .get_stones_by_color(Color::None)
             .map(|s| s.coordinates)
@@ -211,7 +210,7 @@ impl Game {
     /// Returns a list with legals moves,
     /// In the list will appear suicides moves, and ko moves.
     ///
-    pub fn legals(&self) -> impl Iterator<Item = Coord> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
@@ -307,15 +306,15 @@ impl Game {
             .goban
             .get_neighbors(point)
             .filter(|s| s.color != Color::None && s.color != self.turn.get_stone_color())
-        {
-            if self
-                .goban
-                .count_string_liberties(&self.goban.get_string_from_stone(stone))
-                == 1
             {
-                return true;
+                if self
+                    .goban
+                    .count_string_liberties(&self.goban.get_string_from_stone(stone))
+                    == 1
+                {
+                    return true;
+                }
             }
-        }
         false
     }
 
@@ -395,6 +394,13 @@ impl Game {
     }
 
     ///
+    /// Displays the internal board.
+    ///
+    pub fn display_goban(&self) {
+        println!("{}", self.goban)
+    }
+
+    ///
     /// Removes captured stones from the goban.
     ///
     fn remove_captured_stones(&mut self) {
@@ -414,15 +420,15 @@ impl Game {
         for groups_of_stones in self
             .goban
             .get_strings_of_stones_without_liberties_wth_color(color)
-        {
-            if self.goban.is_string_dead(&groups_of_stones) {
-                self.goban.push_many(
-                    groups_of_stones.iter().map(|point| point.coordinates),
-                    Color::None,
-                );
-                number_of_stones_captured += groups_of_stones.len();
+            {
+                if self.goban.is_string_dead(&groups_of_stones) {
+                    self.goban.push_many(
+                        groups_of_stones.iter().map(|point| point.coordinates),
+                        Color::None,
+                    );
+                    number_of_stones_captured += groups_of_stones.len();
+                }
             }
-        }
         number_of_stones_captured
     }
 }
@@ -430,11 +436,5 @@ impl Game {
 impl Default for Game {
     fn default() -> Self {
         Game::new(GobanSizes::Nineteen, Rule::Japanese)
-    }
-}
-
-impl Display for Game {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        self.goban.fmt(f)
     }
 }

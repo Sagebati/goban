@@ -15,7 +15,7 @@
 //!                    .map(|point| Move::Play(point.0,point.1))
 //!                     .unwrap());
 //!            i -= 1;
-//!            println!("{}", g);
+//!            g.display_goban();
 //!        }
 //! ```
 
