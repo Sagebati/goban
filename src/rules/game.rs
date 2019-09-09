@@ -7,7 +7,7 @@ use crate::rules::EndGame;
 use crate::rules::PlayError;
 use crate::rules::Player;
 use crate::rules::Rule;
-use sgf_parser::{SgfError, SgfToken};
+use sgf_parser::{SgfError, SgfToken, Action};
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -82,27 +82,27 @@ pub struct Game {
     handicap: u8,
 
     #[get = "pub"]
-    plays: Vec<Goban>,
+    plays: Option<Vec<Goban>>,
 
     hashes: HashSet<u64>,
 }
 
 impl Game {
-    pub fn new(size: GobanSizes, rule: Rule) -> Game {
+    pub fn new(size: GobanSizes, rule: Rule) -> Self {
         let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = 0;
         let plays = Vec::new();
         let prisoners = (0, 0);
         let handicap = 0;
-        let hashes = HashSet::default();
+        let hashes = HashSet::with_capacity(300);
         Game {
             goban,
             turn: Player::Black,
             komi,
             prisoners,
             passes: pass,
-            plays,
+            plays: Some(plays),
             resigned: None,
             rule,
             handicap,
@@ -110,7 +110,29 @@ impl Game {
         }
     }
 
-    pub fn from_sgf(sgf_str: &str) -> Result<Game, SgfError> {
+    // Doesn't keep and history of the game.
+    pub fn new_optimised(size: GobanSizes, rule: Rule) -> Self {
+        let goban = Goban::new(size.into());
+        let komi = 5.5;
+        let pass = 0;
+        let prisoners = (0, 0);
+        let handicap = 0;
+        let hashes = HashSet::with_capacity(300);
+        Game {
+            goban,
+            turn: Player::Black,
+            komi,
+            prisoners,
+            passes: pass,
+            plays: None,
+            resigned: None,
+            rule,
+            handicap,
+            hashes,
+        }
+    }
+
+    pub fn from_sgf(sgf_str: &str) -> Result<Self, SgfError> {
         let game_tree = sgf_parser::parse(sgf_str)?;
         let mut gamebuilder = GameBuilder::new();
         let mut first = true;
@@ -139,16 +161,15 @@ impl Game {
                 if !node.tokens.is_empty() {
                     let token = node.tokens.first().unwrap();
                     if let SgfToken::Move {
-                        coordinate_or_pass, ..
+                        action, ..
                     } = token
                     {
-                        g.play_with_verifications(match coordinate_or_pass {
-                            Some(coordinate) => {
-                                Move::Play((coordinate.1 - 1) as usize, (coordinate.0 - 1) as usize)
+                        g.play_with_verifications(match *action {
+                            Action::Move(col, line) => {
+                                Move::Play((line - 1) as usize, (col - 1) as usize)
                             }
-                            None => Move::Pass,
-                        })
-                            .expect(&format!("Play the move read from the sgf"));
+                            Action::Pass => Move::Pass,
+                        }).expect(&format!("Play the move read from the sgf"));
                     }
                 }
             } else {
@@ -163,6 +184,7 @@ impl Game {
     ///
     /// Resume the game when to players have passed, and want to continue.
     ///
+    #[inline]
     pub fn resume(&mut self) {
         self.passes = 0;
     }
@@ -170,6 +192,7 @@ impl Game {
     ///
     /// True when the game is over (two passes, or no more legals moves, Resign)
     ///
+    #[inline]
     pub fn is_over(&self) -> bool {
         if let Some(_x) = self.resigned {
             true
@@ -182,6 +205,7 @@ impl Game {
     /// Returns the endgame.
     /// None if the game is not finished
     ///
+    #[inline]
     pub fn outcome(&self) -> Option<EndGame> {
         if !self.is_over() {
             None
@@ -200,6 +224,7 @@ impl Game {
     ///
     /// Generate all moves on all intersections.
     ///
+    #[inline]
     fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.goban
             .get_stones_by_color(Color::None)
@@ -210,6 +235,7 @@ impl Game {
     /// Returns a list with legals moves,
     /// In the list will appear suicides moves, and ko moves.
     ///
+    #[inline]
     pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
@@ -217,7 +243,7 @@ impl Game {
                 coordinates: s,
             })
             .filter(move |s| {
-                if let Some(_x) = self.rule.move_validation(self, *s) {
+                if let Some(_) = self.rule.move_validation(self, *s) {
                     false
                 } else {
                     true
@@ -244,7 +270,9 @@ impl Game {
                     x, y, stone_color
                 ));
                 self.remove_captured_stones();
-                self.plays.push(self.goban.clone()); // Keep the history of the game
+                if let Some(plays) = &mut self.plays {
+                    plays.push(self.goban.clone())
+                }
                 self.hashes.insert(*self.goban.hash());
                 self.turn = !self.turn;
                 self.passes = 0;
@@ -270,11 +298,13 @@ impl Game {
                     Ok(self)
                 }
                 Move::Play(x, y) => {
-                    let stone = Stone {
-                        coordinates: (x, y),
-                        color: self.turn.get_stone_color(),
-                    };
-                    if let Some(c) = self.rule.move_validation(self, stone) {
+                    if let Some(c) = self.rule.move_validation(
+                        self,
+                        Stone {
+                            coordinates: (x, y),
+                            color: self.turn.get_stone_color(),
+                        })
+                    {
                         Err(c)
                     } else {
                         self.play(play);
@@ -289,10 +319,14 @@ impl Game {
     /// Removes the last move.
     ///
     pub fn pop(&mut self) -> &mut Self {
-        if let Some(goban) = self.plays.pop() {
-            self.hashes.remove(self.goban.hash());
-            self.turn = !self.turn;
-            self.goban = goban;
+        if let Some(plays) = &mut self.plays {
+            if let Some(goban) = plays.pop() {
+                self.hashes.remove(self.goban.hash());
+                self.turn = !self.turn;
+                self.goban = goban;
+            }
+        } else {
+            panic!("This game was created without history")
         }
         self
     }
@@ -370,12 +404,16 @@ impl Game {
     /// If the goban is in the configuration of the two plays ago returns true
     ///
     pub fn ko(&self, stone: Stone) -> bool {
-        if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
-            false
+        if let Some(plays) = &self.plays {
+            if plays.len() <= 2 || !self.will_capture(stone.coordinates) {
+                false
+            } else {
+                let mut game = self.clone();
+                game.play(stone.coordinates.into());
+                game.goban == plays[plays.len() - 2]
+            }
         } else {
-            let mut game = self.clone();
-            game.play(Move::Play(stone.coordinates.0, stone.coordinates.1));
-            game.goban == self.plays[self.plays.len() - 2]
+            self.super_ko(stone)
         }
     }
 
@@ -383,10 +421,7 @@ impl Game {
     /// Rule of the super Ko, if any before configuration was already played then return true.
     ///
     pub fn super_ko(&self, stone: Stone) -> bool {
-        let mut game = self.clone();
-        game.play(Move::Play(stone.coordinates.0, stone.coordinates.1));
-
-        self.hashes.contains(game.goban.hash())
+        self.hashes.contains(self.clone().play(stone.coordinates.into()).goban.hash())
     }
 
     ///
