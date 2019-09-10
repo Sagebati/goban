@@ -92,7 +92,7 @@ impl Goban {
     ///
     pub fn get_strings_from_stones(
         &self,
-        stones: impl Iterator<Item = Stone>,
+        stones: impl Iterator<Item=Stone>,
     ) -> Vec<HashSet<Stone>> {
         let mut groups_of_stones: Vec<HashSet<Stone>> = Default::default();
         for stone in stones {
@@ -104,5 +104,41 @@ impl Goban {
             }
         }
         groups_of_stones
+    }
+
+    ///
+    /// Calculates a score for the endgame. It's a naive implementation, it counts only
+    /// territories with the same color surrounding them.
+    ///
+    /// Returns (black territory,  white territory)
+    ///
+    pub fn calculate_territories(&self) -> (f32, f32) {
+        let (black_territory, white_territoty)  = self.get_territories();
+        (black_territory.count() as f32, white_territoty.count() as f32)
+    }
+
+    pub fn get_territories(&self) -> (impl Iterator<Item=Stone>, impl Iterator<Item=Stone>) {
+        let empty_strings = self.get_strings_from_stones(self.get_stones_by_color(Color::None));
+        let mut white_territory = Vec::new();
+        let mut black_territory = Vec::new();
+        for group in empty_strings {
+            let mut neutral = (false, false);
+            for empty_intersection in &group {
+                for stone in self.get_neighbors(empty_intersection.coordinates) {
+                    if stone.color == Color::White {
+                        neutral.1 = true; // found white stone
+                    }
+                    if stone.color == Color::Black {
+                        neutral.0 = true; // found black stone
+                    }
+                }
+            }
+            if neutral.0 && !neutral.1 {
+                black_territory.extend(group.into_iter())
+            } else if !neutral.0 && neutral.1 {
+                white_territory.extend(group.into_iter())
+            }
+        }
+        (black_territory.into_iter(), white_territory.into_iter())
     }
 }

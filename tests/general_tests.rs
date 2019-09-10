@@ -84,41 +84,6 @@ mod tests {
         }
     }
 
-    fn vec_bool_to_vec_color(w_stones: &Vec<bool>, b_stones: &Vec<bool>) -> Vec<Color> {
-        let mut res: Vec<Color> = vec![Color::None; w_stones.len()];
-        for i in 0..w_stones.len() {
-            if w_stones[i] && b_stones[i] {
-                panic!("Error");
-            }
-            if w_stones[i] {
-                res[i] = Color::White;
-            } else if b_stones[i] {
-                res[i] = Color::Black;
-            }
-        }
-        res
-    }
-
-    #[test]
-    fn some_plays_integrity_boolean_vecs() {
-        let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
-        let mut i = 40;
-        while !g.legals().count() != 0 && i != 0 {
-            g.play(
-                g.legals()
-                    .map(|coord| Move::Play(coord.0, coord.1))
-                    .choose(&mut rand::thread_rng())
-                    .unwrap(),
-            );
-            i -= 1;
-            assert_eq!(
-                g.goban().tab(),
-                &vec_bool_to_vec_color(g.goban().w_stones(), g.goban().b_stones())
-            );
-            println!("{}", g.goban().pretty_string());
-        }
-    }
-
     #[test]
     fn some_plays_from_sgf() {
         let moves_sgf = vec![

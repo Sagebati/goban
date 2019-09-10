@@ -19,12 +19,21 @@ pub mod coord {
         order: Order,
     }
 
-    pub fn neighbors_coords(coord: Coord) -> Vec<Coord> {
+    pub fn neighbors_coords(point: Coord) -> Vec<Coord> {
         vec![
-            (coord.0.wrapping_add(1), coord.1),
-            (coord.0.wrapping_sub(1), coord.1),
-            (coord.0, coord.1.wrapping_add(1)),
-            (coord.0, coord.1.wrapping_sub(1)),
+            (point.0.wrapping_add(1), point.1),
+            (point.0.wrapping_sub(1), point.1),
+            (point.0, point.1.wrapping_add(1)),
+            (point.0, point.1.wrapping_sub(1)),
+        ]
+    }
+
+    pub fn corner_coords(point: Coord) -> Vec<Coord> {
+        vec![
+            (point.0.wrapping_add(1), point.1.wrapping_add(1)),
+            (point.0.wrapping_sub(1), point.1.wrapping_sub(1)),
+            (point.0.wrapping_add(1), point.1.wrapping_sub(1)),
+            (point.0.wrapping_sub(1), point.1.wrapping_add(1))
         ]
     }
 
