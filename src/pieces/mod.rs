@@ -4,6 +4,7 @@
 //!
 
 pub mod goban;
+pub mod const_goban;
 pub mod graph;
 pub mod stones;
 pub mod util;

@@ -18,6 +18,7 @@
 //!            g.display_goban();
 //!        }
 //! ```
+#![feature(const_generics)]
 
 #[macro_use]
 extern crate getset;
