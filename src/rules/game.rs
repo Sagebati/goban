@@ -221,11 +221,7 @@ impl Game {
                 coordinates: s,
             })
             .filter(move |s| {
-                if let Some(_) = self.rule.move_validation(self, *s) {
-                    false
-                } else {
-                    true
-                }
+                self.rule.move_validation(self, *s).is_none()
             })
             .map(|s| (s.coordinates.0, s.coordinates.1))
     }
