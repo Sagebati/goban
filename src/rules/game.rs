@@ -82,7 +82,7 @@ pub struct Game {
     handicap: u8,
 
     #[get = "pub"]
-    plays: Option<Vec<Goban>>,
+    plays: Vec<Goban>,
 
     hashes: HashSet<u64>,
 }
@@ -102,29 +102,7 @@ impl Game {
             komi,
             prisoners,
             passes: pass,
-            plays: Some(plays),
-            resigned: None,
-            rule,
-            handicap,
-            hashes,
-        }
-    }
-
-    // Doesn't keep and history of the game.
-    pub fn new_optimised(size: GobanSizes, rule: Rule) -> Self {
-        let goban = Goban::new(size.into());
-        let komi = 5.5;
-        let pass = 0;
-        let prisoners = (0, 0);
-        let handicap = 0;
-        let hashes = HashSet::with_capacity(300);
-        Game {
-            goban,
-            turn: Player::Black,
-            komi,
-            prisoners,
-            passes: pass,
-            plays: None,
+            plays,
             resigned: None,
             rule,
             handicap,
@@ -270,9 +248,7 @@ impl Game {
                     x, y, stone_color
                 ));
                 self.remove_captured_stones();
-                if let Some(plays) = &mut self.plays {
-                    plays.push(self.goban.clone())
-                }
+                self.plays.push(self.goban.clone());
                 self.hashes.insert(*self.goban.hash());
                 self.turn = !self.turn;
                 self.passes = 0;
@@ -319,14 +295,10 @@ impl Game {
     /// Removes the last move.
     ///
     pub fn pop(&mut self) -> &mut Self {
-        if let Some(plays) = &mut self.plays {
-            if let Some(goban) = plays.pop() {
-                self.hashes.remove(self.goban.hash());
-                self.turn = !self.turn;
-                self.goban = goban;
-            }
-        } else {
-            panic!("This game was created without history")
+        if let Some(goban) = self.plays.pop() {
+            self.hashes.remove(self.goban.hash());
+            self.turn = !self.turn;
+            self.goban = goban;
         }
         self
     }
@@ -404,16 +376,12 @@ impl Game {
     /// If the goban is in the configuration of the two plays ago returns true
     ///
     pub fn ko(&self, stone: Stone) -> bool {
-        if let Some(plays) = &self.plays {
-            if plays.len() <= 2 || !self.will_capture(stone.coordinates) {
-                false
-            } else {
-                let mut game = self.clone();
-                game.play(stone.coordinates.into());
-                game.goban == plays[plays.len() - 2]
-            }
+        if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
+            false
         } else {
-            self.super_ko(stone)
+            let mut game = self.clone();
+            game.play(stone.coordinates.into());
+            game.goban == self.plays[self.plays.len() - 2]
         }
     }
 
