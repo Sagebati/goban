@@ -345,14 +345,13 @@ impl Game {
     /// Returns true if the move is a suicide
     ///
     pub fn is_suicide(&self, stone: Stone) -> bool {
-        let mut goban_test: Goban = self.goban().clone();
-        goban_test
-            .push_stone(stone)
-            .expect("Play the stone for verification if it's suicide");
-
-        if goban_test.has_liberties(stone) {
+        if self.goban.has_liberties(stone) {
             false
         } else {
+            let mut goban_test: Goban = self.goban().clone();
+            goban_test
+                .push_stone(stone)
+                .expect("Play the stone for verification if it's suicide");
             // Test if the connected stones are also without liberties.
             if goban_test.is_string_dead(&goban_test.get_string_from_stone(stone)) {
                 // if the chain has no liberties then look if enemy stones are captured
@@ -361,7 +360,7 @@ impl Game {
                     .filter(|neigbor_stone| neigbor_stone.color == (!self.turn).get_stone_color())
                     .map(|s| goban_test.get_string_from_stone(s))
                     .any(|string_of_stones| goban_test.is_string_dead(&string_of_stones))
-                    // if there is a string who dies the it isn't a suicide move
+                // if there is a string who dies the it isn't a suicide move
             } else {
                 false
             }
