@@ -175,7 +175,7 @@ impl Game {
         if let Some(_x) = self.resigned {
             true
         } else {
-            self.passes == 2 || self.legals().count() == 0
+            self.passes == 2
         }
     }
 
