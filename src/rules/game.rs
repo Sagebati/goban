@@ -361,6 +361,7 @@ impl Game {
                     .filter(|neigbor_stone| neigbor_stone.color == (!self.turn).get_stone_color())
                     .map(|s| goban_test.get_string_from_stone(s))
                     .any(|string_of_stones| goban_test.is_string_dead(&string_of_stones))
+                    // if there is a string who dies the it isn't a suicide move
             } else {
                 false
             }
