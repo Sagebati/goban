@@ -11,6 +11,7 @@ impl Goban {
     ///
     /// "a group of string is dead if it doesn't have liberties"
     ///
+    #[inline]
     pub fn is_string_dead(&self, string: &HashSet<Stone>) -> bool {
         !string // If there is one stone connected who has liberties, they are not captured.
             .iter()
@@ -20,6 +21,7 @@ impl Goban {
     ///
     /// Count the liberties of a string
     ///
+    #[inline]
     pub fn count_string_liberties(&self, string: &HashSet<Stone>) -> u8 {
         string
             .iter()
@@ -46,6 +48,7 @@ impl Goban {
     ///
     /// Ex: Passing black to this function will return an structure like this
     /// [[a,b,c],[t,x,y],[y]]
+    #[inline]
     pub fn get_strings_of_stones_without_liberties_wth_color(
         &self,
         color: Color,
@@ -112,6 +115,7 @@ impl Goban {
     ///
     /// Returns (black territory,  white territory)
     ///
+    #[inline]
     pub fn calculate_territories(&self) -> (f32, f32) {
         let (black_territory, white_territoty)  = self.get_territories();
         (black_territory.count() as f32, white_territoty.count() as f32)

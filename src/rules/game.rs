@@ -138,10 +138,7 @@ impl Game {
             } else if let Some(g) = &mut game {
                 if !node.tokens.is_empty() {
                     let token = node.tokens.first().unwrap();
-                    if let SgfToken::Move {
-                        action, ..
-                    } = token
-                    {
+                    if let SgfToken::Move { action, .. } = token {
                         g.play_with_verifications(match *action {
                             Action::Move(col, line) => {
                                 Move::Play((line - 1) as usize, (col - 1) as usize)
