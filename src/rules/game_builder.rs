@@ -1,8 +1,10 @@
 use crate::pieces::util::coord::Coord;
 use crate::rules::game::{Game, GobanSizes};
-use crate::rules::Rule;
+use crate::rules::{Rule, Player};
 use crate::rules::Rule::Chinese;
 use std::string::ToString;
+use crate::pieces::goban::Goban;
+use crate::pieces::stones::Color;
 
 pub struct GameBuilder {
     size: (u32, u32),
@@ -10,7 +12,8 @@ pub struct GameBuilder {
     black_player: String,
     white_player: String,
     rule: Rule,
-    handicap_points: Option<Vec<Coord>>,
+    handicap_points: Vec<Coord>,
+    turn: Player,
 }
 
 impl GameBuilder {
@@ -22,11 +25,12 @@ impl GameBuilder {
             white_player: "".to_string(),
             handicap_points: None,
             rule: Chinese,
+            turn: Player::Black,
         }
     }
 
     pub fn handicap(&mut self, points: &[Coord]) -> &mut Self {
-        self.handicap_points = Some(points.to_vec());
+        self.handicap_points = points.to_vec();
         self
     }
 
@@ -50,13 +54,24 @@ impl GameBuilder {
         self
     }
 
-    pub fn build(&self) -> Result<Game, String> {
-        let mut g = Game::new(GobanSizes::from(self.size.0 as usize), self.rule);
-        g.set_komi(self.komi);
-        if let Some(handicap_stones) = &self.handicap_points {
-            g.put_handicap(handicap_stones);
+    pub fn build(&mut self) -> Result<Game, String> {
+        let mut goban: Goban = Goban::new(self.size.0 as usize);
+        if self.handicap_points.len() != 0 {
+            goban.push_many(handicap_stones.iter(), Color::Black);
+            self.turn = Player::White;
         }
-        Ok(g)
+        Ok(Game {
+            goban,
+            passes: 0,
+            prisoners: (0, 0),
+            resigned: None,
+            turn: self.turn,
+            komi: self.komi,
+            rule: self.rule,
+            handicap: self.handicap_points.len() as u8,
+            plays: vec![],
+            hashes: Default::default(),
+        })
     }
 }
 
