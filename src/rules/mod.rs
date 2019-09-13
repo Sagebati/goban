@@ -3,9 +3,10 @@
 use crate::pieces::stones::{Color, Stone};
 use crate::rules::game::Game;
 use std::ops::Not;
+use crate::pieces::util::coord::Coord;
 
 pub mod game;
-pub mod game_builder;
+mod sgf_bridge;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum Player {
@@ -33,10 +34,70 @@ impl Player {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum GobanSizes {
+    Nineteen,
+    Nine,
+    Thirteen,
+}
+
+impl Into<usize> for GobanSizes {
+    fn into(self) -> usize {
+        match self {
+            GobanSizes::Nine => 9,
+            GobanSizes::Thirteen => 13,
+            GobanSizes::Nineteen => 19,
+        }
+    }
+}
+
+impl From<usize> for GobanSizes {
+    fn from(x: usize) -> Self {
+        match x {
+            9 => GobanSizes::Nine,
+            13 => GobanSizes::Thirteen,
+            19 => GobanSizes::Nineteen,
+            _ => panic!("Not implemented for others size than 9,13,19"),
+        }
+    }
+}
+
+/// Enum for playing in the Goban.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Move {
+    Pass,
+    Resign(Player),
+    Play(usize, usize),
+}
+
+impl From<Coord> for Move {
+    fn from(x: (usize, usize)) -> Self {
+        Move::Play(x.0, x.1)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum EndGame {
-    Score(f32, f32),
+    WinnerByScore(Player, f32),
     WinnerByResign(Player),
+    WinnerByTime(Player),
+    WinnerByForfeit(Player),
+    Draw,
+}
+
+impl EndGame {
+    ///
+    /// Return the winner of the game, if none the game is draw.
+    ///
+    pub fn get_winner(self) -> Option<Player> {
+        match self {
+            EndGame::WinnerByScore(p, _) => Some(p),
+            EndGame::WinnerByResign(p) => Some(p),
+            EndGame::WinnerByTime(p) => Some(p),
+            EndGame::WinnerByForfeit(p) => Some(p),
+            EndGame::Draw => None,
+        }
+    }
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]

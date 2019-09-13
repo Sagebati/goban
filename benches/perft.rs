@@ -2,8 +2,9 @@
 extern crate criterion;
 
 use criterion::Criterion;
-use goban::rules::game::{Game, GobanSizes, Move};
 use goban::rules::Rule::Japanese;
+use goban::rules::{Move, GobanSizes};
+use goban::rules::game::Game;
 
 pub fn perft(pos: &Game, depth: u8) -> u64 {
     if depth < 1 {

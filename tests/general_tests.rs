@@ -6,14 +6,12 @@ mod tests {
     use goban::pieces::stones::Stone;
     use goban::pieces::util::coord::Order;
     use goban::pieces::zobrist::ZOBRIST19;
-    use goban::rules::game::Game;
-    use goban::rules::game::GobanSizes;
-    use goban::rules::game::Move;
-    use goban::rules::game::Move::Play;
-    use goban::rules::EndGame;
+    use goban::rules::{EndGame, Move, GobanSizes, Player};
     use goban::rules::Rule;
     use rand::seq::IteratorRandom;
     use std::collections::BTreeSet;
+    use goban::rules::game::Game;
+    use goban::rules::Move::Play;
 
     #[test]
     fn goban() {
@@ -424,10 +422,7 @@ mod tests {
             g.play_with_verifications(to_play).unwrap();
             g.display_goban()
         }
-        let score = match g.outcome().unwrap() {
-            EndGame::WinnerByResign(_player) => panic!("There is no winner by resign in this game"),
-            EndGame::Score(x, y) => (x, y),
-        };
+        let score = g.calculate_score();
         let (b_prisoners, w_prisoners) = g.prisoners();
         println!("score  b:{} w:{}", score.0, score.1);
         assert_eq!(*b_prisoners, 16);
@@ -489,11 +484,7 @@ mod tests {
         g.play(Move::Play(4, 4));
         g.play(Move::Pass);
         g.play(Move::Pass);
-        let score = match g.outcome() {
-            Some(EndGame::Score(black, white)) => Ok((black, white)),
-            _ => Err("Game not finished"),
-        }
-        .expect("Game finished");
+        let score = g.calculate_score();
         assert_eq!(score.0, 80.); //Black
         assert_eq!(score.1, 5.5); //White
     }
@@ -517,7 +508,7 @@ mod tests {
                 (9..19).for_each(|x| vec.push((x, 3)));
                 vec
             }
-            .into_iter(),
+                .into_iter(),
             Color::Black,
         );
         goban.push_many(
@@ -531,7 +522,7 @@ mod tests {
                 (13, 7),
                 (13, 8),
             ]
-            .into_iter(),
+                .into_iter(),
             Color::White,
         );
 
@@ -554,13 +545,14 @@ mod tests {
         g.play(Move::Play(4, 4));
         g.play(Move::Pass);
         g.play(Move::Pass);
-        let score = match g.outcome() {
-            Some(EndGame::Score(black, white)) => Ok((black, white)),
+        let outcome = match g.outcome() {
+            Some(endgame) => Ok(endgame),
             _ => Err("Game not finished"),
-        }
-        .expect("Game finished");
-        assert_eq!(score.0, 81.); //Black
-        assert_eq!(score.1, 5.5); //White
+        }.expect("Game finished");
+        let (black, white) = g.calculate_score();
+        assert_eq!(black, 81.);
+        assert_eq!(white, 5.5);
+        assert_eq!(outcome, EndGame::WinnerByScore(Player::Black, 81. - 5.5))
     }
 
     #[test]
@@ -643,6 +635,7 @@ mod tests {
     #[test]
     fn sgf_test() {
         let game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
-        println!("score : {:?}", game.calculate_score())
+        println!("score : {:?}", game.calculate_score());
+        println!("outcome: {:?}", game.outcome());
     }
 }

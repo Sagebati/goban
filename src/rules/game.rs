@@ -2,55 +2,15 @@ use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use crate::pieces::util::coord::Coord;
-use crate::rules::game_builder::GameBuilder;
-use crate::rules::EndGame;
+use crate::rules::{EndGame, GobanSizes, Move};
 use crate::rules::PlayError;
 use crate::rules::Player;
 use crate::rules::Rule;
-use sgf_parser::{SgfError, SgfToken, Action};
 use std::collections::HashSet;
+use crate::rules::Rule::Chinese;
+use crate::rules::EndGame::{Draw, WinnerByScore};
+use crate::rules::Player::{Black, White};
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum GobanSizes {
-    Nineteen,
-    Nine,
-    Thirteen,
-}
-
-impl Into<usize> for GobanSizes {
-    fn into(self) -> usize {
-        match self {
-            GobanSizes::Nine => 9,
-            GobanSizes::Thirteen => 13,
-            GobanSizes::Nineteen => 19,
-        }
-    }
-}
-
-impl From<usize> for GobanSizes {
-    fn from(x: usize) -> Self {
-        match x {
-            9 => GobanSizes::Nine,
-            13 => GobanSizes::Thirteen,
-            19 => GobanSizes::Nineteen,
-            _ => panic!("Not implemented for others size than 9,13,19"),
-        }
-    }
-}
-
-/// Enum for playing in the Goban.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Move {
-    Pass,
-    Resign(Player),
-    Play(usize, usize),
-}
-
-impl From<Coord> for Move {
-    fn from(x: (usize, usize)) -> Self {
-        Move::Play(x.0, x.1)
-    }
-}
 
 #[derive(Clone, Getters, Setters, Debug)]
 pub struct Game {
@@ -64,7 +24,7 @@ pub struct Game {
 
     /// None if none resigned
     /// the player in the option is the player who resigned.
-    resigned: Option<Player>,
+    outcome: Option<EndGame>,
 
     #[get = "pub"]
     turn: Player,
@@ -103,55 +63,11 @@ impl Game {
             prisoners,
             passes: pass,
             plays,
-            resigned: None,
+            outcome: None,
             rule,
             handicap,
             hashes,
         }
-    }
-
-    pub fn from_sgf(sgf_str: &str) -> Result<Self, SgfError> {
-        let game_tree = sgf_parser::parse(sgf_str)?;
-        let mut gamebuilder = GameBuilder::new();
-        let mut first = true;
-        let mut game: Option<Game> = None;
-
-        for node in game_tree.iter() {
-            if first {
-                // Game information
-                for token in &node.tokens {
-                    if token.is_root_token() {
-                        match token {
-                            SgfToken::Komi(komi) => {
-                                gamebuilder.komi(*komi);
-                            }
-                            SgfToken::Size(x, y) => {
-                                gamebuilder.size((*x, *y));
-                            }
-                            //TODO another options
-                            _ => (),
-                        }
-                    }
-                }
-                game = Some(gamebuilder.build().expect("Build the game"));
-                first = false;
-            } else if let Some(g) = &mut game {
-                if !node.tokens.is_empty() {
-                    let token = node.tokens.first().unwrap();
-                    if let SgfToken::Move { action, .. } = token {
-                        g.play_with_verifications(match *action {
-                            Action::Move(col, line) => {
-                                Move::Play((line - 1) as usize, (col - 1) as usize)
-                            }
-                            Action::Pass => Move::Pass,
-                        }).expect(&format!("Play the move read from the sgf"));
-                    }
-                }
-            } else {
-                panic!("Game not constructed")
-            }
-        }
-        Ok(game.expect("The game to be initialised from the sgf"))
     }
 }
 
@@ -169,7 +85,7 @@ impl Game {
     ///
     #[inline]
     pub fn is_over(&self) -> bool {
-        if let Some(_x) = self.resigned {
+        if self.outcome.is_some() {
             true
         } else {
             self.passes == 2
@@ -184,15 +100,19 @@ impl Game {
     pub fn outcome(&self) -> Option<EndGame> {
         if !self.is_over() {
             None
-        } else if let Some(x) = self.resigned {
-            if x == Player::White {
-                Some(EndGame::WinnerByResign(Player::Black))
-            } else {
-                Some(EndGame::WinnerByResign(Player::White))
-            }
+        } else if self.outcome.is_some() {
+            self.outcome
         } else {
             let scores = self.rule.count_points(&self);
-            Some(EndGame::Score(scores.0, scores.1))
+            if scores.0 == scores.1 {
+                Some(Draw)
+            } else {
+                if scores.0 > scores.1 {
+                    Some(WinnerByScore(Black, scores.0 - scores.1))
+                } else {
+                    Some(WinnerByScore(White, scores.1 - scores.0))
+                }
+            }
         }
     }
 
@@ -248,7 +168,7 @@ impl Game {
                 self
             }
             Move::Resign(player) => {
-                self.resigned = Some(player);
+                self.outcome = Some(EndGame::WinnerByResign(player));
                 self
             }
         }
@@ -428,5 +348,100 @@ impl Game {
 impl Default for Game {
     fn default() -> Self {
         Game::new(GobanSizes::Nineteen, Rule::Japanese)
+    }
+}
+
+pub struct GameBuilder {
+    size: (u32, u32),
+    komi: f32,
+    black_player: String,
+    white_player: String,
+    rule: Rule,
+    handicap_points: Vec<Coord>,
+    turn: Player,
+    moves: Vec<Move>,
+    outcome: Option<EndGame>,
+}
+
+impl GameBuilder {
+    fn new() -> GameBuilder {
+        GameBuilder {
+            size: (19, 19),
+            komi: 0.,
+            black_player: "".to_string(),
+            white_player: "".to_string(),
+            handicap_points: vec![],
+            rule: Chinese,
+            turn: Player::Black,
+            moves: vec![],
+            outcome: None,
+        }
+    }
+
+    pub fn moves(&mut self, moves: &[Move]) -> &mut Self {
+        self.moves = moves.to_vec();
+        self
+    }
+
+    pub fn outcome(&mut self, outcome: EndGame) -> &mut Self {
+        self.outcome = Some(outcome);
+        self
+    }
+
+    pub fn handicap(&mut self, points: &[Coord]) -> &mut Self {
+        self.handicap_points = points.to_vec();
+        self.turn = !self.turn;
+        self
+    }
+
+    pub fn size(&mut self, size: (u32, u32)) -> &mut Self {
+        self.size = size;
+        self
+    }
+
+    pub fn komi(&mut self, komi: f32) -> &mut Self {
+        self.komi = komi;
+        self
+    }
+
+    pub fn black_player(&mut self, black_player_name: &str) -> &mut Self {
+        self.black_player = black_player_name.to_string();
+        self
+    }
+
+    pub fn white_player(&mut self, white_player_name: &str) -> &mut Self {
+        self.white_player = white_player_name.to_string();
+        self
+    }
+
+    pub fn build(&mut self) -> Result<Game, String> {
+        let mut goban: Goban = Goban::new(self.size.0 as usize);
+        if self.handicap_points.len() != 0 {
+            goban.push_many(self.handicap_points.to_owned().into_iter(), Color::Black);
+        }
+        let mut g = Game {
+            goban,
+            passes: 0,
+            prisoners: (0, 0),
+            outcome: self.outcome,
+            turn: self.turn,
+            komi: self.komi,
+            rule: self.rule,
+            handicap: self.handicap_points.len() as u8,
+            plays: vec![],
+            hashes: Default::default(),
+        };
+
+        for m in &self.moves {
+            g.play(*m); // without verifications of Ko
+        }
+
+        Ok(g)
+    }
+}
+
+impl Default for GameBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
