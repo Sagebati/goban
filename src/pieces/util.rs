@@ -35,7 +35,7 @@ pub mod coord {
             (point.0.wrapping_add(1), point.1.wrapping_add(1)),
             (point.0.wrapping_sub(1), point.1.wrapping_sub(1)),
             (point.0.wrapping_add(1), point.1.wrapping_sub(1)),
-            (point.0.wrapping_sub(1), point.1.wrapping_add(1))
+            (point.0.wrapping_sub(1), point.1.wrapping_add(1)),
         ]
     }
 

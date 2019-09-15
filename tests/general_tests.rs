@@ -6,12 +6,12 @@ mod tests {
     use goban::pieces::stones::Stone;
     use goban::pieces::util::coord::Order;
     use goban::pieces::zobrist::ZOBRIST19;
-    use goban::rules::{EndGame, Move, GobanSizes, Player};
-    use goban::rules::Rule;
-    use std::collections::BTreeSet;
     use goban::rules::game::Game;
     use goban::rules::Move::Play;
+    use goban::rules::Rule;
+    use goban::rules::{EndGame, GobanSizes, Move, Player};
     use rand::seq::SliceRandom;
+    use std::collections::BTreeSet;
 
     #[test]
     fn goban() {
@@ -509,7 +509,7 @@ mod tests {
                 (9..19).for_each(|x| vec.push((x, 3)));
                 vec
             }
-                .into_iter(),
+            .into_iter(),
             Color::Black,
         );
         goban.push_many(
@@ -523,7 +523,7 @@ mod tests {
                 (13, 7),
                 (13, 8),
             ]
-                .into_iter(),
+            .into_iter(),
             Color::White,
         );
 
@@ -549,7 +549,8 @@ mod tests {
         let outcome = match g.outcome() {
             Some(endgame) => Ok(endgame),
             _ => Err("Game not finished"),
-        }.expect("Game finished");
+        }
+        .expect("Game finished");
         let (black, white) = g.calculate_score();
         assert_eq!(black, 81.);
         assert_eq!(white, 5.5);

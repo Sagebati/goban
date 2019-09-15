@@ -1,13 +1,12 @@
-use sgf_parser::{Outcome, Color, SgfToken, Action};
-use crate::rules::{EndGame, Player, Move};
 use crate::rules::game::{Game, GameBuilder};
-
+use crate::rules::{EndGame, Move, Player};
+use sgf_parser::{Action, Color, Outcome, SgfToken};
 
 impl Game {
     pub fn from_sgf(sgf_str: &str) -> Result<Self, String> {
         let game_tree = match sgf_parser::parse(sgf_str) {
             Ok(game) => Ok(game),
-            Err(e) => Err(e.to_string())
+            Err(e) => Err(e.to_string()),
         }?;
         let mut gamebuilder: GameBuilder = Default::default();
         let mut first = true;
@@ -33,12 +32,10 @@ impl Game {
                     }
                 }
                 first = false;
-            } else {
-                if !node.tokens.is_empty() {
-                    let token = node.tokens.first().unwrap();
-                    if let SgfToken::Move { action, .. } = token {
-                        moves.push((*action).into());
-                    }
+            } else if !node.tokens.is_empty() {
+                let token = node.tokens.first().unwrap();
+                if let SgfToken::Move { action, .. } = token {
+                    moves.push((*action).into());
                 }
             }
         }
@@ -52,9 +49,9 @@ impl From<Outcome> for EndGame {
         match o {
             Outcome::WinnerByResign(c) => EndGame::WinnerByResign(c.into()),
             Outcome::WinnerByForfeit(c) => EndGame::WinnerByForfeit(c.into()),
-            Outcome::WinnerByPoints(c, p) => { EndGame::WinnerByScore(c.into(), p) }
-            Outcome::WinnerByTime(c) => { EndGame::WinnerByTime(c.into()) }
-            Outcome::Draw => { EndGame::Draw }
+            Outcome::WinnerByPoints(c, p) => EndGame::WinnerByScore(c.into(), p),
+            Outcome::WinnerByTime(c) => EndGame::WinnerByTime(c.into()),
+            Outcome::Draw => EndGame::Draw,
         }
     }
 }

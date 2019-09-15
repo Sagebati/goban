@@ -2,15 +2,14 @@ use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use crate::pieces::util::coord::Coord;
-use crate::rules::{EndGame, GobanSizes, Move};
+use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::PlayError;
 use crate::rules::Player;
-use crate::rules::Rule;
-use std::collections::HashSet;
-use crate::rules::Rule::Chinese;
-use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::Player::{Black, White};
-
+use crate::rules::Rule;
+use crate::rules::Rule::Chinese;
+use crate::rules::{EndGame, GobanSizes, Move};
+use std::collections::HashSet;
 
 #[derive(Clone, Getters, Setters, Debug)]
 pub struct Game {
@@ -104,14 +103,12 @@ impl Game {
             self.outcome
         } else {
             let scores = self.rule.count_points(&self);
-            if scores.0 == scores.1 {
+            if (scores.0 - scores.1).abs() < std::f32::EPSILON {
                 Some(Draw)
+            } else if scores.0 > scores.1 {
+                Some(WinnerByScore(Black, scores.0 - scores.1))
             } else {
-                if scores.0 > scores.1 {
-                    Some(WinnerByScore(Black, scores.0 - scores.1))
-                } else {
-                    Some(WinnerByScore(White, scores.1 - scores.0))
-                }
+                Some(WinnerByScore(White, scores.1 - scores.0))
             }
         }
     }
@@ -121,8 +118,7 @@ impl Game {
     ///
     #[inline]
     fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
-        self.goban
-            .get_points_by_color(Color::None)
+        self.goban.get_points_by_color(Color::None)
     }
 
     ///
@@ -136,9 +132,7 @@ impl Game {
                 color: self.turn.get_stone_color(),
                 coordinates: s,
             })
-            .filter(move |s| {
-                self.rule.move_validation(self, *s).is_none()
-            })
+            .filter(move |s| self.rule.move_validation(self, *s).is_none())
             .map(|s| (s.coordinates.0, s.coordinates.1))
     }
 
@@ -191,8 +185,8 @@ impl Game {
                         Stone {
                             coordinates: (x, y),
                             color: self.turn.get_stone_color(),
-                        })
-                    {
+                        },
+                    ) {
                         Err(c)
                     } else {
                         self.play(play);
@@ -301,7 +295,8 @@ impl Game {
     /// Rule of the super Ko, if any before configuration was already played then return true.
     ///
     pub fn super_ko(&self, stone: Stone) -> bool {
-        self.hashes.contains(self.clone().play(stone.coordinates.into()).goban.hash())
+        self.hashes
+            .contains(self.clone().play(stone.coordinates.into()).goban.hash())
     }
 
     ///
@@ -415,7 +410,7 @@ impl GameBuilder {
 
     pub fn build(&mut self) -> Result<Game, String> {
         let mut goban: Goban = Goban::new(self.size.0 as usize);
-        if self.handicap_points.len() != 0 {
+        if self.handicap_points.is_empty() {
             goban.push_many(self.handicap_points.to_owned().into_iter(), Color::Black);
         }
         let mut g = Game {

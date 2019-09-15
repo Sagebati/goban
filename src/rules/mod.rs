@@ -1,9 +1,9 @@
 //! Module for ruling in the game of go.
 
 use crate::pieces::stones::{Color, Stone};
+use crate::pieces::util::coord::Coord;
 use crate::rules::game::Game;
 use std::ops::Not;
-use crate::pieces::util::coord::Coord;
 
 pub mod game;
 mod sgf_bridge;
