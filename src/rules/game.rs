@@ -2,57 +2,14 @@ use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use crate::pieces::util::coord::Coord;
-use crate::rules::game_builder::GameBuilder;
-use crate::rules::EndGame;
+use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::PlayError;
 use crate::rules::Player;
+use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
-use crate::rules::Rule::Japanese;
-use sgf_parser::{SgfError, SgfToken};
+use crate::rules::Rule::Chinese;
+use crate::rules::{EndGame, GobanSizes, Move};
 use std::collections::HashSet;
-use std::fmt::{Display, Error, Formatter};
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum GobanSizes {
-    Nineteen,
-    Nine,
-    Thirteen,
-}
-
-impl Into<usize> for GobanSizes {
-    fn into(self) -> usize {
-        match self {
-            GobanSizes::Nine => 9,
-            GobanSizes::Thirteen => 13,
-            GobanSizes::Nineteen => 19,
-        }
-    }
-}
-
-impl From<usize> for GobanSizes {
-    fn from(x: usize) -> Self {
-        match x {
-            9 => GobanSizes::Nine,
-            13 => GobanSizes::Thirteen,
-            19 => GobanSizes::Nineteen,
-            _ => panic!("Not implemented for others size than 9,13,19"),
-        }
-    }
-}
-
-/// Enum for playing in the Goban.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Move {
-    Pass,
-    Resign,
-    Play(usize, usize),
-}
-
-impl From<Coord> for Move {
-    fn from(x: (usize, usize)) -> Self {
-        Move::Play(x.0, x.1)
-    }
-}
 
 #[derive(Clone, Getters, Setters, Debug)]
 pub struct Game {
@@ -66,7 +23,7 @@ pub struct Game {
 
     /// None if none resigned
     /// the player in the option is the player who resigned.
-    resigned: Option<Player>,
+    outcome: Option<EndGame>,
 
     #[get = "pub"]
     turn: Player,
@@ -90,14 +47,14 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(size: GobanSizes, rule: Rule) -> Game {
+    pub fn new(size: GobanSizes, rule: Rule) -> Self {
         let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = 0;
         let plays = Vec::new();
         let prisoners = (0, 0);
         let handicap = 0;
-        let hashes = HashSet::default();
+        let hashes = HashSet::with_capacity(300);
         Game {
             goban,
             turn: Player::Black,
@@ -105,55 +62,11 @@ impl Game {
             prisoners,
             passes: pass,
             plays,
-            resigned: None,
+            outcome: None,
             rule,
             handicap,
             hashes,
         }
-    }
-
-    pub fn from_sgf(sgf_str: &str) -> Result<Game, SgfError> {
-        let game_tree = sgf_parser::parse(sgf_str)?;
-        let mut gamebuilder = GameBuilder::new();
-        let mut first = true;
-        let mut game: Option<Game> = None;
-
-        for node in game_tree.iter() {
-            dbg!(node);
-            if first {
-                // Game information
-                for token in &node.tokens {
-                    if token.is_root_token() {
-                        match token {
-                            SgfToken::Komi(komi) => {
-                                gamebuilder.komi(*komi);
-                            }
-                            SgfToken::Size(x, _y) => {
-                                gamebuilder.size(*x as usize);
-                            }
-                            //TODO another options
-                            _ => (),
-                        }
-                    }
-                }
-                game = Some(gamebuilder.build().expect("Build the game"));
-                first = false;
-            } else if let Some(g) = &mut game {
-                if !node.tokens.is_empty() {
-                    let token = node.tokens.first().unwrap();
-                    if let SgfToken::Move { coordinate, .. } = token {
-                        g.play(Move::Play(
-                            (coordinate.0 - 1) as usize,
-                            (coordinate.1 - 1) as usize,
-                        ));
-                        g.display();
-                    }
-                }
-            } else {
-                panic!("Game not init")
-            }
-        }
-        Ok(Game::new(GobanSizes::Nineteen, Japanese))
     }
 }
 
@@ -161,6 +74,7 @@ impl Game {
     ///
     /// Resume the game when to players have passed, and want to continue.
     ///
+    #[inline]
     pub fn resume(&mut self) {
         self.passes = 0;
     }
@@ -168,11 +82,12 @@ impl Game {
     ///
     /// True when the game is over (two passes, or no more legals moves, Resign)
     ///
-    pub fn over(&self) -> bool {
-        if let Some(_x) = self.resigned {
+    #[inline]
+    pub fn is_over(&self) -> bool {
+        if self.outcome.is_some() {
             true
         } else {
-            self.passes == 2 || self.legals().count() == 0
+            self.passes == 2
         }
     }
 
@@ -180,55 +95,45 @@ impl Game {
     /// Returns the endgame.
     /// None if the game is not finished
     ///
+    #[inline]
     pub fn outcome(&self) -> Option<EndGame> {
-        if !self.over() {
+        if !self.is_over() {
             None
-        } else if let Some(x) = self.resigned {
-            if x == Player::White {
-                Some(EndGame::WinnerByResign(Player::Black))
-            } else {
-                Some(EndGame::WinnerByResign(Player::White))
-            }
+        } else if self.outcome.is_some() {
+            self.outcome
         } else {
             let scores = self.rule.count_points(&self);
-            Some(EndGame::Score(scores.0, scores.1))
+            if (scores.0 - scores.1).abs() < std::f32::EPSILON {
+                Some(Draw)
+            } else if scores.0 > scores.1 {
+                Some(WinnerByScore(Black, scores.0 - scores.1))
+            } else {
+                Some(WinnerByScore(White, scores.1 - scores.0))
+            }
         }
     }
 
     ///
     /// Generate all moves on all intersections.
     ///
+    #[inline]
     fn pseudo_legals(&self) -> impl Iterator<Item = Coord> + '_ {
-        self.goban
-            .get_stones_by_color(Color::None)
-            .map(|s| s.coordinates)
+        self.goban.get_points_by_color(Color::None)
     }
 
     ///
     /// Returns a list with legals moves,
     /// In the list will appear suicides moves, and ko moves.
     ///
+    #[inline]
     pub fn legals(&self) -> impl Iterator<Item = Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
                 coordinates: s,
             })
-            .filter(move |s| {
-                if let Some(_x) = self.rule.move_validation(self, *s) {
-                    false
-                } else {
-                    true
-                }
-            })
+            .filter(move |s| self.rule.move_validation(self, *s).is_none())
             .map(|s| (s.coordinates.0, s.coordinates.1))
-    }
-
-    ///
-    /// Prints the goban.
-    ///
-    pub fn display(&self) {
-        println!("{}", self.goban.pretty_string());
     }
 
     ///
@@ -249,14 +154,14 @@ impl Game {
                     x, y, stone_color
                 ));
                 self.remove_captured_stones();
-                self.plays.push(self.goban.clone()); // Keep the history of the game
+                self.plays.push(self.goban.clone());
                 self.hashes.insert(*self.goban.hash());
                 self.turn = !self.turn;
                 self.passes = 0;
                 self
             }
-            Move::Resign => {
-                self.resigned = Some(self.turn);
+            Move::Resign(player) => {
+                self.outcome = Some(EndGame::WinnerByResign(player));
                 self
             }
         }
@@ -270,25 +175,23 @@ impl Game {
             Err(PlayError::GamePaused)
         } else {
             match play {
-                Move::Pass => {
-                    self.passes += 1;
+                Move::Pass | Move::Resign(_) => {
+                    self.play(play);
                     Ok(self)
                 }
                 Move::Play(x, y) => {
-                    let stone = Stone {
-                        coordinates: (x, y),
-                        color: self.turn.get_stone_color(),
-                    };
-                    if let Some(c) = self.rule.move_validation(self, stone) {
+                    if let Some(c) = self.rule.move_validation(
+                        self,
+                        Stone {
+                            coordinates: (x, y),
+                            color: self.turn.get_stone_color(),
+                        },
+                    ) {
                         Err(c)
                     } else {
                         self.play(play);
                         Ok(self)
                     }
-                }
-                Move::Resign => {
-                    self.resigned = Some(self.turn);
-                    Ok(self)
                 }
             }
         }
@@ -304,56 +207,6 @@ impl Game {
             self.goban = goban;
         }
         self
-    }
-
-    ///
-    /// Calculates a score for the endgame. It's a naive implementation, it counts only
-    /// territories with the same color surrounding them.
-    ///
-    /// Returns (black territory,  white territory)
-    ///
-    pub fn calculate_territories(&self) -> (f32, f32) {
-        let mut scores: (f32, f32) = (0., 0.); // Black & White
-        let empty_groups = self
-            .goban
-            .get_strings_from_stones(self.goban.get_stones_by_color(Color::None));
-        for group in empty_groups {
-            let mut neutral = (false, false);
-            for empty_intersection in &group {
-                for stone in self.goban.get_neighbors(empty_intersection.coordinates) {
-                    if stone.color == Color::White {
-                        neutral.1 = true; // found white stone
-                    }
-                    if stone.color == Color::Black {
-                        neutral.0 = true; // found black stone
-                    }
-                }
-            }
-            if neutral.0 && !neutral.1 {
-                scores.0 += group.len() as f32;
-            } else if !neutral.0 && neutral.1 {
-                scores.1 += group.len() as f32;
-            }
-        }
-        (scores.0, scores.1)
-    }
-
-    ///
-    /// Get number of stones on the goban.
-    /// (number of black stones, number of white stones)
-    ///
-    pub fn number_of_stones(&self) -> (u32, u32) {
-        let mut res: (u32, u32) = (0, 0);
-        self.goban.get_stones().for_each(|stone| match stone.color {
-            Color::Black => {
-                res.0 += 1;
-            }
-            Color::White => {
-                res.1 += 1;
-            }
-            _ => unreachable!(),
-        });
-        res
     }
 
     pub fn will_capture(&self, point: Coord) -> bool {
@@ -402,14 +255,13 @@ impl Game {
     /// Returns true if the move is a suicide
     ///
     pub fn is_suicide(&self, stone: Stone) -> bool {
-        let mut goban_test: Goban = self.goban().clone();
-        goban_test
-            .push_stone(stone)
-            .expect("Play the stone for verification if it's suicide");
-
-        if goban_test.has_liberties(stone) {
+        if self.goban.has_liberties(stone) {
             false
         } else {
+            let mut goban_test: Goban = self.goban().clone();
+            goban_test
+                .push_stone(stone)
+                .expect("Play the stone for verification if it's suicide");
             // Test if the connected stones are also without liberties.
             if goban_test.is_string_dead(&goban_test.get_string_from_stone(stone)) {
                 // if the chain has no liberties then look if enemy stones are captured
@@ -418,6 +270,7 @@ impl Game {
                     .filter(|neigbor_stone| neigbor_stone.color == (!self.turn).get_stone_color())
                     .map(|s| goban_test.get_string_from_stone(s))
                     .any(|string_of_stones| goban_test.is_string_dead(&string_of_stones))
+            // if there is a string who dies the it isn't a suicide move
             } else {
                 false
             }
@@ -433,7 +286,7 @@ impl Game {
             false
         } else {
             let mut game = self.clone();
-            game.play(Move::Play(stone.coordinates.0, stone.coordinates.1));
+            game.play(stone.coordinates.into());
             game.goban == self.plays[self.plays.len() - 2]
         }
     }
@@ -442,10 +295,15 @@ impl Game {
     /// Rule of the super Ko, if any before configuration was already played then return true.
     ///
     pub fn super_ko(&self, stone: Stone) -> bool {
-        let mut game = self.clone();
-        game.play(Move::Play(stone.coordinates.0, stone.coordinates.1));
+        self.hashes
+            .contains(self.clone().play(stone.coordinates.into()).goban.hash())
+    }
 
-        self.hashes.contains(game.goban.hash())
+    ///
+    /// Displays the internal board.
+    ///
+    pub fn display_goban(&self) {
+        println!("{}", self.goban)
     }
 
     ///
@@ -487,8 +345,97 @@ impl Default for Game {
     }
 }
 
-impl Display for Game {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        self.goban.fmt(f)
+pub struct GameBuilder {
+    size: (u32, u32),
+    komi: f32,
+    black_player: String,
+    white_player: String,
+    rule: Rule,
+    handicap_points: Vec<Coord>,
+    turn: Player,
+    moves: Vec<Move>,
+    outcome: Option<EndGame>,
+}
+
+impl GameBuilder {
+    fn new() -> GameBuilder {
+        GameBuilder {
+            size: (19, 19),
+            komi: 0.,
+            black_player: "".to_string(),
+            white_player: "".to_string(),
+            handicap_points: vec![],
+            rule: Chinese,
+            turn: Player::Black,
+            moves: vec![],
+            outcome: None,
+        }
+    }
+
+    pub fn moves(&mut self, moves: &[Move]) -> &mut Self {
+        self.moves = moves.to_vec();
+        self
+    }
+
+    pub fn outcome(&mut self, outcome: EndGame) -> &mut Self {
+        self.outcome = Some(outcome);
+        self
+    }
+
+    pub fn handicap(&mut self, points: &[Coord]) -> &mut Self {
+        self.handicap_points = points.to_vec();
+        self.turn = !self.turn;
+        self
+    }
+
+    pub fn size(&mut self, size: (u32, u32)) -> &mut Self {
+        self.size = size;
+        self
+    }
+
+    pub fn komi(&mut self, komi: f32) -> &mut Self {
+        self.komi = komi;
+        self
+    }
+
+    pub fn black_player(&mut self, black_player_name: &str) -> &mut Self {
+        self.black_player = black_player_name.to_string();
+        self
+    }
+
+    pub fn white_player(&mut self, white_player_name: &str) -> &mut Self {
+        self.white_player = white_player_name.to_string();
+        self
+    }
+
+    pub fn build(&mut self) -> Result<Game, String> {
+        let mut goban: Goban = Goban::new(self.size.0 as usize);
+        if self.handicap_points.is_empty() {
+            goban.push_many(self.handicap_points.to_owned().into_iter(), Color::Black);
+        }
+        let mut g = Game {
+            goban,
+            passes: 0,
+            prisoners: (0, 0),
+            outcome: self.outcome,
+            turn: self.turn,
+            komi: self.komi,
+            rule: self.rule,
+            handicap: self.handicap_points.len() as u8,
+            plays: vec![],
+            hashes: Default::default(),
+        };
+
+        for m in &self.moves {
+            g.play(*m); // without verifications of Ko
+        }
+
+        Ok(g)
+    }
+}
+
+impl Default for GameBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }

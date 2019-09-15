@@ -2,16 +2,15 @@
 mod tests {
     use goban::pieces::goban::Goban;
     use goban::pieces::stones::Color;
+    use goban::pieces::stones::Color::Black;
     use goban::pieces::stones::Stone;
     use goban::pieces::util::coord::Order;
     use goban::pieces::zobrist::ZOBRIST19;
     use goban::rules::game::Game;
-    use goban::rules::game::GobanSizes;
-    use goban::rules::game::Move;
-    use goban::rules::game::Move::Play;
-    use goban::rules::EndGame;
+    use goban::rules::Move::Play;
     use goban::rules::Rule;
-    use rand::seq::IteratorRandom;
+    use goban::rules::{EndGame, GobanSizes, Move, Player};
+    use rand::seq::SliceRandom;
     use std::collections::BTreeSet;
 
     #[test]
@@ -71,49 +70,15 @@ mod tests {
     fn some_plays() {
         let mut g = Game::new(GobanSizes::Nineteen, Rule::Chinese);
         let mut i = 300;
-        while !g.legals().count() != 0 && i != 0 {
+        while !g.is_over() && i != 0 {
             g.play(
-                g.legals()
+                *g.legals()
                     .map(|coord| Move::Play(coord.0, coord.1))
+                    .collect::<Vec<Move>>()
                     .choose(&mut rand::thread_rng())
                     .unwrap(),
             );
             i -= 1;
-            println!("{}", g.goban().pretty_string());
-        }
-    }
-
-    fn vec_bool_to_vec_color(w_stones: &Vec<bool>, b_stones: &Vec<bool>) -> Vec<Color> {
-        let mut res: Vec<Color> = vec![Color::None; w_stones.len()];
-        for i in 0..w_stones.len() {
-            if w_stones[i] && b_stones[i] {
-                panic!("Error");
-            }
-            if w_stones[i] {
-                res[i] = Color::White;
-            } else if b_stones[i] {
-                res[i] = Color::Black;
-            }
-        }
-        res
-    }
-
-    #[test]
-    fn some_plays_integrity_boolean_vecs() {
-        let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
-        let mut i = 40;
-        while !g.legals().count() != 0 && i != 0 {
-            g.play(
-                g.legals()
-                    .map(|coord| Move::Play(coord.0, coord.1))
-                    .choose(&mut rand::thread_rng())
-                    .unwrap(),
-            );
-            i -= 1;
-            assert_eq!(
-                g.goban().tab(),
-                &vec_bool_to_vec_color(g.goban().w_stones(), g.goban().b_stones())
-            );
             println!("{}", g.goban().pretty_string());
         }
     }
@@ -456,16 +421,13 @@ mod tests {
                 _ => unreachable!(),
             };
             g.play_with_verifications(to_play).unwrap();
-            g.display();
+            g.display_goban()
         }
-        let score = match g.outcome().unwrap() {
-            EndGame::WinnerByResign(_player) => panic!("There is no winner by resign in this game"),
-            EndGame::Score(x, y) => (x, y),
-        };
+        let score = g.calculate_score();
         let (b_prisoners, w_prisoners) = g.prisoners();
+        println!("score  b:{} w:{}", score.0, score.1);
         assert_eq!(*b_prisoners, 16);
-        assert_eq!(*w_prisoners, 36);
-        println!("score  b:{} w:{}", score.0, score.1)
+        assert_eq!(*w_prisoners, 35);
     }
 
     #[test]
@@ -514,7 +476,7 @@ mod tests {
         g.play(Move::Pass);
         g.play(Move::Pass);
 
-        assert_eq!(g.over(), true)
+        assert_eq!(g.is_over(), true)
     }
 
     #[test]
@@ -523,13 +485,59 @@ mod tests {
         g.play(Move::Play(4, 4));
         g.play(Move::Pass);
         g.play(Move::Pass);
-        let score = match g.outcome() {
-            Some(EndGame::Score(black, white)) => Ok((black, white)),
-            _ => Err("Game not finished"),
-        }
-        .expect("Game finished");
+        let score = g.calculate_score();
         assert_eq!(score.0, 80.); //Black
         assert_eq!(score.1, 5.5); //White
+    }
+
+    #[test]
+    fn score_calcul2() {
+        let mut g = Game::new(GobanSizes::Nineteen, Rule::Chinese);
+        g.set_komi(0.);
+        (0..38).for_each(|x| {
+            g.play_with_verifications(Play(if x % 2 == 0 { 9 } else { 8 }, x / 2))
+                .unwrap();
+        });
+
+        g.display_goban();
+        let score = g.calculate_score();
+        assert_eq!(score, (10. * 19., 9. * 19.));
+        let mut goban: Goban = g.goban().clone();
+        goban.push_many(
+            {
+                let mut vec = vec![];
+                (9..19).for_each(|x| vec.push((x, 3)));
+                vec
+            }
+            .into_iter(),
+            Color::Black,
+        );
+        goban.push_many(
+            vec![
+                (11, 6),
+                (11, 7),
+                (11, 8),
+                (12, 6),
+                (12, 8),
+                (13, 6),
+                (13, 7),
+                (13, 8),
+            ]
+            .into_iter(),
+            Color::White,
+        );
+
+        let terr = goban.calculate_territories();
+        assert_eq!(terr, (27., 8. * 19. + 1.));
+
+        goban.push_many(
+            vec![(17, 18), (18, 17), (18, 15), (17, 16), (16, 17), (15, 18)].into_iter(),
+            Black,
+        );
+
+        let terr = goban.calculate_territories();
+        println!("{}", goban);
+        assert_eq!(terr, (27. + 4., 8. * 19. + 1.));
     }
 
     #[test]
@@ -538,13 +546,15 @@ mod tests {
         g.play(Move::Play(4, 4));
         g.play(Move::Pass);
         g.play(Move::Pass);
-        let score = match g.outcome() {
-            Some(EndGame::Score(black, white)) => Ok((black, white)),
+        let outcome = match g.outcome() {
+            Some(endgame) => Ok(endgame),
             _ => Err("Game not finished"),
         }
         .expect("Game finished");
-        assert_eq!(score.0, 81.); //Black
-        assert_eq!(score.1, 5.5); //White
+        let (black, white) = g.calculate_score();
+        assert_eq!(black, 81.);
+        assert_eq!(white, 5.5);
+        assert_eq!(outcome, EndGame::WinnerByScore(Player::Black, 81. - 5.5))
     }
 
     #[test]
@@ -570,33 +580,33 @@ mod tests {
     fn ko_test() {
         let mut game: Game = Default::default();
         game.play(Move::Play(0, 3)); // black
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(0, 2)); // white
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(1, 4)); // black
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(2, 2)); // white
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(2, 3)); // black
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(1, 1)); // white
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(1, 2)); // black
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(1, 3)); // white takes
-        println!("{}", game);
+        game.display_goban();
         //game.play(Move::Play(1, 2)); // black takes back
         //println!("{}", game);
         // ko
         assert!(game.ko(Stone {
             coordinates: (1, 2),
-            color: Color::Black
+            color: Color::Black,
         }));
         assert!(!game.legals().any(|m| m == (1, 2)));
         assert!(game.play_with_verifications(Move::Play(1, 2)).is_err());
         assert!(game.super_ko(Stone {
             coordinates: (1, 2),
-            color: Color::Black
+            color: Color::Black,
         }));
     }
 
@@ -604,21 +614,21 @@ mod tests {
     fn suicide_test() {
         let mut game: Game = Default::default();
         game.play(Move::Play(0, 2)); // black
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(0, 0)); // white
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(1, 1)); // black
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(1, 0)); // white
-        println!("{}", game);
+        game.display_goban();
         game.play(Move::Play(2, 0)); // black
-        println!("{}", game);
+        game.display_goban();
         //game.play(Move::Play(0, 1)); // white suicide whith
         //println!("{}", game);
         // suicide
         assert!(game.is_suicide(Stone {
             coordinates: (0, 1),
-            color: Color::White
+            color: Color::White,
         }));
         assert!(!game.legals().any(|m| m == (0, 1)));
         assert!(game.play_with_verifications(Move::Play(0, 1)).is_err());
@@ -626,6 +636,8 @@ mod tests {
 
     #[test]
     fn sgf_test() {
-        let mut game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
+        let game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
+        println!("score : {:?}", game.calculate_score());
+        println!("outcome: {:?}", game.outcome());
     }
 }

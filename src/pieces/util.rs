@@ -1,8 +1,8 @@
 //! Module with the logic for calculating coordinates.
 
 pub mod coord {
-    /// Defining the policy for the colums.
 
+    /// Defining the policy for the colums.
     pub type Coord = (usize, usize);
 
     #[derive(Debug, Clone, PartialEq, Eq, Copy)]
@@ -12,19 +12,30 @@ pub mod coord {
     }
 
     /// Waiting for const numeric.
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq, Eq, Copy)]
     pub struct CoordUtil {
         n_rows: usize,
         n_cols: usize,
         order: Order,
     }
 
-    pub fn neighbors_coords(coord: Coord) -> Vec<Coord> {
+    #[inline]
+    pub fn neighbors_coords(point: Coord) -> Vec<Coord> {
         vec![
-            (coord.0.wrapping_add(1), coord.1),
-            (coord.0.wrapping_sub(1), coord.1),
-            (coord.0, coord.1.wrapping_add(1)),
-            (coord.0, coord.1.wrapping_sub(1)),
+            (point.0.wrapping_add(1), point.1),
+            (point.0.wrapping_sub(1), point.1),
+            (point.0, point.1.wrapping_add(1)),
+            (point.0, point.1.wrapping_sub(1)),
+        ]
+    }
+
+    #[inline]
+    pub fn corner_coords(point: Coord) -> Vec<Coord> {
+        vec![
+            (point.0.wrapping_add(1), point.1.wrapping_add(1)),
+            (point.0.wrapping_sub(1), point.1.wrapping_sub(1)),
+            (point.0.wrapping_add(1), point.1.wrapping_sub(1)),
+            (point.0.wrapping_sub(1), point.1.wrapping_add(1)),
         ]
     }
 
@@ -45,7 +56,7 @@ pub mod coord {
         }
 
         #[inline]
-        pub fn to(&self, coord: Coord) -> usize {
+        pub fn to(self, coord: Coord) -> usize {
             match self.order {
                 Order::ColumnMajor => (coord.0 * self.n_cols + coord.1 % self.n_rows),
                 Order::RowMajor => (coord.0 * self.n_rows + coord.1 % self.n_cols),
@@ -53,7 +64,7 @@ pub mod coord {
         }
 
         #[inline]
-        pub fn from(&self, index: usize) -> Coord {
+        pub fn from(self, index: usize) -> Coord {
             match self.order {
                 Order::ColumnMajor => (index / self.n_cols, index % self.n_rows),
                 Order::RowMajor => (index / self.n_rows, index % self.n_cols),

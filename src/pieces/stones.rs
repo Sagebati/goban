@@ -7,7 +7,7 @@ use std::fmt::Formatter;
 
 pub const WHITE_STONE: char = '⚫';
 pub const BLACK_STONE: char = '⚪';
-pub const EMPTY_STONE: char = '.';
+pub const EMPTY_STONE: char = '·';
 
 /// Color on the goban.
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]

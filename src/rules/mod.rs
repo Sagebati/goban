@@ -1,12 +1,12 @@
 //! Module for ruling in the game of go.
 
 use crate::pieces::stones::{Color, Stone};
+use crate::pieces::util::coord::Coord;
 use crate::rules::game::Game;
 use std::ops::Not;
 
 pub mod game;
-pub mod game_builder;
-pub mod graph;
+mod sgf_bridge;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum Player {
@@ -26,7 +26,7 @@ impl Not for Player {
 }
 
 impl Player {
-    fn get_stone_color(self) -> Color {
+    pub fn get_stone_color(self) -> Color {
         match self {
             Player::Black => Color::Black,
             Player::White => Color::White,
@@ -34,10 +34,70 @@ impl Player {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum GobanSizes {
+    Nineteen,
+    Nine,
+    Thirteen,
+}
+
+impl Into<usize> for GobanSizes {
+    fn into(self) -> usize {
+        match self {
+            GobanSizes::Nine => 9,
+            GobanSizes::Thirteen => 13,
+            GobanSizes::Nineteen => 19,
+        }
+    }
+}
+
+impl From<usize> for GobanSizes {
+    fn from(x: usize) -> Self {
+        match x {
+            9 => GobanSizes::Nine,
+            13 => GobanSizes::Thirteen,
+            19 => GobanSizes::Nineteen,
+            _ => panic!("Not implemented for others size than 9,13,19"),
+        }
+    }
+}
+
+/// Enum for playing in the Goban.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Move {
+    Pass,
+    Resign(Player),
+    Play(usize, usize),
+}
+
+impl From<Coord> for Move {
+    fn from(x: (usize, usize)) -> Self {
+        Move::Play(x.0, x.1)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum EndGame {
-    Score(f32, f32),
+    WinnerByScore(Player, f32),
     WinnerByResign(Player),
+    WinnerByTime(Player),
+    WinnerByForfeit(Player),
+    Draw,
+}
+
+impl EndGame {
+    ///
+    /// Return the winner of the game, if none the game is draw.
+    ///
+    pub fn get_winner(self) -> Option<Player> {
+        match self {
+            EndGame::WinnerByScore(p, _) => Some(p),
+            EndGame::WinnerByResign(p) => Some(p),
+            EndGame::WinnerByTime(p) => Some(p),
+            EndGame::WinnerByForfeit(p) => Some(p),
+            EndGame::Draw => None,
+        }
+    }
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -64,7 +124,7 @@ impl Rule {
     pub fn count_points(self, game: &Game) -> (f32, f32) {
         match self {
             Rule::Japanese => {
-                let mut scores = game.calculate_territories();
+                let mut scores = game.goban().calculate_territories();
                 scores.0 += game.prisoners().0 as f32;
                 scores.1 += game.prisoners().1 as f32;
                 scores.1 += game.komi();
@@ -73,8 +133,8 @@ impl Rule {
             }
             Rule::Chinese => {
                 // Territories in seki are not counted
-                let mut scores = game.calculate_territories();
-                let ns = game.number_of_stones();
+                let mut scores = game.goban().calculate_territories();
+                let ns = game.goban().number_of_stones();
                 scores.0 += ns.0 as f32;
                 scores.1 += ns.1 as f32;
                 scores.1 += game.komi();
