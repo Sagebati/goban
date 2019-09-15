@@ -122,8 +122,7 @@ impl Game {
     #[inline]
     fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.goban
-            .get_stones_by_color(Color::None)
-            .map(|s| s.coordinates)
+            .get_points_by_color(Color::None)
     }
 
     ///

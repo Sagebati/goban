@@ -8,10 +8,10 @@ mod tests {
     use goban::pieces::zobrist::ZOBRIST19;
     use goban::rules::{EndGame, Move, GobanSizes, Player};
     use goban::rules::Rule;
-    use rand::seq::IteratorRandom;
     use std::collections::BTreeSet;
     use goban::rules::game::Game;
     use goban::rules::Move::Play;
+    use rand::seq::SliceRandom;
 
     #[test]
     fn goban() {
@@ -72,9 +72,10 @@ mod tests {
         let mut i = 300;
         while !g.is_over() && i != 0 {
             g.play(
-                g.legals()
-                    .choose(&mut rand::thread_rng())
+                *g.legals()
                     .map(|coord| Move::Play(coord.0, coord.1))
+                    .collect::<Vec<Move>>()
+                    .choose(&mut rand::thread_rng())
                     .unwrap(),
             );
             i -= 1;

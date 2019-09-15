@@ -9,6 +9,7 @@ use std::fmt::Formatter;
 use std::ops::{Index, IndexMut};
 use crate::pieces::stones::Color::None;
 
+
 ///
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
 /// only square boards are possible for the moment.
@@ -135,13 +136,12 @@ impl Goban {
     ///
     #[inline]
     pub fn get_stones(&self) -> impl Iterator<Item=Stone> + '_ {
-        let coord_util = CoordUtil::new(self.size, self.size);
         self.tab
             .iter()
             .enumerate()
             .filter(|(_index, t)| **t != Color::None)
             .map(move |(index, t)| Stone {
-                coordinates: coord_util.from(index),
+                coordinates: self.coord_util.from(index),
                 color: *t,
             })
     }
@@ -151,22 +151,24 @@ impl Goban {
     ///
     #[inline]
     pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item=Stone> + '_ {
-        self.tab
-            .iter()
+        self.get_points_by_color(color)
+            .map(move |c| Stone { color, coordinates: c })
+    }
+
+    #[inline]
+    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Coord> + '_ {
+        self.tab.iter()
             .enumerate()
             .filter(move |(_index, t)| **t == color)
-            .map(move |(index, t)| Stone {
-                coordinates: self.coord_util.from(index),
-                color: *t,
-            })
+            .map(move |(index, _t)| self.coord_util.from(index))
     }
 
     ///
-    /// Returns the empty stones connected to the point
+    /// Returns the empty stones connected to the stone
     ///
     #[inline]
-    pub fn get_liberties(&self, point: Stone) -> impl Iterator<Item=Stone> + '_ {
-        self.get_neighbors(point.coordinates)
+    pub fn get_liberties(&self, stone: Stone) -> impl Iterator<Item=Stone> + '_ {
+        self.get_neighbors(stone.coordinates)
             .filter(|s| s.color == Color::None)
     }
 
@@ -211,17 +213,14 @@ impl Goban {
     /// (number of black stones, number of white stones)
     ///
     pub fn number_of_stones(&self) -> (u32, u32) {
-        let mut res: (u32, u32) = (0, 0);
-        self.get_stones().for_each(|stone| match stone.color {
-            Color::Black => {
-                res.0 += 1;
-            }
-            Color::White => {
-                res.1 += 1;
-            }
-            _ => unreachable!(),
-        });
-        res
+        self.get_stones().fold(
+            (0, 0), |acc, stone| {
+                match stone.color {
+                    Color::Black => (acc.0 + 1, acc.1),
+                    Color::White => (acc.0, acc.1 + 1),
+                    _ => unreachable!()
+                }
+            })
     }
 
     /// Detects true eyes.

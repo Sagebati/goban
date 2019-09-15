@@ -80,9 +80,10 @@ impl Goban {
         while let Some(stone_to_explore) = to_explore.pop() {
             // exploring the graph
             explored.insert(stone_to_explore);
-            self.get_neighbors(stone_to_explore.coordinates)
+
+            to_explore.extend(self.get_neighbors(stone_to_explore.coordinates)
                 .filter(|p| p.color == stone.color && !explored.contains(p))
-                .for_each(|s| to_explore.push(s));
+            )
         }
         explored
     }
@@ -98,12 +99,11 @@ impl Goban {
         stones: impl Iterator<Item=Stone>,
     ) -> Vec<HashSet<Stone>> {
         let mut groups_of_stones: Vec<HashSet<Stone>> = Default::default();
-        for stone in stones {
-            // if the stone is already in a group of stones
-            let is_handled = groups_of_stones.iter().any(|set| set.contains(&stone));
+        for s in stones {
+            let is_handled = groups_of_stones.iter().any(|set| set.contains(&s));
 
             if !is_handled {
-                groups_of_stones.push(self.get_string_from_stone(stone))
+                groups_of_stones.push(self.get_string_from_stone(s))
             }
         }
         groups_of_stones
@@ -117,10 +117,13 @@ impl Goban {
     ///
     #[inline]
     pub fn calculate_territories(&self) -> (f32, f32) {
-        let (black_territory, white_territoty)  = self.get_territories();
+        let (black_territory, white_territoty) = self.get_territories();
         (black_territory.count() as f32, white_territoty.count() as f32)
     }
 
+    ///
+    /// Get two iterators with the
+    ///
     pub fn get_territories(&self) -> (impl Iterator<Item=Stone>, impl Iterator<Item=Stone>) {
         let empty_strings = self.get_strings_from_stones(self.get_stones_by_color(Color::None));
         let mut white_territory = Vec::new();
