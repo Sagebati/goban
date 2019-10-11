@@ -51,7 +51,7 @@ impl Game {
         let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = 0;
-        let plays = Vec::new();
+        let plays = Vec::with_capacity(300);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashSet::with_capacity(300);
