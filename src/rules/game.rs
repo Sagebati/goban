@@ -153,7 +153,8 @@ impl Game {
                     "Put the stone in ({},{}) of color {}",
                     x, y, stone_color
                 ));
-                self.remove_captured_stones();
+                self.remove_captured_stones_turn(!self.turn);
+                // self.remove_captured_stones_color(!self.turn); suicide
                 self.plays.push(self.goban.clone());
                 self.hashes.insert(*self.goban.hash());
                 self.turn = !self.turn;
@@ -307,25 +308,14 @@ impl Game {
     }
 
     ///
-    /// Removes captured stones from the goban.
-    ///
-    fn remove_captured_stones(&mut self) {
-        if self.turn == Player::Black {
-            self.prisoners.0 += self.remove_captured_stones_color(Color::White) as u32;
-        } else {
-            self.prisoners.1 += self.remove_captured_stones_color(Color::Black) as u32;
-        }
-    }
-
-    ///
     /// Removes the dead stones from the goban by specifying a color stone.
     /// Returns the number of stones removed from the goban.
     ///
-    fn remove_captured_stones_color(&mut self, color: Color) -> usize {
+    fn remove_captured_stones_turn(&mut self, player: Player) -> usize {
         let mut number_of_stones_captured = 0;
         for groups_of_stones in self
             .goban
-            .get_strings_of_stones_without_liberties_wth_color(color)
+            .get_strings_of_stones_without_liberties_wth_color(player.get_stone_color())
         {
             if self.goban.is_string_dead(&groups_of_stones) {
                 self.goban.push_many(

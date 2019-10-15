@@ -424,10 +424,10 @@ mod tests {
             g.display_goban()
         }
         let score = g.calculate_score();
-        let (b_prisoners, w_prisoners) = g.prisoners();
+        let &(b_prisoners, w_prisoners) = g.prisoners();
         println!("score  b:{} w:{}", score.0, score.1);
-        assert_eq!(*b_prisoners, 16);
-        assert_eq!(*w_prisoners, 35);
+        assert_eq!(b_prisoners, 16);
+        assert_eq!(w_prisoners, 35);
     }
 
     #[test]
@@ -575,6 +575,12 @@ mod tests {
             }
         }
     }
+
+
+    fn main(){
+        println!("Hello, Wolrd!")
+    }
+
 
     #[test]
     fn ko_test() {
