@@ -313,15 +313,15 @@ impl Game {
     fn remove_captured_stones(&mut self) {
         match self.turn {
             Black => {
-                self.prisoners.0 = self.remove_captured_stones_turn(White);
+                self.prisoners.0 += self.remove_captured_stones_turn(White);
                 if self.rule.is_suicide_valid() {
-                    self.prisoners.1 = self.remove_captured_stones_turn(Black);
+                    self.prisoners.1 += self.remove_captured_stones_turn(Black);
                 }
             }
             White => {
-                self.prisoners.1 = self.remove_captured_stones_turn(Black);
+                self.prisoners.1 += self.remove_captured_stones_turn(Black);
                 if self.rule.is_suicide_valid() {
-                    self.prisoners.0 = self.remove_captured_stones_turn(White);
+                    self.prisoners.0 += self.remove_captured_stones_turn(White);
                 }
             }
         }
