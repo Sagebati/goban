@@ -576,12 +576,6 @@ mod tests {
         }
     }
 
-
-    fn main(){
-        println!("Hello, Wolrd!")
-    }
-
-
     #[test]
     fn ko_test() {
         let mut game: Game = Default::default();

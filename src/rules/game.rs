@@ -117,7 +117,7 @@ impl Game {
     /// Generate all moves on all intersections.
     ///
     #[inline]
-    fn pseudo_legals(&self) -> impl Iterator<Item = Coord> + '_ {
+    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
@@ -126,7 +126,7 @@ impl Game {
     /// In the list will appear suicides moves, and ko moves.
     ///
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item = Coord> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
@@ -153,8 +153,7 @@ impl Game {
                     "Put the stone in ({},{}) of color {}",
                     x, y, stone_color
                 ));
-                self.remove_captured_stones_turn(!self.turn);
-                // self.remove_captured_stones_color(!self.turn); suicide
+                self.remove_captured_stones();
                 self.plays.push(self.goban.clone());
                 self.hashes.insert(*self.goban.hash());
                 self.turn = !self.turn;
@@ -215,15 +214,15 @@ impl Game {
             .goban
             .get_neighbors(point)
             .filter(|s| s.color != Color::None && s.color != self.turn.get_stone_color())
-        {
-            if self
-                .goban
-                .count_string_liberties(&self.goban.get_string_from_stone(stone))
-                == 1
             {
-                return true;
+                if self
+                    .goban
+                    .count_string_liberties(&self.goban.get_string_from_stone(stone))
+                    == 1
+                {
+                    return true;
+                }
             }
-        }
         false
     }
 
@@ -271,7 +270,7 @@ impl Game {
                     .filter(|neigbor_stone| neigbor_stone.color == (!self.turn).get_stone_color())
                     .map(|s| goban_test.get_string_from_stone(s))
                     .any(|string_of_stones| goban_test.is_string_dead(&string_of_stones))
-            // if there is a string who dies the it isn't a suicide move
+                // if there is a string who dies the it isn't a suicide move
             } else {
                 false
             }
@@ -307,25 +306,46 @@ impl Game {
         println!("{}", self.goban)
     }
 
+
+    ///
+    /// Remove captured stones, and add it to the count of prisoners
+    ///
+    fn remove_captured_stones(&mut self) {
+        match self.turn {
+            Black => {
+                self.prisoners.0 = self.remove_captured_stones_turn(White);
+                if self.rule.is_suicide_valid() {
+                    self.prisoners.1 = self.remove_captured_stones_turn(Black);
+                }
+            }
+            White => {
+                self.prisoners.1 = self.remove_captured_stones_turn(Black);
+                if self.rule.is_suicide_valid() {
+                    self.prisoners.0 = self.remove_captured_stones_turn(White);
+                }
+            }
+        }
+    }
+
     ///
     /// Removes the dead stones from the goban by specifying a color stone.
     /// Returns the number of stones removed from the goban.
     ///
-    fn remove_captured_stones_turn(&mut self, player: Player) -> usize {
+    fn remove_captured_stones_turn(&mut self, player: Player) -> u32 {
         let mut number_of_stones_captured = 0;
         for groups_of_stones in self
             .goban
             .get_strings_of_stones_without_liberties_wth_color(player.get_stone_color())
-        {
-            if self.goban.is_string_dead(&groups_of_stones) {
-                self.goban.push_many(
-                    groups_of_stones.iter().map(|point| point.coordinates),
-                    Color::None,
-                );
-                number_of_stones_captured += groups_of_stones.len();
+            {
+                if self.goban.is_string_dead(&groups_of_stones) {
+                    self.goban.push_many(
+                        groups_of_stones.iter().map(|point| point.coordinates),
+                        Color::None,
+                    );
+                    number_of_stones_captured += groups_of_stones.len();
+                }
             }
-        }
-        number_of_stones_captured
+        number_of_stones_captured as u32
     }
 }
 
