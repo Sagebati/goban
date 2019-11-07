@@ -10,6 +10,7 @@ use crate::rules::Rule;
 use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, GobanSizes, Move};
 use std::collections::HashSet;
+use rayon::iter::ParallelIterator;
 
 #[derive(Clone, Getters, Setters, Debug)]
 pub struct Game {
@@ -117,7 +118,7 @@ impl Game {
     /// Generate all moves on all intersections.
     ///
     #[inline]
-    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
+    fn pseudo_legals(&self) -> impl ParallelIterator<Item=Coord> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
@@ -126,7 +127,7 @@ impl Game {
     /// In the list will appear suicides moves, and ko moves.
     ///
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
+    pub fn legals(&self) -> impl ParallelIterator<Item=Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),

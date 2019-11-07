@@ -7,6 +7,7 @@ use goban::rules::Rule::{Japanese, Chinese};
 use goban::rules::{GobanSizes, Move};
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
+use rayon::prelude::*;
 
 pub fn perft(pos: &Game, depth: u8) -> u64 {
     if depth < 1 {
@@ -48,7 +49,7 @@ pub fn play_game() {
 
 pub fn perft_bench(_c: &mut Criterion) {
     let g = Game::new(GobanSizes::Nineteen, Japanese);
-    let deep = 4;
+    let deep = 6;
     let criterion: Criterion = Default::default();
     criterion.sample_size(10).bench_function_over_inputs(
         "perft",

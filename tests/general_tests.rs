@@ -12,6 +12,7 @@ mod tests {
     use goban::rules::{EndGame, GobanSizes, Move, Player};
     use rand::seq::SliceRandom;
     use std::collections::BTreeSet;
+    use rayon::prelude::*;
 
     #[test]
     fn goban() {

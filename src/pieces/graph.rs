@@ -4,6 +4,7 @@ use crate::pieces::goban::Goban;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use std::collections::HashSet;
+use rayon::prelude::*;
 
 impl Goban {
     ///
@@ -14,8 +15,8 @@ impl Goban {
     #[inline]
     pub fn is_string_dead(&self, string: &HashSet<Stone>) -> bool {
         !string // If there is one stone connected who has liberties, they are not captured.
-            .iter()
-            .any(|s| self.has_liberties(*s))
+            .par_iter()
+            .any(|&s| self.has_liberties(s))
     }
 
     ///
@@ -25,7 +26,7 @@ impl Goban {
     pub fn count_string_liberties(&self, string: &HashSet<Stone>) -> u8 {
         string
             .iter()
-            .flat_map(|s| self.get_liberties(*s))
+            .flat_map(|&s| self.get_liberties(s))
             .collect::<HashSet<Stone>>()
             .len() as u8
     }
@@ -97,17 +98,15 @@ impl Goban {
     ///
     pub fn get_strings_from_stones(
         &self,
-        stones: impl Iterator<Item = Stone>,
+        stones: impl ParallelIterator<Item=Stone>,
     ) -> Vec<HashSet<Stone>> {
-        let mut groups_of_stones: Vec<HashSet<Stone>> = Default::default();
-        for s in stones {
-            let is_handled = groups_of_stones.iter().any(|set| set.contains(&s));
-
-            if !is_handled {
-                groups_of_stones.push(self.get_string_from_stone(s))
+        let mut res:Vec<HashSet<Stone>> = vec![];
+        for s in stones.collect::<Vec<_>>() {
+            if !res.par_iter().any(|set| set.contains(&s)) {
+                res.push(self.get_string_from_stone(s));
             }
         }
-        groups_of_stones
+        res
     }
 
     ///
@@ -128,7 +127,7 @@ impl Goban {
     ///
     /// Get two iterators of empty stones.
     ///
-    pub fn get_territories(&self) -> (impl Iterator<Item = Stone>, impl Iterator<Item = Stone>) {
+    pub fn get_territories(&self) -> (impl Iterator<Item=Stone>, impl Iterator<Item=Stone>) {
         let empty_strings = self.get_strings_from_stones(self.get_stones_by_color(Color::None));
         let mut white_territory = Vec::new();
         let mut black_territory = Vec::new();
