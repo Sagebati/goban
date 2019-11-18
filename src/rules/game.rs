@@ -11,32 +11,32 @@ use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, GobanSizes, Move};
 use std::collections::HashSet;
 
-#[derive(Clone, Getters, Setters, Debug)]
+#[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
     #[get = "pub"]
     goban: Goban,
 
     passes: u8,
 
-    #[get = "pub"]
+    #[get_copy = "pub"]
     prisoners: (u32, u32),
 
-    /// None if none resigned
+    /// None if hte game is not finished
     /// the player in the option is the player who resigned.
     outcome: Option<EndGame>,
 
-    #[get = "pub"]
+    #[get_copy = "pub"]
     turn: Player,
 
-    #[get = "pub"]
+    #[get_copy = "pub"]
     #[set = "pub"]
     komi: f32,
 
-    #[get = "pub"]
+    #[get_copy = "pub"]
     #[set = "pub"]
     rule: Rule,
 
-    #[get = "pub"]
+    #[get_copy = "pub"]
     #[set]
     handicap: u8,
 
@@ -307,13 +307,22 @@ impl Game {
     }
 
     ///
-    /// Removes captured stones from the goban.
+    /// Remove captured stones, and add it to the count of prisoners
     ///
     fn remove_captured_stones(&mut self) {
-        if self.turn == Player::Black {
-            self.prisoners.0 += self.remove_captured_stones_color(Color::White) as u32;
-        } else {
-            self.prisoners.1 += self.remove_captured_stones_color(Color::Black) as u32;
+        match self.turn {
+            Black => {
+                self.prisoners.0 += self.remove_captured_stones_turn(White);
+                if self.rule.is_suicide_valid() {
+                    self.prisoners.1 += self.remove_captured_stones_turn(Black);
+                }
+            }
+            White => {
+                self.prisoners.1 += self.remove_captured_stones_turn(Black);
+                if self.rule.is_suicide_valid() {
+                    self.prisoners.0 += self.remove_captured_stones_turn(White);
+                }
+            }
         }
     }
 
@@ -321,11 +330,11 @@ impl Game {
     /// Removes the dead stones from the goban by specifying a color stone.
     /// Returns the number of stones removed from the goban.
     ///
-    fn remove_captured_stones_color(&mut self, color: Color) -> usize {
+    fn remove_captured_stones_turn(&mut self, player: Player) -> u32 {
         let mut number_of_stones_captured = 0;
         for groups_of_stones in self
             .goban
-            .get_strings_of_stones_without_liberties_wth_color(color)
+            .get_strings_of_stones_without_liberties_wth_color(player.get_stone_color())
         {
             if self.goban.is_string_dead(&groups_of_stones) {
                 self.goban.push_many(
@@ -335,7 +344,7 @@ impl Game {
                 number_of_stones_captured += groups_of_stones.len();
             }
         }
-        number_of_stones_captured
+        number_of_stones_captured as u32
     }
 }
 

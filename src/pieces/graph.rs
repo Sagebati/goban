@@ -126,7 +126,7 @@ impl Goban {
     }
 
     ///
-    /// Get two iterators with the
+    /// Get two iterators of empty stones.
     ///
     pub fn get_territories(&self) -> (impl Iterator<Item = Stone>, impl Iterator<Item = Stone>) {
         let empty_strings = self.get_strings_from_stones(self.get_stones_by_color(Color::None));
