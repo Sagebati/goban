@@ -11,7 +11,7 @@ use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, GobanSizes, Move};
 use std::collections::HashSet;
 
-#[derive(Clone, Getters, CopyGetters,Setters, Debug)]
+#[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
     #[get = "pub"]
     goban: Goban,
@@ -21,7 +21,7 @@ pub struct Game {
     #[get_copy = "pub"]
     prisoners: (u32, u32),
 
-    /// None if none resigned
+    /// None if hte game is not finished
     /// the player in the option is the player who resigned.
     outcome: Option<EndGame>,
 
@@ -117,7 +117,7 @@ impl Game {
     /// Generate all moves on all intersections.
     ///
     #[inline]
-    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
+    fn pseudo_legals(&self) -> impl Iterator<Item = Coord> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
@@ -126,7 +126,7 @@ impl Game {
     /// In the list will appear suicides moves, and ko moves.
     ///
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item = Coord> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
@@ -214,15 +214,15 @@ impl Game {
             .goban
             .get_neighbors(point)
             .filter(|s| s.color != Color::None && s.color != self.turn.get_stone_color())
+        {
+            if self
+                .goban
+                .count_string_liberties(&self.goban.get_string_from_stone(stone))
+                == 1
             {
-                if self
-                    .goban
-                    .count_string_liberties(&self.goban.get_string_from_stone(stone))
-                    == 1
-                {
-                    return true;
-                }
+                return true;
             }
+        }
         false
     }
 
@@ -270,7 +270,7 @@ impl Game {
                     .filter(|neigbor_stone| neigbor_stone.color == (!self.turn).get_stone_color())
                     .map(|s| goban_test.get_string_from_stone(s))
                     .any(|string_of_stones| goban_test.is_string_dead(&string_of_stones))
-                // if there is a string who dies the it isn't a suicide move
+            // if there is a string who dies the it isn't a suicide move
             } else {
                 false
             }
@@ -306,7 +306,6 @@ impl Game {
         println!("{}", self.goban)
     }
 
-
     ///
     /// Remove captured stones, and add it to the count of prisoners
     ///
@@ -336,15 +335,15 @@ impl Game {
         for groups_of_stones in self
             .goban
             .get_strings_of_stones_without_liberties_wth_color(player.get_stone_color())
-            {
-                if self.goban.is_string_dead(&groups_of_stones) {
-                    self.goban.push_many(
-                        groups_of_stones.iter().map(|point| point.coordinates),
-                        Color::None,
-                    );
-                    number_of_stones_captured += groups_of_stones.len();
-                }
+        {
+            if self.goban.is_string_dead(&groups_of_stones) {
+                self.goban.push_many(
+                    groups_of_stones.iter().map(|point| point.coordinates),
+                    Color::None,
+                );
+                number_of_stones_captured += groups_of_stones.len();
             }
+        }
         number_of_stones_captured as u32
     }
 }

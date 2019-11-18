@@ -13,7 +13,7 @@ use std::ops::{Index, IndexMut};
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
 /// only square boards are possible for the moment.
 ///
-#[derive(Clone, Getters, Setters,CopyGetters, Debug)]
+#[derive(Clone, Getters, Setters, CopyGetters, Debug)]
 pub struct Goban {
     ///
     /// The values are stored in a one dimension vector.

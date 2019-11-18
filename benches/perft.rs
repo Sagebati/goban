@@ -3,7 +3,7 @@ extern crate criterion;
 
 use criterion::Criterion;
 use goban::rules::game::Game;
-use goban::rules::Rule::{Japanese, Chinese};
+use goban::rules::Rule::{Chinese, Japanese};
 use goban::rules::{GobanSizes, Move};
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
@@ -32,7 +32,10 @@ pub fn play_random(state: &Game) -> Move {
     let mut legals = state.legals().collect::<Vec<_>>();
     legals.shuffle(&mut thread_rng());
     for l in legals {
-        if !state.goban().is_point_an_eye(l, state.turn().get_stone_color()) {
+        if !state
+            .goban()
+            .is_point_an_eye(l, state.turn().get_stone_color())
+        {
             return l.into();
         }
     }
@@ -68,5 +71,5 @@ pub fn game_play_bench(_c: &mut Criterion) {
         .bench_function("game_play", |b| b.iter(|| play_game()));
 }
 
-criterion_group!(benches, game_play_bench,perft_bench);
+criterion_group!(benches, game_play_bench, perft_bench);
 criterion_main!(benches);
