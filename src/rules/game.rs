@@ -11,32 +11,32 @@ use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, GobanSizes, Move};
 use std::collections::HashSet;
 
-#[derive(Clone, Getters, Setters, Debug)]
+#[derive(Clone, Getters, CopyGetters,Setters, Debug)]
 pub struct Game {
     #[get = "pub"]
     goban: Goban,
 
     passes: u8,
 
-    #[get = "pub"]
+    #[get_copy = "pub"]
     prisoners: (u32, u32),
 
     /// None if none resigned
     /// the player in the option is the player who resigned.
     outcome: Option<EndGame>,
 
-    #[get = "pub"]
+    #[get_copy = "pub"]
     turn: Player,
 
-    #[get = "pub"]
+    #[get_copy = "pub"]
     #[set = "pub"]
     komi: f32,
 
-    #[get = "pub"]
+    #[get_copy = "pub"]
     #[set = "pub"]
     rule: Rule,
 
-    #[get = "pub"]
+    #[get_copy = "pub"]
     #[set]
     handicap: u8,
 

@@ -1,6 +1,6 @@
 [package]
 name = "goban"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme= "README.md"
 description= "Library for go move generation and go ruling."
@@ -17,11 +17,11 @@ maintenance = {status = "actively-developed"}
 lto = true
 
 [dependencies]
-getset = "0.0.8"
+getset = "0.0.9"
 lazy_static = "1.4.0"
 rand_xorshift = "0.2.0"
-rand = "0.7.0"
-sgf-parser = "2.2.0"
+rand = "0.7.2"
+sgf-parser = "2.3.0"
 
 [dev-dependencies]
 criterion = "0.3.0"
