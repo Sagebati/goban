@@ -310,7 +310,7 @@ impl Game {
     ///
     pub fn super_ko(&self, stone: Stone) -> bool {
         self.hashes
-         /  .contains(&self.clone().play(stone.coordinates.into()).goban.hash())
+           .contains(&self.clone().play(stone.coordinates.into()).goban.hash())
     }
 
     ///
