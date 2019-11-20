@@ -309,9 +309,8 @@ impl Game {
     /// Rule of the super Ko, if any before configuration was already played then return true.
     ///
     pub fn super_ko(&self, stone: Stone) -> bool {
-        false
-        //self.hashes
-          //  .contains(&self.clone().play(stone.coordinates.into()).goban.hash())
+        self.hashes
+         /  .contains(&self.clone().play(stone.coordinates.into()).goban.hash())
     }
 
     ///
