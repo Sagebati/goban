@@ -32,7 +32,7 @@ pub struct Goban {
 
     zobrist: &'static ZobristTable,
 
-    #[get = "pub"]
+    #[get_copy = "pub"]
     hash: u64,
 }
 
@@ -96,7 +96,7 @@ impl Goban {
     /// Put many stones.
     ///
     #[inline]
-    pub fn push_many(&mut self, coords: impl Iterator<Item = Coord>, value: Color) {
+    pub fn push_many(&mut self, coords: impl Iterator<Item=Coord>, value: Color) {
         coords.for_each(|c| {
             self.push(c, value)
                 .expect("Add one of the stones to the goban.");
@@ -112,7 +112,7 @@ impl Goban {
     /// Get all the neighbors to the coordinate
     ///
     #[inline]
-    pub fn get_neighbors(&self, coord: Coord) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_neighbors(&self, coord: Coord) -> impl Iterator<Item=Stone> + '_ {
         neighbors_coords(coord)
             .into_iter()
             .filter(move |x| self.is_coord_valid(*x))
@@ -126,7 +126,7 @@ impl Goban {
     /// Get all the stones that are neighbor to the coord except empty intersections
     ///
     #[inline]
-    pub fn get_neighbors_stones(&self, coord: Coord) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_neighbors_stones(&self, coord: Coord) -> impl Iterator<Item=Stone> + '_ {
         self.get_neighbors(coord).filter(|s| s.color != Color::None)
     }
 
@@ -134,7 +134,7 @@ impl Goban {
     /// Get all the stones except "Empty stones"
     ///
     #[inline]
-    pub fn get_stones(&self) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_stones(&self) -> impl Iterator<Item=Stone> + '_ {
         self.tab
             .iter()
             .enumerate()
@@ -149,7 +149,7 @@ impl Goban {
     /// Get stones by their color.
     ///
     #[inline]
-    pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item=Stone> + '_ {
         self.get_points_by_color(color).map(move |c| Stone {
             color,
             coordinates: c,
@@ -157,11 +157,11 @@ impl Goban {
     }
 
     #[inline]
-    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item = Coord> + '_ {
+    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Coord> + '_ {
         self.tab
             .iter()
             .enumerate()
-            .filter(move |(_index, t)| **t == color)
+            .filter(move |(_index, &t)| t == color)
             .map(move |(index, _t)| self.coord_util.from(index))
     }
 
@@ -169,7 +169,7 @@ impl Goban {
     /// Returns the empty stones connected to the stone
     ///
     #[inline]
-    pub fn get_liberties(&self, stone: Stone) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_liberties(&self, stone: Stone) -> impl Iterator<Item=Stone> + '_ {
         self.get_neighbors(stone.coordinates)
             .filter(|s| s.color == Color::None)
     }
@@ -191,7 +191,7 @@ impl Goban {
     }
 
     ///
-    /// Get a string for printing the goban in normal shape (0,0 ) left bottom
+    /// Get a string for printing the goban in normal shape (0,0) left bottom
     ///
     pub fn pretty_string(&self) -> String {
         let mut buff = String::new();
@@ -216,9 +216,9 @@ impl Goban {
     ///
     pub fn number_of_stones(&self) -> (u32, u32) {
         self.get_stones()
-            .fold((0, 0), |acc, stone| match stone.color {
-                Color::Black => (acc.0 + 1, acc.1),
-                Color::White => (acc.0, acc.1 + 1),
+            .fold((0, 0), |(x1, x2), stone| match stone.color {
+                Color::Black => (x1 + 1, x2),
+                Color::White => (x1, x2 + 1),
                 _ => unreachable!(),
             })
     }
@@ -231,6 +231,8 @@ impl Goban {
     ///  ++ +
     ///    ++
     /// ```
+    /// This function is only used for performance checking in the rules,
+    /// and not for checking is a point is really an eye !
     pub fn is_point_an_eye(&self, point: Coord, color: Color) -> bool {
         if self[point] != None {
             return false;

@@ -40,6 +40,12 @@ pub struct Game {
     #[set]
     handicap: u8,
 
+    last_state : Option<Goban>,
+
+    #[get_copy = "pub"]
+    last_move: Option<Move>,
+
+    #[cfg(feature="history")]
     #[get = "pub"]
     plays: Vec<Goban>,
 
@@ -51,6 +57,7 @@ impl Game {
         let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = 0;
+        #[cfg(feature="history")]
         let plays = Vec::with_capacity(300);
         let prisoners = (0, 0);
         let handicap = 0;
@@ -61,11 +68,14 @@ impl Game {
             komi,
             prisoners,
             passes: pass,
+            #[cfg(feature="history")]
             plays,
             outcome: None,
             rule,
             handicap,
             hashes,
+            last_state: Default::default(),
+            last_move: None
         }
     }
 }
@@ -154,8 +164,10 @@ impl Game {
                     x, y, stone_color
                 ));
                 self.remove_captured_stones();
+                #[cfg(feature="history")]
                 self.plays.push(self.goban.clone());
-                self.hashes.insert(*self.goban.hash());
+                self.last_state = Some(self.goban.clone());
+                self.hashes.insert(self.goban.hash());
                 self.turn = !self.turn;
                 self.passes = 0;
                 self
@@ -200,9 +212,10 @@ impl Game {
     ///
     /// Removes the last move.
     ///
+    #[cfg(feature="history")]
     pub fn pop(&mut self) -> &mut Self {
         if let Some(goban) = self.plays.pop() {
-            self.hashes.remove(self.goban.hash());
+            self.hashes.remove(&self.goban.hash());
             self.turn = !self.turn;
             self.goban = goban;
         }
@@ -282,13 +295,14 @@ impl Game {
     /// If the goban is in the configuration of the two plays ago returns true
     ///
     pub fn ko(&self, stone: Stone) -> bool {
-        if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
+        self.super_ko(stone)
+        /* if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
             let mut game = self.clone();
             game.play(stone.coordinates.into());
             game.goban == self.plays[self.plays.len() - 2]
-        }
+        } */
     }
 
     ///
@@ -296,7 +310,7 @@ impl Game {
     ///
     pub fn super_ko(&self, stone: Stone) -> bool {
         self.hashes
-            .contains(self.clone().play(stone.coordinates.into()).goban.hash())
+            .contains(&self.clone().play(stone.coordinates.into()).goban.hash())
     }
 
     ///
@@ -431,6 +445,9 @@ impl GameBuilder {
             komi: self.komi,
             rule: self.rule,
             handicap: self.handicap_points.len() as u8,
+            last_state: None,
+            last_move: None,
+            #[cfg(feature="history")]
             plays: vec![],
             hashes: Default::default(),
         };
