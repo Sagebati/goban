@@ -147,10 +147,19 @@ impl Rule {
     ///
     pub fn move_validation(self, game: &Game, stone: Stone) -> Option<PlayError> {
         match self {
-            Rule::Japanese | Rule::Chinese => {
+            Rule::Japanese => {
                 if game.is_suicide(stone) {
                     Some(PlayError::Suicide)
                 } else if game.ko(stone) {
+                    Some(PlayError::Ko)
+                } else {
+                    None
+                }
+            },
+            Rule::Chinese => {
+                if game.is_suicide(stone) {
+                    Some(PlayError::Suicide)
+                } else if game.super_ko(stone) {
                     Some(PlayError::Ko)
                 } else {
                     None

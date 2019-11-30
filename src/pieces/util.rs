@@ -20,7 +20,7 @@ pub mod coord {
     }
 
     #[inline]
-    pub fn neighbors_coords((x1,x2): Coord) -> Vec<Coord> {
+    pub fn neighbors_points((x1,x2): Coord) -> Vec<Coord> {
         vec![
             (x1.wrapping_add(1), x2),
             (x1.wrapping_sub(1), x2),

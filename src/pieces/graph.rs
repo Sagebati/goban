@@ -18,6 +18,7 @@ impl Goban {
             .any(|s| self.has_liberties(*s))
     }
 
+
     ///
     /// Count the liberties of a string
     ///
