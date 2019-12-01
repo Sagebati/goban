@@ -27,7 +27,7 @@ impl GoString {
 
     #[inline]
     pub fn is_dead(&self) -> bool {
-        self.liberties.len() == 0
+        self.liberties.is_empty()
     }
 
     #[inline]
@@ -48,7 +48,7 @@ impl GoString {
 
     #[inline]
     pub fn add_liberty(&mut self, point: Point) {
-        debug_assert!(!self.liberties.contains(&point));
+        // debug_assert!(!self.liberties.contains(&point));
         self.liberties.insert(point);
     }
 
@@ -61,7 +61,7 @@ impl GoString {
         self.stones.extend(stones.drain());
         self.liberties.extend(liberties.drain());
         self.liberties = self.liberties.difference(&self.stones)
-            .map(|x| *x)
+            .map(|&x| x)
             .collect();
 
         self

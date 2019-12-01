@@ -155,7 +155,7 @@ impl Rule {
                 } else {
                     None
                 }
-            },
+            }
             Rule::Chinese => {
                 if game.is_suicide(stone) {
                     Some(PlayError::Suicide)

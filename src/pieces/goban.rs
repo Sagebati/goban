@@ -8,19 +8,19 @@ use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::ops::{Index, IndexMut};
-use std::collections::{HashSet, HashMap};
+use std::collections::HashMap;
 use crate::pieces::go_string::GoString;
 use std::cell::RefCell;
 use std::rc::Rc;
 use by_address::ByAddress;
 
-type GoStringPtr = ByAddress<Rc<RefCell<GoString>>>;
+pub type GoStringPtr = ByAddress<Rc<RefCell<GoString>>>;
 
 ///
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
 /// only square boards are possible for the moment.
 ///
-#[derive(Clone, Getters, Setters, CopyGetters, Debug)]
+#[derive(Getters, Setters, CopyGetters, Debug)]
 pub struct Goban {
     ///
     /// The values are stored in a one dimension vector.
@@ -29,6 +29,7 @@ pub struct Goban {
     #[get = "pub"]
     tab: Vec<Color>,
 
+    #[get = "pub"]
     go_strings: HashMap<Coord, GoStringPtr>,
 
     #[get_copy = "pub"]
@@ -45,10 +46,10 @@ impl Goban {
     pub fn new(size: usize) -> Self {
         Goban {
             tab: vec![Color::None; size * size],
-            go_strings: HashMap::default(),
             size,
             coord_util: CoordUtil::new(size, size),
             hash: 0,
+            go_strings: Default::default(),
         }
     }
 
@@ -69,8 +70,7 @@ impl Goban {
             })
             .filter(|s| *(*s).1 != Color::None)
             .for_each(|coord_color| {
-                g.push(coord_color.0, *coord_color.1)
-                    .expect("Play the stone");
+                g.push(coord_color.0, *coord_color.1);
             });
         g
     }
@@ -80,103 +80,15 @@ impl Goban {
     /// default (line, column)
     /// the (0,0) point is in the top left.
     ///
-    pub fn push(&mut self, point: Coord, color: Color) -> Result<&mut Goban, String> {
-        if self.is_coord_valid(point) {
-            if color == Color::None {
-                self.hash ^= ZOBRIST19[(point, self[point])];
-            } else {
-                self.hash ^= ZOBRIST19[(point, color)];
-            }
-            self.actualise_go_string(point, color);
-            self[point] = color;
-            Ok(self)
+    pub fn push(&mut self, point: Coord, color: Color) -> &mut Goban {
+        if color == Color::None {
+            self.hash ^= ZOBRIST19[(point, self[point])];
         } else {
-            Err(format!(
-                "the point :({},{}) are outside the goban",
-                point.0, point.1
-            ))
+            self.hash ^= ZOBRIST19[(point, color)];
         }
-    }
-
-    fn actualise_go_string(&mut self, point: Coord, color: Color) {
-        let mut liberties: HashSet<Coord> = Default::default();
-        let mut adjacent_same_color_set = HashSet::new();
-        let mut adjacent_opposite_color_set = HashSet::new();
-
-        for p in neighbors_points(point) {
-            match self.go_strings.get(&p){
-                Some(s) => {
-                    match s.borrow().color() {
-                        c if c == color => {
-                            adjacent_same_color_set.insert(s.to_owned());
-                        }
-                        Color::None => panic!("a string cannot be of color none"),
-                        _ => {
-                            adjacent_opposite_color_set.insert(s.to_owned());
-                        }
-                    }
-                }
-                Option::None => {
-                    { liberties.insert(p); }
-                }
-            }
-        }
-        let mut stone = HashSet::new();
-        stone.insert(point);
-        let mut new_string = GoString::new(
-            color,
-            stone,
-            liberties,
-        );
-        for same_color_string in adjacent_same_color_set.drain() {
-            let removed_string = self.remove_string(same_color_string.clone());
-            new_string = new_string.merge_with(removed_string)
-        }
-
-        let new_string: GoStringPtr = Rc::new(RefCell::new(new_string)).into();
-        self.replace_string(new_string);
-
-        for other_color_string in adjacent_opposite_color_set.drain(){
-            other_color_string.borrow_mut().remove_liberty(point);
-            if other_color_string.borrow().is_dead() {
-                self.remove_string(other_color_string);
-            }else {
-                self.replace_string(other_color_string);
-            }
-        }
-    }
-
-    fn replace_string(&mut self, go_string: GoStringPtr) {
-        for &stone in go_string.borrow().stones() {
-            self.go_strings.insert(stone, go_string.clone());
-        }
-    }
-
-    ///
-    /// Remove a string from the game, then return the string removed, it add liberties to all
-    /// adjacents string of not the same color.
-    ///
-    fn remove_string(&mut self, go_string_to_remove: GoStringPtr) -> GoString {
-        for &stone in go_string_to_remove.borrow().stones() {
-            for neighbor_point in neighbors_points(stone) {
-                let some = self.go_strings.get(&neighbor_point).is_some();
-                match self.go_strings.get(&neighbor_point).map(|s|ToOwned::to_owned(s)) {
-                    Some(ptr_neighbor_string) => {
-                        if ptr_neighbor_string != go_string_to_remove {
-                            ptr_neighbor_string.borrow_mut().add_liberty(neighbor_point);
-                            self.replace_string(ptr_neighbor_string)
-                        }
-                    }
-                    Option::None => {}
-                }
-
-                if some {}
-            }
-            // removing hash from the stones
-            self.hash ^= ZOBRIST19[(stone, RefCell::borrow(&go_string_to_remove).color())];
-            self.go_strings.remove(&stone);
-        }
-        go_string_to_remove.borrow().clone()
+        self.actualise_go_string(point, color);
+        self[point] = color;
+        self
     }
 
     ///
@@ -185,13 +97,12 @@ impl Goban {
     #[inline]
     pub fn push_many(&mut self, coords: impl Iterator<Item=Coord>, value: Color) {
         coords.for_each(|c| {
-            self.push(c, value)
-                .expect("Add one of the stones to the goban.");
+            self.push(c, value);
         })
     }
 
     #[inline]
-    pub fn push_stone(&mut self, stone: Stone) -> Result<&mut Goban, String> {
+    pub fn push_stone(&mut self, stone: Stone) -> &mut Goban {
         self.push(stone.coordinates, stone.color)
     }
 
@@ -349,8 +260,113 @@ impl Goban {
     /// Return true if the coord is in the goban.
     ///
     #[inline]
-    fn is_coord_valid(&self, coord: Coord) -> bool {
+    pub fn is_coord_valid(&self, coord: Coord) -> bool {
         coord.0 < self.size && coord.1 < self.size
+    }
+
+    ///
+    /// Just create the Rc pointer and add it to the set.
+    /// moves out the string.
+    ///
+    fn create_string(&mut self, string_to_add: GoString) {
+        let new_string: GoStringPtr = Rc::new(RefCell::new(string_to_add)).into();
+        self.replace_string(new_string);
+    }
+
+    ///
+    /// Deletes all the Rc from the go_strings set then merges the two_string
+    ///
+    fn merge_two_strings(&mut self, first: GoString, other: GoStringPtr) -> GoString {
+        for point in other.borrow().stones() {
+            self.go_strings.remove(&point);
+        }
+
+        first.merge_with(other.borrow().clone())
+    }
+
+    fn replace_string(&mut self, go_string: GoStringPtr) {
+        for &stone in go_string.borrow().stones() {
+            self.go_strings.insert(stone, go_string.clone());
+        }
+    }
+
+    ///
+    /// Remove a string from the game, then return the string removed, it add liberties to all
+    /// adjacents string of not the same color.
+    ///
+    pub fn remove_string(&mut self, go_string_to_remove: GoStringPtr) {
+        for &stone in go_string_to_remove.borrow().stones() {
+            let neighbor_points: Vec<_> = neighbors_points(stone)
+                .into_iter()
+                .filter(|&coord| self.is_coord_valid(coord))
+                .collect();
+            for neighbor_point in neighbor_points {
+                match self.go_strings.get(&neighbor_point)
+                    .map(ToOwned::to_owned) {
+                    Some(ptr_neighbor_string) => {
+                        if ptr_neighbor_string != go_string_to_remove {
+                            ptr_neighbor_string.borrow_mut().add_liberty(stone);
+                            self.replace_string(ptr_neighbor_string)
+                        }
+                    }
+                    _ => ()
+                }
+            }
+            // Remove the key from the map. The Rc will be dropped.
+            self.go_strings.remove(&stone);
+        }
+    }
+
+    fn actualise_go_string(&mut self, point: Coord, color: Color) {
+        if color == Color::None {
+            return;
+        }
+        let mut liberties = hashset! {};
+        let mut adjacent_same_color_set = hashset! {};
+        let mut adjacent_opposite_color_set = hashset! {};
+
+        for p in neighbors_points(point)
+            .into_iter()
+            .filter(|&x| self.is_coord_valid(x)) {
+            match self.go_strings.get(&p) {
+                Some(s) => {
+                    match s.borrow().color() {
+                        c if c == color => {
+                            adjacent_same_color_set.insert(s.to_owned());
+                        }
+                        Color::None => panic!("a string cannot be of color none"),
+                        _ => {
+                            adjacent_opposite_color_set.insert(s.to_owned());
+                        }
+                    }
+                }
+                Option::None => {
+                    { liberties.insert(p); }
+                }
+            }
+        }
+
+        // Merges the neighbors allies string and then creates the string
+        let new_string = adjacent_same_color_set
+            .drain()
+            .fold(GoString::new(
+                color,
+                hashset! {point},
+                liberties,
+            ),
+                  |go_string, same_color_string| {
+                      self.merge_two_strings(go_string,
+                                             same_color_string)
+                  });
+        self.create_string(new_string);
+        for other_color_string in adjacent_opposite_color_set.drain() {
+            other_color_string.borrow_mut().remove_liberty(point);
+            if other_color_string.borrow().is_dead() {
+                // self.remove_string(other_color_string);
+            } else {
+                self.replace_string(other_color_string);
+            }
+        }
     }
 }
 
@@ -385,5 +401,21 @@ impl IndexMut<Coord> for Goban {
 impl Default for Goban {
     fn default() -> Self {
         Goban::new(19)
+    }
+}
+
+impl Clone for Goban {
+    fn clone(&self) -> Self {
+        let go_strings = self.go_strings.iter()
+            .map(|(&key, go_str_ptr)| (key, go_str_ptr.borrow().clone()))
+            .map(|(key, go_str)| (key, ByAddress(Rc::new(RefCell::new(go_str)))))
+            .collect();
+        Goban {
+            tab: self.tab.clone(),
+            go_strings,
+            size: self.size,
+            coord_util: self.coord_util,
+            hash: self.hash,
+        }
     }
 }

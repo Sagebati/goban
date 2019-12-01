@@ -11,13 +11,13 @@ mod tests {
     use goban::rules::Rule;
     use goban::rules::{EndGame, GobanSizes, Move, Player};
     use rand::seq::SliceRandom;
-    use std::collections::BTreeSet;
+    use std::collections::HashSet;
+    use std::mem::zeroed;
 
     #[test]
     fn goban() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push((1, 2), Color::White)
-            .expect("Put the stone in the goban");
+        g.push((1, 2), Color::White);
         println!("{}", g.pretty_string());
         assert!(true)
     }
@@ -25,10 +25,8 @@ mod tests {
     #[test]
     fn goban_new_array() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push((1, 2), Color::White)
-            .expect("Put the stone in the goban");
-        g.push((1, 3), Color::Black)
-            .expect("Put the stone in the goabn");
+        g.push((1, 2), Color::White);
+        g.push((1, 3), Color::Black);
         let tab = g.tab();
         let g2 = Goban::from_array(&tab, Order::RowMajor);
         assert_eq!(g, g2)
@@ -47,10 +45,8 @@ mod tests {
     #[test]
     fn get_all_stones() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push((1, 2), Color::White)
-            .expect("Put the stone in the goban");
-        g.push((0, 0), Color::Black)
-            .expect("Put the stone in the goban");
+        g.push((1, 2), Color::White);
+        g.push((0, 0), Color::Black);
 
         let expected = vec![
             Stone {
@@ -437,7 +433,7 @@ mod tests {
             coordinates: (4, 4),
             color: Color::Black,
         };
-        goban.push_stone(s).expect("Put the stone");
+        goban.push_stone(s);
         println!("{}", goban.pretty_string());
         let cl = goban.clone();
         let x = cl.get_liberties(s);
@@ -448,8 +444,7 @@ mod tests {
                 .push_stone(Stone {
                     coordinates: s.coordinates,
                     color: Color::White,
-                })
-                .expect("Put the stone");
+                });
         });
 
         println!("{}", goban.pretty_string());
@@ -506,7 +501,7 @@ mod tests {
         goban.push_many(
             {
                 let mut vec = vec![];
-                (9..19).for_each(|x| vec.push((x, 3)));
+                (10..19).for_each(|x| vec.push((x, 3)));
                 vec
             }
             .into_iter(),
@@ -526,7 +521,6 @@ mod tests {
             .into_iter(),
             Color::White,
         );
-
         let terr = goban.calculate_territories();
         assert_eq!(terr, (27., 8. * 19. + 1.));
 
@@ -559,18 +553,13 @@ mod tests {
 
     #[test]
     fn zobrist_test() {
-        let mut set: BTreeSet<u64> = BTreeSet::default();
+        let mut set = HashSet::new();
         for i in 0..19 {
             for j in 0..19 {
                 for c in vec![Color::Black, Color::White] {
                     let x = ZOBRIST19[((i, j), c)];
-                    if !set.contains(&x) {
-                        println!("{}", x);
-                        set.insert(x);
-                    } else {
-                        println!("{}", x);
-                        assert!(false)
-                    }
+                    assert!(!set.contains(&x));
+                    set.insert(x);
                 }
             }
         }

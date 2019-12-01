@@ -20,6 +20,7 @@ lto = true
 history = []
 
 [dependencies]
+maplit = "1.0.2"
 by_address = "1.0.4"
 getset = "0.0.9"
 lazy_static = "1.4.0"
