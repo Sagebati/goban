@@ -105,11 +105,15 @@ impl Goban {
                 }
             }
 
+        let mut new_string = GoString::new(
+            color,
+            hashset! {point},
+            liberties,
+        );
         // Merges the neighbors allies string and then creates the string
-        let new_string = adjacent_same_color_set.drain().fold(
-            GoString::new(color, hashset! {point}, liberties),
-            |go_string, same_color_string|
-                self.merge_two_strings(go_string, same_color_string));
+        for same_color_string in adjacent_same_color_set.drain() {
+            new_string = self.merge_two_strings(new_string, same_color_string);
+        }
 
         self.hash ^= ZOBRIST[(point, color)];
 
