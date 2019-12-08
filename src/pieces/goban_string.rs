@@ -44,25 +44,17 @@ impl Goban {
     }
 
     ///
-    /// Get all the strings of a color who doesn't have liberties.
     ///
-    /// Ex: Passing black to this function will return an structure like this
-    /// [[a,b,c],[t,x,y],[y]]
+    ///
     #[inline]
     pub fn get_strings_of_stones_without_liberties_wth_color(
         &self,
         color: Color,
-    ) -> Vec<GoStringPtr> {
+    ) -> impl Iterator<Item=GoStringPtr> + '_ {
         self.go_strings()
             .values()
-            .filter(|go_str| go_str.borrow().is_dead() && go_str.borrow().color == color)
+            .filter(move |go_str| go_str.borrow().is_dead() && go_str.borrow().color == color)
             .map(ToOwned::to_owned)
-            .collect()
-        // let stones_without_liberties = self
-        //    .get_stones_by_color(color)
-        //   // get all stones without liberties
-        //   .filter(|point| !self.has_liberties(*point));
-        // self.get_strings_from_stones(stones_without_liberties)
     }
 
     ///
@@ -102,7 +94,7 @@ impl Goban {
     ///
     pub fn get_strings_from_stones(
         &self,
-        stones: impl Iterator<Item = Stone>,
+        stones: impl Iterator<Item=Stone>,
     ) -> Vec<HashSet<Stone>> {
         let mut groups_of_stones: Vec<HashSet<Stone>> = Default::default();
         for s in stones {
@@ -133,7 +125,7 @@ impl Goban {
     ///
     /// Get two iterators of empty stones.
     ///
-    pub fn get_territories(&self) -> (impl Iterator<Item = Stone>, impl Iterator<Item = Stone>) {
+    pub fn get_territories(&self) -> (impl Iterator<Item=Stone>, impl Iterator<Item=Stone>) {
         let empty_strings = self.get_strings_from_stones(self.get_stones_by_color(Color::None));
         let mut white_territory = Vec::new();
         let mut black_territory = Vec::new();

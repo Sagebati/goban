@@ -412,17 +412,17 @@ mod tests {
                     println!("({},{})", inv_coord[x], y);
                     Play(inv_coord[x], y)
                 }
-                Move::Pass => Move::Pass,
-                _ => unreachable!(),
+                m => m
             };
             g.play_with_verifications(to_play).unwrap();
             g.display_goban()
         }
-        let score = g.calculate_score();
+        assert!(g.is_over());
+        let (black_score, white_score) = g.calculate_score();
         let (b_prisoners, w_prisoners) = g.prisoners();
-        println!("score  b:{} w:{}", score.0, score.1);
-        assert_eq!(b_prisoners, 16);
+        println!("score  b:{} w:{}", black_score, white_score);
         assert_eq!(w_prisoners, 35);
+        assert_eq!(b_prisoners, 16);
     }
 
     #[test]
@@ -497,16 +497,15 @@ mod tests {
         assert_eq!(score, (10. * 19., 9. * 19.));
         let mut goban: Goban = g.goban().clone();
         goban.push_many(
-            {
+            &{
                 let mut vec = vec![];
                 (10..19).for_each(|x| vec.push((x, 3)));
                 vec
-            }
-            .into_iter(),
+            },
             Color::Black,
         );
         goban.push_many(
-            vec![
+            &vec![
                 (11, 6),
                 (11, 7),
                 (11, 8),
@@ -515,15 +514,14 @@ mod tests {
                 (13, 6),
                 (13, 7),
                 (13, 8),
-            ]
-            .into_iter(),
+            ],
             Color::White,
         );
         let terr = goban.calculate_territories();
         assert_eq!(terr, (27., 8. * 19. + 1.));
 
         goban.push_many(
-            vec![(17, 18), (18, 17), (18, 15), (17, 16), (16, 17), (15, 18)].into_iter(),
+            &vec![(17, 18), (18, 17), (18, 15), (17, 16), (16, 17), (15, 18)],
             Black,
         );
 
@@ -542,7 +540,7 @@ mod tests {
             Some(endgame) => Ok(endgame),
             _ => Err("Game not finished"),
         }
-        .expect("Game finished");
+            .expect("Game finished");
         let (black, white) = g.calculate_score();
         assert_eq!(black, 81.);
         assert_eq!(white, 5.5);
@@ -625,6 +623,7 @@ mod tests {
     fn sgf_test() {
         let game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
+        println!("prisoners : {:?}", game.prisoners());
         println!("outcome: {:?}", game.outcome());
     }
 }

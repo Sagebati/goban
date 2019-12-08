@@ -77,7 +77,7 @@ impl Goban {
     /// default (line, column)
     /// the (0,0) point is in the top left.
     ///
-    pub fn push(&mut self, point: Point, color: Color) -> &mut Goban {
+    pub fn push(&mut self, point: Point, color: Color) -> &mut Self {
         if color == Color::None {
             panic!("We can't put empty stones")
         }
@@ -88,28 +88,30 @@ impl Goban {
         for p in neighbors_points(point)
             .into_iter()
             .filter(|&x| self.is_coord_valid(x))
-        {
-            match self.go_strings.get(&p) {
-                Some(go_str_ptr) => match go_str_ptr.borrow().color {
-                    go_str_color if go_str_color == color => {
-                        adjacent_same_color_set.insert(go_str_ptr.to_owned());
+            {
+                match self.go_strings.get(&p) {
+                    Some(go_str_ptr) => match go_str_ptr.borrow().color {
+                        go_str_color if go_str_color == color => {
+                            adjacent_same_color_set.insert(go_str_ptr.to_owned());
+                        }
+                        Color::None => panic!("a string cannot be of color none"),
+                        _ => {
+                            adjacent_opposite_color_set.insert(go_str_ptr.to_owned());
+                        }
+                    },
+                    Option::None => {
+                        liberties.insert(p);
                     }
-                    Color::None => panic!("a string cannot be of color none"),
-                    _ => {
-                        adjacent_opposite_color_set.insert(go_str_ptr.to_owned());
-                    }
-                },
-                Option::None => {
-                    liberties.insert(p);
                 }
             }
-        }
 
         // Merges the neighbors allies string and then creates the string
         let new_string = adjacent_same_color_set.drain().fold(
             GoString::new(color, hashset! {point}, liberties),
             |go_string, same_color_string|
                 self.merge_two_strings(go_string, same_color_string));
+
+        self.hash ^= ZOBRIST[(point, color)];
 
         self.create_string(new_string);
         for other_color_string in adjacent_opposite_color_set.drain() {
@@ -132,10 +134,12 @@ impl Goban {
     /// Put many stones.
     ///
     #[inline]
-    pub fn push_many(&mut self, points: impl Iterator<Item = Point>, value: Color) {
-        points.for_each(|c| {
-            self.push(c, value);
-        })
+    pub fn push_many(&mut self, points: &[Point], value: Color) {
+        points
+            .iter()
+            .for_each(|&point| {
+                self.push(point, value);
+            })
     }
 
     ///
@@ -151,7 +155,7 @@ impl Goban {
     /// Get all the neighbors to the coordinate
     ///
     #[inline]
-    pub fn get_neighbors(&self, coord: Point) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_neighbors(&self, coord: Point) -> impl Iterator<Item=Stone> + '_ {
         neighbors_points(coord)
             .into_iter()
             .filter(move |&point| self.is_coord_valid(point))
@@ -165,15 +169,15 @@ impl Goban {
     /// Get all the stones that are neighbor to the coord except empty intersections
     ///
     #[inline]
-    pub fn get_neighbors_stones(&self, coord: Point) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_neighbors_stones(&self, coord: Point) -> impl Iterator<Item=Stone> + '_ {
         self.get_neighbors(coord).filter(|s| s.color != Color::None)
     }
 
     ///
-    /// Get all the neighbors to the coordinate
+    /// Get all the neighbors go strings to the point. Only return point with a color.
     ///
     #[inline]
-    pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item = GoStringPtr> + '_ {
+    pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item=GoStringPtr> + '_ {
         neighbors_points(coord)
             .into_iter()
             .filter(move |&x| self.is_coord_valid(x))
@@ -182,12 +186,12 @@ impl Goban {
     }
 
     #[inline]
-    pub fn get_points(&self) -> impl Iterator<Item = Point> + '_ {
+    pub fn get_points(&self) -> impl Iterator<Item=Point> + '_ {
         (0..self.size * self.size).map(move |index| self.coord_util.from(index))
     }
 
     #[inline]
-    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item = Point> + '_ {
+    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Point> + '_ {
         self.get_points()
             .filter(move |&point| self.get_stone(point) == color)
     }
@@ -196,7 +200,7 @@ impl Goban {
     /// Get all the stones except "Empty stones"
     ///
     #[inline]
-    pub fn get_stones(&self) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_stones(&self) -> impl Iterator<Item=Stone> + '_ {
         self.get_points()
             .map(move |point| Stone {
                 coordinates: point,
@@ -209,7 +213,7 @@ impl Goban {
     /// Get stones by their color.
     ///
     #[inline]
-    pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item=Stone> + '_ {
         self.get_points_by_color(color).map(move |c| Stone {
             color,
             coordinates: c,
@@ -220,7 +224,7 @@ impl Goban {
     /// Returns the empty stones connected to the stone
     ///
     #[inline]
-    pub fn get_liberties(&self, stone: Stone) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_liberties(&self, stone: Stone) -> impl Iterator<Item=Stone> + '_ {
         self.get_neighbors(stone.coordinates)
             .filter(|s| s.color == Color::None)
     }
@@ -230,7 +234,7 @@ impl Goban {
     ///
     #[inline]
     pub fn has_liberties(&self, point: Stone) -> bool {
-        !self.get_liberties(point).next().is_some()
+        self.get_liberties(point).next().is_some()
     }
 
     ///
@@ -349,6 +353,7 @@ impl Goban {
                 }
             }
             self.hash ^= ZOBRIST[(point, color_of_the_string)];
+
             // Remove each point from the map. The Rc will be dropped "normally".
             self.go_strings.remove(&point);
         }
