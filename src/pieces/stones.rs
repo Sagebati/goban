@@ -1,6 +1,6 @@
 //! Module with all needed to play.
 
-use crate::pieces::util::coord::Coord;
+use crate::pieces::util::coord::Point;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
@@ -21,7 +21,7 @@ pub enum Color {
 /// Stone on a goban.
 #[derive(PartialEq, Eq, Hash, Clone, Debug, Copy)]
 pub struct Stone {
-    pub coordinates: Coord,
+    pub coordinates: Point,
     pub color: Color,
 }
 

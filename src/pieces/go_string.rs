@@ -1,15 +1,12 @@
-use crate::pieces::util::coord::Coord;
-use std::collections::HashSet;
 use crate::pieces::stones::Color;
+use crate::pieces::util::coord::Point;
+use std::collections::HashSet;
 
-type Point = Coord;
 type Set = HashSet<Point>;
-
 
 #[derive(Clone, Debug, CopyGetters, PartialEq, Getters, Eq)]
 pub struct GoString {
-    #[get_copy = "pub"]
-    color: Color,
+    pub color: Color,
     #[get = "pub"]
     stones: Set,
     #[get = "pub"]
@@ -48,7 +45,7 @@ impl GoString {
 
     #[inline]
     pub fn add_liberty(&mut self, point: Point) {
-        // debug_assert!(!self.liberties.contains(&point));
+        //debug_assert!(!self.liberties.contains(&point));
         self.liberties.insert(point);
     }
 
@@ -56,15 +53,23 @@ impl GoString {
     /// Takes ownership of self and the other string the merge into one string
     ///
     #[inline]
-    pub fn merge_with(mut self, GoString { color, mut stones, mut liberties }: GoString) -> Self {
+    pub fn merge_with(
+        mut self,
+        GoString {
+            color,
+            mut stones,
+            mut liberties,
+        }: GoString,
+    ) -> Self {
         debug_assert!(color == self.color);
         self.stones.extend(stones.drain());
         self.liberties.extend(liberties.drain());
-        self.liberties = self.liberties.difference(&self.stones)
+        self.liberties = self
+            .liberties
+            .difference(&self.stones)
             .map(|&x| x)
             .collect();
 
         self
     }
 }
-

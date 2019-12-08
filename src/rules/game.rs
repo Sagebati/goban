@@ -1,7 +1,7 @@
 use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
-use crate::pieces::util::coord::Coord;
+use crate::pieces::util::coord::Point;
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::PlayError;
 use crate::rules::Player;
@@ -10,7 +10,6 @@ use crate::rules::Rule;
 use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, GobanSizes, Move};
 use std::collections::HashSet;
-
 
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
@@ -54,7 +53,7 @@ impl Game {
         let komi = 5.5;
         let pass = 0;
         #[cfg(feature = "history")]
-            let plays = Vec::with_capacity(300);
+        let plays = Vec::with_capacity(300);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashSet::with_capacity(300);
@@ -121,7 +120,7 @@ impl Game {
     /// Generate all moves on all intersections.
     ///
     #[inline]
-    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
+    fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
@@ -130,7 +129,7 @@ impl Game {
     /// In the list will appear suicides moves, and ko moves.
     ///
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
@@ -156,11 +155,10 @@ impl Game {
                 self.goban.push((x, y), stone_color);
                 self.remove_captured_stones();
                 #[cfg(feature = "history")]
-                    self.plays.push(self.goban.clone());
+                self.plays.push(self.goban.clone());
                 self.hashes.insert(self.goban.hash());
                 self.turn = !self.turn;
                 self.passes = 0;
-                println!("{}", self.hashes.len());
                 self
             }
             Move::Resign(player) => {
@@ -213,28 +211,11 @@ impl Game {
         self
     }
 
-    pub fn will_capture(&self, point: Coord) -> bool {
-        for stone in self
-            .goban
-            .get_neighbors(point)
-            .filter(|s| s.color != Color::None && s.color != self.turn.get_stone_color())
-            {
-                if self
-                    .goban
-                    .count_string_liberties(&self.goban.get_string_from_stone(stone))
-                    == 1
-                {
-                    return true;
-                }
-            }
-        false
-    }
-
     ///
     /// Put the handicap stones on the goban.
     /// Does not override previous setting ! .
     ///
-    pub fn put_handicap(&mut self, points: &[Coord]) {
+    pub fn put_handicap(&mut self, points: &[Point]) {
         self.handicap = points.len() as u8;
         points.iter().for_each(|&coord| {
             self.goban.push(coord, Color::Black);
@@ -259,22 +240,35 @@ impl Game {
         if self.goban.has_liberties(stone) {
             false
         } else {
-            let mut goban_test: Goban = self.goban().clone();
-            goban_test
-                .push_stone(stone);
-            // Test if the connected stones are also without liberties.
-            if goban_test.is_string_dead(&goban_test.get_string_from_stone(stone)) {
-                // if the chain has no liberties then look if enemy stones are captured
-                !goban_test
-                    .get_neighbors(stone.coordinates)
-                    .filter(|neighbor_stone| neighbor_stone.color == (!self.turn).get_stone_color())
-                    .map(|s| goban_test.get_string_from_stone(s))
-                    .any(|string_of_stones| goban_test.is_string_dead(&string_of_stones))
-                // if there is a string who dies the it isn't a suicide move
-            } else {
-                false
+            let mut friendly_strings = vec![];
+            for neighbor_go_string in self.goban.get_neighbors_strings(stone.coordinates) {
+                if neighbor_go_string.borrow().color == stone.color {
+                    friendly_strings.push(neighbor_go_string)
+                } else {
+                    // capture move so not suicide
+                    if neighbor_go_string.borrow().number_of_liberties() != 1 {
+                        return false;
+                    }
+                }
             }
+            // If all of the same color go strings have only one liberty then
+            // it's self capture
+            friendly_strings
+                .into_iter()
+                .all(|go_str_ptr| go_str_ptr.borrow().number_of_liberties() == 1)
         }
+    }
+
+    ///
+    /// Returns true if the stone played in that point will capture another
+    /// string.
+    ///
+    pub fn will_capture(&self, point: Point) -> bool {
+        self.goban
+            .get_neighbors_strings(point)
+            .filter(|go_str_ptr| go_str_ptr.borrow().color == self.turn.get_stone_color())
+            // if an enemy string has only liberty it's a capture move
+            .any(|go_str_ptr| go_str_ptr.borrow().number_of_liberties() == 1)
     }
 
     ///
@@ -341,13 +335,10 @@ impl Game {
         for groups_of_stones in self
             .goban
             .get_strings_of_stones_without_liberties_wth_color(player.get_stone_color())
-            {
-                for &point in groups_of_stones.borrow().stones() {
-                    self.goban.push(point, Color::None);
-                }
-                number_of_stones_captured += groups_of_stones.borrow().stones().len() as u32;
-                self.goban.remove_string(groups_of_stones);
-            }
+        {
+            number_of_stones_captured += groups_of_stones.borrow().stones().len() as u32;
+            self.goban.remove_string(groups_of_stones);
+        }
         number_of_stones_captured
     }
 }
@@ -364,7 +355,7 @@ pub struct GameBuilder {
     black_player: String,
     white_player: String,
     rule: Rule,
-    handicap_points: Vec<Coord>,
+    handicap_points: Vec<Point>,
     turn: Player,
     moves: Vec<Move>,
     outcome: Option<EndGame>,
@@ -395,7 +386,7 @@ impl GameBuilder {
         self
     }
 
-    pub fn handicap(&mut self, points: &[Coord]) -> &mut Self {
+    pub fn handicap(&mut self, points: &[Point]) -> &mut Self {
         self.handicap_points = points.to_vec();
         self.turn = !self.turn;
         self

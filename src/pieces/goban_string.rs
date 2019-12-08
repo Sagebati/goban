@@ -1,10 +1,9 @@
 //! Module with tools for getting the connected stones and liberties.
 
-use crate::pieces::goban::{Goban, GoStringPtr};
+use crate::pieces::goban::{GoStringPtr, Goban};
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use std::collections::HashSet;
-
 
 impl Goban {
     ///
@@ -18,7 +17,6 @@ impl Goban {
             .iter()
             .any(|s| self.has_liberties(*s))
     }
-
 
     ///
     /// Count the liberties of a string
@@ -55,10 +53,9 @@ impl Goban {
         &self,
         color: Color,
     ) -> Vec<GoStringPtr> {
-        self
-            .go_strings()
+        self.go_strings()
             .values()
-            .filter(|go_str| go_str.borrow().is_dead() && go_str.borrow().color() == color)
+            .filter(|go_str| go_str.borrow().is_dead() && go_str.borrow().color == color)
             .map(ToOwned::to_owned)
             .collect()
         // let stones_without_liberties = self
@@ -105,7 +102,7 @@ impl Goban {
     ///
     pub fn get_strings_from_stones(
         &self,
-        stones: impl Iterator<Item=Stone>,
+        stones: impl Iterator<Item = Stone>,
     ) -> Vec<HashSet<Stone>> {
         let mut groups_of_stones: Vec<HashSet<Stone>> = Default::default();
         for s in stones {
@@ -136,7 +133,7 @@ impl Goban {
     ///
     /// Get two iterators of empty stones.
     ///
-    pub fn get_territories(&self) -> (impl Iterator<Item=Stone>, impl Iterator<Item=Stone>) {
+    pub fn get_territories(&self) -> (impl Iterator<Item = Stone>, impl Iterator<Item = Stone>) {
         let empty_strings = self.get_strings_from_stones(self.get_stones_by_color(Color::None));
         let mut white_territory = Vec::new();
         let mut black_territory = Vec::new();

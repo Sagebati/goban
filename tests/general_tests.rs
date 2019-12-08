@@ -5,14 +5,13 @@ mod tests {
     use goban::pieces::stones::Color::Black;
     use goban::pieces::stones::Stone;
     use goban::pieces::util::coord::Order;
-    use goban::pieces::zobrist::ZOBRIST19;
+    use goban::pieces::zobrist::ZOBRIST;
     use goban::rules::game::Game;
     use goban::rules::Move::Play;
     use goban::rules::Rule;
     use goban::rules::{EndGame, GobanSizes, Move, Player};
     use rand::seq::SliceRandom;
     use std::collections::HashSet;
-    use std::mem::zeroed;
 
     #[test]
     fn goban() {
@@ -39,7 +38,7 @@ mod tests {
         g.play(Move::Pass);
         g.play(Move::Play(4, 3));
         let goban: &Goban = g.goban();
-        assert_eq!(goban[(4, 3)], Color::Black);
+        assert_eq!(goban.get_stone((4, 3)), Color::Black);
     }
 
     #[test]
@@ -440,11 +439,10 @@ mod tests {
 
         x.for_each(|s| {
             println!("{:?}", s.coordinates);
-            goban
-                .push_stone(Stone {
-                    coordinates: s.coordinates,
-                    color: Color::White,
-                });
+            goban.push_stone(Stone {
+                coordinates: s.coordinates,
+                color: Color::White,
+            });
         });
 
         println!("{}", goban.pretty_string());
@@ -462,7 +460,7 @@ mod tests {
         g.play(Move::Play(0, 1)); // B
         println!("{}", g.goban().pretty_string());
         // Atari
-        assert_eq!(g.goban()[(0, 0)], Color::None);
+        assert_eq!(g.goban().get_stone((0, 0)), Color::None);
     }
 
     #[test]
@@ -557,7 +555,7 @@ mod tests {
         for i in 0..19 {
             for j in 0..19 {
                 for c in vec![Color::Black, Color::White] {
-                    let x = ZOBRIST19[((i, j), c)];
+                    let x = ZOBRIST[((i, j), c)];
                     assert!(!set.contains(&x));
                     set.insert(x);
                 }
