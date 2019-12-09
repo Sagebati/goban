@@ -1,7 +1,7 @@
 use crate::rules::game::{Game, GameBuilder};
 use crate::rules::{EndGame, Move, Player};
 use sgf_parser::{Action, Color, Outcome, SgfToken};
-use crate::pieces::util::coord::Coord;
+use crate::pieces::util::coord::Point;
 
 impl Game {
     pub fn from_sgf(sgf_str: &str) -> Result<Self, String> {
@@ -12,7 +12,7 @@ impl Game {
         let mut gamebuilder: GameBuilder = Default::default();
         let mut first = true;
         let mut moves = vec![];
-        let mut handicap: Vec<Coord> = vec![];
+        let mut handicap: Vec<Point> = vec![];
 
         for node in game_tree.iter() {
             if first {

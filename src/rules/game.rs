@@ -1,7 +1,7 @@
 use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
-use crate::pieces::util::coord::Coord;
+use crate::pieces::util::coord::Point;
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::PlayError;
 use crate::rules::Player;
@@ -10,6 +10,7 @@ use crate::rules::Rule;
 use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, GobanSizes, Move};
 use std::collections::HashSet;
+use sloth::Lazy;
 
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
@@ -120,7 +121,7 @@ impl Game {
     /// Generate all moves on all intersections.
     ///
     #[inline]
-    fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
+    fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
@@ -129,8 +130,8 @@ impl Game {
     /// In the list will appear suicides moves, and ko moves.
     ///
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
-        let mut game_test = self.clone();
+    pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
+        let mut game_test = Lazy::new(move || self.clone());
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
@@ -172,7 +173,7 @@ impl Game {
         }
     }
 
-    fn play_for_verification(&mut self, (x, y): Coord) -> u64 {
+    fn play_for_verification(&mut self, (x, y): Point) -> u64 {
         let stone_color: Color = self.turn.get_stone_color();
         let actual_goban = self.goban.clone();
         self.goban.push((x, y), stone_color).expect(&format!(
@@ -228,7 +229,7 @@ impl Game {
         self
     }
 
-    pub fn will_capture(&self, point: Coord) -> bool {
+    pub fn will_capture(&self, point: Point) -> bool {
         for stone in self
             .goban
             .get_neighbors(point)
@@ -249,7 +250,7 @@ impl Game {
     /// Put the handicap stones on the goban.
     /// Does not override previous setting ! .
     ///
-    pub fn put_handicap(&mut self, coords: &[Coord]) {
+    pub fn put_handicap(&mut self, coords: &[Point]) {
         self.handicap = coords.len() as u8;
         coords.iter().for_each(|coord| {
             self.goban.push(*coord, Color::Black).expect(&format!(
@@ -383,7 +384,7 @@ pub struct GameBuilder {
     black_player: String,
     white_player: String,
     rule: Rule,
-    handicap_points: Vec<Coord>,
+    handicap_points: Vec<Point>,
     turn: Player,
     moves: Vec<Move>,
     outcome: Option<EndGame>,
@@ -414,7 +415,7 @@ impl GameBuilder {
         self
     }
 
-    pub fn handicap(&mut self, points: &[Coord]) -> &mut Self {
+    pub fn handicap(&mut self, points: &[Point]) -> &mut Self {
         self.handicap_points = points.to_vec();
         self.turn = !self.turn;
         self

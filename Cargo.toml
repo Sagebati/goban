@@ -17,6 +17,7 @@ maintenance = {status = "actively-developed"}
 lto = true
 
 [dependencies]
+sloth = "0.2.0"
 getset = "0.0.9"
 lazy_static = "1.4.0"
 rand_xorshift = "0.2.0"

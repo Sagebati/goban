@@ -2,7 +2,7 @@
 
 use crate::pieces::stones::Color::None;
 use crate::pieces::stones::*;
-use crate::pieces::util::coord::{corner_coords, neighbors_coords, Coord, CoordUtil, Order};
+use crate::pieces::util::coord::{corner_coords, neighbors_coords, Point, CoordUtil, Order};
 use crate::pieces::zobrist::*;
 use std::fmt::Display;
 use std::fmt::Error;
@@ -75,7 +75,7 @@ impl Goban {
     /// default (line, column)
     /// the (0,0) point is in the top left.
     ///
-    pub fn push(&mut self, point: Coord, color: Color) -> Result<&mut Goban, String> {
+    pub fn push(&mut self, point: Point, color: Color) -> Result<&mut Goban, String> {
         if self.is_coord_valid(point) {
             if color == Color::None {
                 self.hash ^= self.zobrist[(point, self[point])];
@@ -96,7 +96,7 @@ impl Goban {
     /// Put many stones.
     ///
     #[inline]
-    pub fn push_many(&mut self, coords: impl Iterator<Item=Coord>, value: Color) {
+    pub fn push_many(&mut self, coords: impl Iterator<Item=Point>, value: Color) {
         coords.for_each(|c| {
             self.push(c, value)
                 .expect("Add one of the stones to the goban.");
@@ -112,7 +112,7 @@ impl Goban {
     /// Get all the neighbors to the coordinate
     ///
     #[inline]
-    pub fn get_neighbors(&self, coord: Coord) -> impl Iterator<Item=Stone> + '_ {
+    pub fn get_neighbors(&self, coord: Point) -> impl Iterator<Item=Stone> + '_ {
         neighbors_coords(coord)
             .into_iter()
             .filter(move |x| self.is_coord_valid(*x))
@@ -126,7 +126,7 @@ impl Goban {
     /// Get all the stones that are neighbor to the coord except empty intersections
     ///
     #[inline]
-    pub fn get_neighbors_stones(&self, coord: Coord) -> impl Iterator<Item=Stone> + '_ {
+    pub fn get_neighbors_stones(&self, coord: Point) -> impl Iterator<Item=Stone> + '_ {
         self.get_neighbors(coord).filter(|s| s.color != Color::None)
     }
 
@@ -157,7 +157,7 @@ impl Goban {
     }
 
     #[inline]
-    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Coord> + '_ {
+    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Point> + '_ {
         self.tab
             .iter()
             .enumerate()
@@ -233,7 +233,7 @@ impl Goban {
     /// ```
     /// This function is only used for performance checking in the rules,
     /// and not for checking is a point is really an eye !
-    pub fn is_point_an_eye(&self, point: Coord, color: Color) -> bool {
+    pub fn is_point_an_eye(&self, point: Point, color: Color) -> bool {
         if self[point] != None {
             return false;
         }
@@ -262,7 +262,7 @@ impl Goban {
     /// Return true if the coord is in the goban.
     ///
     #[inline]
-    fn is_coord_valid(&self, coord: Coord) -> bool {
+    fn is_coord_valid(&self, coord: Point) -> bool {
         coord.0 < self.size && coord.1 < self.size
     }
 }
@@ -281,16 +281,16 @@ impl PartialEq for Goban {
 
 impl Eq for Goban {}
 
-impl Index<Coord> for Goban {
+impl Index<Point> for Goban {
     type Output = Color;
 
-    fn index(&self, index: Coord) -> &Self::Output {
+    fn index(&self, index: Point) -> &Self::Output {
         &self.tab[self.coord_util.to(index)]
     }
 }
 
-impl IndexMut<Coord> for Goban {
-    fn index_mut(&mut self, index: Coord) -> &mut Self::Output {
+impl IndexMut<Point> for Goban {
+    fn index_mut(&mut self, index: Point) -> &mut Self::Output {
         &mut self.tab[self.coord_util.to(index)]
     }
 }
