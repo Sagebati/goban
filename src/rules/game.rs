@@ -314,9 +314,13 @@ impl Game {
     /// Rule of the super Ko, if any before configuration was already played then return true.
     ///
     pub fn super_ko(&mut self, stone: Stone) -> bool {
-        let new_hash = self.play_for_verification(stone.coordinates.into());
-        self.hashes
-            .contains(&new_hash)
+        if !self.will_capture(stone.coordinates) {
+            false
+        } else {
+            let new_hash = self.play_for_verification(stone.coordinates.into());
+            self.hashes
+                .contains(&new_hash)
+        }
     }
 
     ///
