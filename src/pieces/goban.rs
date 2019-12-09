@@ -7,11 +7,11 @@ use crate::pieces::util::coord::{corner_coords, neighbors_points, CoordUtil, Ord
 use crate::pieces::zobrist::*;
 use by_address::ByAddress;
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::rc::Rc;
+use hashbrown::{HashMap, HashSet};
 
 pub type GoStringPtr = ByAddress<Rc<RefCell<GoString>>>;
 
@@ -81,9 +81,9 @@ impl Goban {
         if color == Color::None {
             panic!("We can't put empty stones")
         }
-        let mut liberties = hashset! {};
-        let mut adjacent_same_color_set = hashset! {};
-        let mut adjacent_opposite_color_set = hashset! {};
+        let mut liberties = HashSet::new();
+        let mut adjacent_same_color_set = HashSet::new();
+        let mut adjacent_opposite_color_set =HashSet::new();
 
         for p in neighbors_points(point)
             .into_iter()
@@ -104,12 +104,9 @@ impl Goban {
                     }
                 }
             }
-
-        let mut new_string = GoString::new(
-            color,
-            hashset! {point},
-            liberties,
-        );
+        let mut stones = HashSet::new();
+        stones.insert(point);
+        let mut new_string = GoString::new(color,stones, liberties);
         // Merges the neighbors allies string and then creates the string
         for same_color_string in adjacent_same_color_set.drain() {
             new_string = self.merge_two_strings(new_string, same_color_string);

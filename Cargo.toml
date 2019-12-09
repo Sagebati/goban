@@ -17,8 +17,8 @@ maintenance = {status = "actively-developed"}
 lto = true
 
 [dependencies]
+hashbrown = "0.6.3"
 sloth = "0.2.0"
-maplit = "1.0.2"
 by_address = "1.0.4"
 getset = "0.0.9"
 lazy_static = "1.4.0"

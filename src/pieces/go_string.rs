@@ -1,6 +1,6 @@
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
-use std::collections::HashSet;
+use hashbrown::HashSet;
 
 type Set = HashSet<Point>;
 
