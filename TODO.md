@@ -2,6 +2,7 @@ TODO
 ==
 
 # Problem
+- Cannot implement a pop() function for the moment.
 
 # Optimizing
 
