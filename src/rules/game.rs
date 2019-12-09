@@ -160,7 +160,7 @@ impl Game {
                     "Put the stone in ({},{}) of color {}",
                     x, y, stone_color
                 ));
-                self.remove_captured_stones();
+                self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
                 self.passes = 0;
                 self
@@ -327,20 +327,24 @@ impl Game {
 
     ///
     /// Remove captured stones, and add it to the count of prisoners
+    /// returns new captured stones.
     ///
-    fn remove_captured_stones(&mut self) {
+    fn remove_captured_stones(&mut self) -> (u32, u32) {
+        let mut new_prisoners = self.prisoners;
         match self.turn {
             Black => {
-                self.prisoners.0 += self.remove_captured_stones_turn(White);
+                new_prisoners.0 += self.remove_captured_stones_turn(White);
                 if self.rule.is_suicide_valid() {
-                    self.prisoners.1 += self.remove_captured_stones_turn(Black);
+                    new_prisoners.1 += self.remove_captured_stones_turn(Black);
                 }
+                new_prisoners
             }
             White => {
-                self.prisoners.1 += self.remove_captured_stones_turn(Black);
+                new_prisoners.1 += self.remove_captured_stones_turn(Black);
                 if self.rule.is_suicide_valid() {
-                    self.prisoners.0 += self.remove_captured_stones_turn(White);
+                    new_prisoners.0 += self.remove_captured_stones_turn(White);
                 }
+                new_prisoners
             }
         }
     }
@@ -438,7 +442,7 @@ impl GameBuilder {
 
     pub fn build(&mut self) -> Result<Game, String> {
         let mut goban: Goban = Goban::new(self.size.0 as usize);
-        if self.handicap_points.is_empty() {
+        if !self.handicap_points.is_empty() {
             goban.push_many(self.handicap_points.to_owned().into_iter(), Color::Black);
         }
         let mut g = Game {
@@ -455,8 +459,8 @@ impl GameBuilder {
             hashes: Default::default(),
         };
 
-        for m in &self.moves {
-            g.play(*m); // without verifications of Ko
+        for &m in &self.moves {
+            g.play(m); // without verifications of Ko
         }
 
         Ok(g)
