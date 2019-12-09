@@ -10,6 +10,7 @@ use crate::rules::Rule;
 use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, GobanSizes, Move};
 use std::collections::HashSet;
+use sloth::Lazy;
 
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
@@ -127,7 +128,7 @@ impl Game {
     ///
     #[inline]
     pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
-        let mut test_game = self.clone();
+        let mut test_game = Lazy::new(move || self.clone());
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),

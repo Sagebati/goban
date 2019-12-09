@@ -7,43 +7,6 @@ use std::collections::HashSet;
 
 impl Goban {
     ///
-    /// Test if a group of string is dead.
-    ///
-    /// "a group of string is dead if it doesn't have liberties"
-    ///
-    #[inline]
-    pub fn is_string_dead(&self, string: &HashSet<Stone>) -> bool {
-        !string // If there is one stone connected who has liberties, they are not captured.
-            .iter()
-            .any(|s| self.has_liberties(*s))
-    }
-
-    ///
-    /// Count the liberties of a string
-    ///
-    #[inline]
-    pub fn count_string_liberties(&self, string: &HashSet<Stone>) -> u8 {
-        string
-            .iter()
-            .flat_map(|s| self.get_liberties(*s))
-            .collect::<HashSet<Stone>>()
-            .len() as u8
-    }
-
-    ///
-    /// Get all the groups of connected stones, who has at least one stones
-    /// without liberties.
-    ///
-    pub fn get_strings_of_stones_without_liberties(&self) -> Vec<HashSet<Stone>> {
-        let stones_without_liberties = self
-            // get all stones without liberties
-            .get_stones()
-            .filter(|point| !self.has_liberties(*point));
-
-        self.get_strings_from_stones(stones_without_liberties)
-    }
-
-    ///
     ///
     ///
     #[inline]
