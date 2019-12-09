@@ -638,6 +638,7 @@ mod tests {
     fn sgf_test() {
         let game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
-        println!("outcome: {:?}", game.outcome());
+        assert_eq!(EndGame::WinnerByScore(Player::Black,2.0),game.outcome().unwrap());
+        assert_eq!((31,29), game.prisoners());
     }
 }
