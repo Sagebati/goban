@@ -7,7 +7,7 @@ use crate::pieces::util::coord::{corner_coords, neighbors_points, CoordUtil, Ord
 use crate::pieces::zobrist::*;
 use by_address::ByAddress;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
@@ -40,7 +40,7 @@ impl Goban {
             size,
             coord_util: CoordUtil::new(size, size),
             hash: 0,
-            go_strings: Default::default(),
+            go_strings: HashMap::with_capacity(300),
         }
     }
 
@@ -350,8 +350,8 @@ impl Goban {
     pub fn remove_string(&mut self, go_string_to_remove: GoStringPtr) {
         let color_of_the_string = go_string_to_remove.borrow().color;
         for &point in go_string_to_remove.borrow().stones() {
-            for neighbor_str_ptr in self.get_neighbors_strings(point).collect::<Vec<_>>() {
-                if neighbor_str_ptr != go_string_to_remove {
+            for neighbor_str_ptr in self.get_neighbors_strings(point).collect::<HashSet<_>>() {
+                if go_string_to_remove != neighbor_str_ptr {
                     neighbor_str_ptr.borrow_mut().add_liberty(point);
                     self.update_map_indexes(neighbor_str_ptr)
                 }
@@ -386,12 +386,14 @@ impl Default for Goban {
 
 impl Clone for Goban {
     fn clone(&self) -> Self {
-        let go_strings = self
-            .go_strings
-            .iter()
-            .map(|(&key, go_str_ptr)| (key, go_str_ptr.borrow().clone()))
-            .map(|(key, go_str)| (key, ByAddress(Rc::new(RefCell::new(go_str)))))
-            .collect();
+        let mut go_strings = HashMap::with_capacity(300);
+        for go_str_ptr in self.go_strings.values() {
+            let cloned_go_str =
+                ByAddress::from(Rc::new(RefCell::new(go_str_ptr.borrow().clone())));
+            for &point in go_str_ptr.borrow().stones() {
+                go_strings.insert(point, cloned_go_str.clone());
+            }
+        }
         Goban {
             go_strings,
             size: self.size,

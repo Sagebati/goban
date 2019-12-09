@@ -152,7 +152,7 @@ impl Game {
                 self.plays.push(self.goban.clone());
                 self.hashes.insert(self.goban.hash());
                 self.goban.push((x, y), self.turn.get_stone_color());
-                self.prisoners = self.remove_captured_stones()
+                self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
                 self.passes = 0;
                 self
@@ -164,10 +164,9 @@ impl Game {
         }
     }
 
-    fn play_for_verification(&mut self, (x, y): Coord) -> u64 {
-        let stone_color: Color = self.turn.get_stone_color();
+    fn play_for_verification(&mut self, (x, y): Point) -> u64 {
         let actual_goban = self.goban.clone();
-        self.goban.push((x,y), self.turn.get_stone_color())
+        self.goban.push((x, y), self.turn.get_stone_color());
         self.remove_captured_stones();
         let new_goban_hash = self.goban.hash();
         self.goban = actual_goban;
@@ -196,8 +195,7 @@ impl Game {
                     ) {
                         Err(c)
                     } else {
-                        self.play(play);
-                        Ok(self)
+                        Ok(self.play(play))
                     }
                 }
             }
@@ -272,7 +270,7 @@ impl Game {
         if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
-            self.play_for_verification(stone.coordinates.into()) == self.plays[self.plays.len() -
+            self.play_for_verification(stone.coordinates) == self.plays[self.plays.len() -
                 1].hash()
         }
     }
@@ -284,7 +282,7 @@ impl Game {
         if !self.will_capture(stone.coordinates) {
             false
         } else {
-            let hash_test_goban = self.play_for_verification(stone.coordinates.into());
+            let hash_test_goban = self.play_for_verification(stone.coordinates);
             self.hashes
                 .contains(&hash_test_goban)
         }
@@ -306,16 +304,18 @@ impl Game {
         let mut new_prisoners = self.prisoners;
         match self.turn {
             Black => {
-                self.prisoners.0 += self.remove_captured_stones_turn(White);
+                new_prisoners.0 += self.remove_captured_stones_turn(White);
                 if self.rule.is_suicide_valid() {
-                    self.prisoners.1 += self.remove_captured_stones_turn(Black);
+                    new_prisoners.1 += self.remove_captured_stones_turn(Black);
                 }
+                new_prisoners
             }
             White => {
-                self.prisoners.1 += self.remove_captured_stones_turn(Black);
+                new_prisoners.1 += self.remove_captured_stones_turn(Black);
                 if self.rule.is_suicide_valid() {
-                    self.prisoners.0 += self.remove_captured_stones_turn(White);
+                    new_prisoners.0 += self.remove_captured_stones_turn(White);
                 }
+                new_prisoners
             }
         }
     }
@@ -326,10 +326,11 @@ impl Game {
     ///
     fn remove_captured_stones_turn(&mut self, player: Player) -> u32 {
         let mut number_of_stones_captured = 0u32;
-        for group_of_stones in self
+        let string_without_liberties = self
             .goban
             .get_strings_of_stones_without_liberties_wth_color(player.get_stone_color())
-            .collect::<HashSet<_>>()
+            .collect::<HashSet<_>>();
+        for group_of_stones in string_without_liberties
             {
                 number_of_stones_captured += group_of_stones.borrow().stones().len() as u32;
                 self.goban.remove_string(group_of_stones);

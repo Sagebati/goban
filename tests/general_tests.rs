@@ -400,7 +400,6 @@ mod tests {
             Move::Pass,
             Move::Pass,
         ];
-
         let handicap = vec![(3, 3), (3, 15), (9, 3), (9, 15), (15, 3), (15, 15)];
         let mut g = Game::new(GobanSizes::Nineteen, Rule::Chinese);
         let inv_coord: Vec<usize> = (0..19).rev().collect();
@@ -410,6 +409,10 @@ mod tests {
                 Play(x, y) => {
                     println!("({},{})", x, y);
                     println!("({},{})", inv_coord[x], y);
+                    println!("({},{})", inv_coord[x] + 1, y + 1);
+                    if inv_coord[x] == 6  && y == 14 && g.turn() == Player::White {
+                        println!("bug")
+                    }
                     Play(inv_coord[x], y)
                 }
                 m => m
@@ -643,8 +646,7 @@ mod tests {
         let game = Game::from_sgf(include_str!("sgf_1.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
         println!("prisoners : {:?}", game.prisoners());
-        assert_eq!((2,9), game.prisoners());
-        assert_eq!(EndGame::WinnerByResign(Player::White),game.outcome().unwrap())
+        assert_eq!(game.prisoners(), (9,2));
+        assert_eq!(EndGame::WinnerByResign(Player::White), game.outcome().unwrap())
     }
-
 }
