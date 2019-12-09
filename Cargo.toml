@@ -16,9 +16,6 @@ maintenance = {status = "actively-developed"}
 [profile.release]
 lto = true
 
-[features]
-history = []
-
 [dependencies]
 getset = "0.0.9"
 lazy_static = "1.4.0"

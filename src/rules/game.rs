@@ -45,7 +45,6 @@ pub struct Game {
     #[get_copy = "pub"]
     last_move: Option<Move>,
 
-    #[cfg(feature="history")]
     #[get = "pub"]
     plays: Vec<Goban>,
 
@@ -57,7 +56,6 @@ impl Game {
         let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = 0;
-        #[cfg(feature="history")]
         let plays = Vec::with_capacity(300);
         let prisoners = (0, 0);
         let handicap = 0;
@@ -68,7 +66,6 @@ impl Game {
             komi,
             prisoners,
             passes: pass,
-            #[cfg(feature="history")]
             plays,
             outcome: None,
             rule,
@@ -164,7 +161,6 @@ impl Game {
                     x, y, stone_color
                 ));
                 self.remove_captured_stones();
-                #[cfg(feature="history")]
                 self.plays.push(self.goban.clone());
                 self.last_state = Some(self.goban.clone());
                 self.hashes.insert(self.goban.hash());
@@ -295,23 +291,21 @@ impl Game {
     /// If the goban is in the configuration of the two plays ago returns true
     ///
     pub fn ko(&self, stone: Stone) -> bool {
-        self.super_ko(stone)
-        /* if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
+        if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
             let mut game = self.clone();
             game.play(stone.coordinates.into());
             game.goban == self.plays[self.plays.len() - 2]
-        } */
+        }
     }
 
     ///
     /// Rule of the super Ko, if any before configuration was already played then return true.
     ///
     pub fn super_ko(&self, stone: Stone) -> bool {
-        false
-        //self.hashes
-          // .contains(&self.clone().play(stone.coordinates.into()).goban.hash())
+        self.hashes
+           .contains(&self.clone().play(stone.coordinates.into()).goban.hash())
     }
 
     ///
@@ -448,7 +442,6 @@ impl GameBuilder {
             handicap: self.handicap_points.len() as u8,
             last_state: None,
             last_move: None,
-            #[cfg(feature="history")]
             plays: vec![],
             hashes: Default::default(),
         };
