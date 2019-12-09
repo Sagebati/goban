@@ -3,7 +3,7 @@
 pub mod coord {
 
     /// Defining the policy for the colums.
-    pub type Coord = (usize, usize);
+    pub type Point = (usize, usize);
 
     #[derive(Debug, Clone, PartialEq, Eq, Copy)]
     pub enum Order {
@@ -20,7 +20,7 @@ pub mod coord {
     }
 
     #[inline]
-    pub fn neighbors_coords((x1,x2): Coord) -> Vec<Coord> {
+    pub fn neighbors_points((x1, x2): Point) -> Vec<Point> {
         vec![
             (x1.wrapping_add(1), x2),
             (x1.wrapping_sub(1), x2),
@@ -30,7 +30,7 @@ pub mod coord {
     }
 
     #[inline]
-    pub fn corner_coords((x1,x2): Coord) -> Vec<Coord> {
+    pub fn corner_coords((x1, x2): Point) -> Vec<Point> {
         vec![
             (x1.wrapping_add(1), x2.wrapping_add(1)),
             (x1.wrapping_sub(1), x2.wrapping_sub(1)),
@@ -56,7 +56,7 @@ pub mod coord {
         }
 
         #[inline]
-        pub fn to(self, coord: Coord) -> usize {
+        pub fn to(self, coord: Point) -> usize {
             match self.order {
                 Order::ColumnMajor => (coord.0 * self.n_cols + coord.1 % self.n_rows),
                 Order::RowMajor => (coord.0 * self.n_rows + coord.1 % self.n_cols),
@@ -64,7 +64,7 @@ pub mod coord {
         }
 
         #[inline]
-        pub fn from(self, index: usize) -> Coord {
+        pub fn from(self, index: usize) -> Point {
             match self.order {
                 Order::ColumnMajor => (index / self.n_cols, index % self.n_rows),
                 Order::RowMajor => (index / self.n_rows, index % self.n_cols),

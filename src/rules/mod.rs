@@ -1,7 +1,7 @@
 //! Module for ruling in the game of go.
 
 use crate::pieces::stones::{Color, Stone};
-use crate::pieces::util::coord::Coord;
+use crate::pieces::util::coord::Point;
 use crate::rules::game::Game;
 use std::ops::Not;
 
@@ -70,7 +70,7 @@ pub enum Move {
     Play(usize, usize),
 }
 
-impl From<Coord> for Move {
+impl From<Point> for Move {
     fn from(x: (usize, usize)) -> Self {
         Move::Play(x.0, x.1)
     }
@@ -147,10 +147,19 @@ impl Rule {
     ///
     pub fn move_validation(self, game: &mut Game, stone: Stone) -> Option<PlayError> {
         match self {
-            Rule::Japanese | Rule::Chinese => {
+            Rule::Japanese => {
                 if game.is_suicide(stone) {
                     Some(PlayError::Suicide)
                 } else if game.ko(stone) {
+                    Some(PlayError::Ko)
+                } else {
+                    None
+                }
+            }
+            Rule::Chinese => {
+                if game.is_suicide(stone) {
+                    Some(PlayError::Suicide)
+                } else if game.super_ko(stone) {
                     Some(PlayError::Ko)
                 } else {
                     None
