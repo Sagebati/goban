@@ -12,6 +12,7 @@ mod tests {
     use goban::rules::{EndGame, GobanSizes, Move, Player};
     use rand::seq::SliceRandom;
     use std::collections::HashSet;
+    use std::fs::read_dir;
 
     #[test]
     fn goban() {
@@ -415,6 +416,7 @@ mod tests {
                 m => m
             };
             g.play_with_verifications(to_play).unwrap();
+            println!("prisoners: {:?}", g.prisoners());
             g.display_goban()
         }
         assert!(g.is_over());
@@ -624,6 +626,17 @@ mod tests {
         let game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
         println!("prisoners : {:?}", game.prisoners());
+        assert_eq!((31,29), game.prisoners());
         println!("outcome: {:?}", game.outcome());
     }
+
+    #[test]
+    fn sgf_test_1() {
+        let game = Game::from_sgf(include_str!("sgf_1.sgf")).unwrap();
+        println!("score : {:?}", game.calculate_score());
+        println!("prisoners : {:?}", game.prisoners());
+        assert_eq!((2,9), game.prisoners());
+        assert_eq!(EndGame::WinnerByResign(Player::White),game.outcome().unwrap())
+    }
+
 }

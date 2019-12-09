@@ -16,9 +16,6 @@ maintenance = {status = "actively-developed"}
 [profile.release]
 lto = true
 
-[features]
-history = []
-
 [dependencies]
 maplit = "1.0.2"
 by_address = "1.0.4"

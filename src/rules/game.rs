@@ -40,7 +40,6 @@ pub struct Game {
     #[set]
     handicap: u8,
 
-    #[cfg(feature = "history")]
     #[get = "pub"]
     plays: Vec<Goban>,
 
@@ -52,8 +51,7 @@ impl Game {
         let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = 0;
-        #[cfg(feature = "history")]
-            let plays = Vec::with_capacity(300);
+        let plays = Vec::with_capacity(300);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashSet::with_capacity(300);
@@ -63,7 +61,6 @@ impl Game {
             komi,
             prisoners,
             passes: pass,
-            #[cfg(feature = "history")]
             plays,
             outcome: None,
             rule,
@@ -130,13 +127,33 @@ impl Game {
     ///
     #[inline]
     pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
+        let mut test_game = self.clone();
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
                 coordinates: s,
             })
-            .filter(move |s| self.rule.move_validation(self, *s).is_none())
+            .filter(move |&s| self.rule.move_validation(&mut test_game, s).is_none())
             .map(|s| (s.coordinates.0, s.coordinates.1))
+    }
+
+
+    ///
+    /// Function that applies a move without modifiyng his state.
+    /// This function is only for avoid cloning in function like super_ko.
+    //
+    fn play_for_verification(&mut self, play: Move) -> u64 {
+        match play {
+            Move::Play(x, y) => {
+                let actual_goban = self.goban.clone();
+                self.goban.push((x, y), self.turn.get_stone_color());
+                self.remove_captured_stones();
+                let res_hash = self.goban.hash();
+                self.goban = actual_goban;
+                res_hash
+            }
+            _ => unreachable!()
+        }
     }
 
     ///
@@ -154,8 +171,7 @@ impl Game {
                 let stone_color: Color = self.turn.get_stone_color();
                 self.goban.push((x, y), stone_color);
                 self.remove_captured_stones();
-                #[cfg(feature = "history")]
-                    self.plays.push(self.goban.clone());
+                self.plays.push(self.goban.clone());
                 self.hashes.insert(self.goban.hash());
                 self.turn = !self.turn;
                 self.passes = 0;
@@ -196,19 +212,6 @@ impl Game {
                 }
             }
         }
-    }
-
-    ///
-    /// Removes the last move.
-    ///
-    #[cfg(feature = "history")]
-    pub fn pop(&mut self) -> &mut Self {
-        if let Some(goban) = self.plays.pop() {
-            self.hashes.remove(&self.goban.hash());
-            self.turn = !self.turn;
-            self.goban = goban;
-        }
-        self
     }
 
     ///
@@ -275,26 +278,25 @@ impl Game {
     /// Test if a play is ko.
     /// If the goban is in the configuration of the two plays ago returns true
     ///
-    pub fn ko(&self, stone: Stone) -> bool {
-        self.super_ko(stone)
-        /* if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
+    pub fn ko(&mut self, stone: Stone) -> bool {
+        if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
-            let mut game = self.clone();
-            game.play(stone.coordinates.into());
-            game.goban == self.plays[self.plays.len() - 2]
-        } */
+            self.play_for_verification(stone.coordinates.into()) == self.plays[self.plays.len() -
+                2].hash()
+        }
     }
 
     ///
     /// Rule of the super Ko, if any before configuration was already played then return true.
     ///
-    pub fn super_ko(&self, stone: Stone) -> bool {
+    pub fn super_ko(&mut self, stone: Stone) -> bool {
         if !self.will_capture(stone.coordinates) {
             false
         } else {
+            let hash_test_goban = self.play_for_verification(stone.coordinates.into());
             self.hashes
-                .contains(&self.clone().play(stone.coordinates.into()).goban.hash())
+                .contains(&hash_test_goban)
         }
     }
 
@@ -427,7 +429,6 @@ impl GameBuilder {
             komi: self.komi,
             rule: self.rule,
             handicap: self.handicap_points.len() as u8,
-            #[cfg(feature = "history")]
             plays: vec![],
             hashes: Default::default(),
         };
