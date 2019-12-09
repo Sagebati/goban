@@ -386,7 +386,8 @@ impl Default for Goban {
 
 impl Clone for Goban {
     fn clone(&self) -> Self {
-        let mut go_strings = HashMap::with_capacity(300);
+        let mut go_strings =
+            HashMap::with_capacity(self.go_strings.len());
         for go_str_ptr in self.go_strings.values() {
             let cloned_go_str =
                 ByAddress::from(Rc::new(RefCell::new(go_str_ptr.borrow().clone())));
