@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn some_plays() {
-        let mut g = Game::new(GobanSizes::Nineteen, Rule::Chinese);
+        let mut g = Game::new(GobanSizes::Nineteen, Rule::Japanese);
         let mut i = 300;
         while !g.is_over() && i != 0 {
             g.play(
@@ -410,18 +410,21 @@ mod tests {
         let mut g = Game::new(GobanSizes::Nineteen, Rule::Chinese);
         let inv_coord: Vec<usize> = (0..19).rev().collect();
         g.put_handicap(&handicap);
+        g.display_goban();
         for m in moves_sgf {
             let to_play = match m {
                 Play(x, y) => {
                     println!("({},{})", x, y);
                     println!("({},{})", inv_coord[x], y);
+                    println!("({},{})", inv_coord[x] + 1, y + 1);
+                    println!("prisoners : {:?}", g.prisoners());
                     Play(inv_coord[x], y)
                 }
                 Move::Pass => Move::Pass,
                 _ => unreachable!(),
             };
             g.play_with_verifications(to_play).unwrap();
-            g.display_goban()
+            g.display_goban();
         }
         let score = g.calculate_score();
         let (b_prisoners, w_prisoners) = g.prisoners();
@@ -509,7 +512,7 @@ mod tests {
                 (9..19).for_each(|x| vec.push((x, 3)));
                 vec
             }
-            .into_iter(),
+                .into_iter(),
             Color::Black,
         );
         goban.push_many(
@@ -523,7 +526,7 @@ mod tests {
                 (13, 7),
                 (13, 8),
             ]
-            .into_iter(),
+                .into_iter(),
             Color::White,
         );
 
@@ -550,7 +553,7 @@ mod tests {
             Some(endgame) => Ok(endgame),
             _ => Err("Game not finished"),
         }
-        .expect("Game finished");
+            .expect("Game finished");
         let (black, white) = g.calculate_score();
         assert_eq!(black, 81.);
         assert_eq!(white, 5.5);
@@ -638,6 +641,15 @@ mod tests {
     fn sgf_test() {
         let game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
-        println!("outcome: {:?}", game.outcome());
+        assert_eq!(EndGame::WinnerByScore(Player::Black, 2.0), game.outcome().unwrap());
+        assert_eq!(game.prisoners(), (29, 31));
+    }
+
+    #[test]
+    fn sgf_test_2_2ha() {
+        let game = Game::from_sgf(include_str!("sgf_2_2ha.sgf")).unwrap();
+        println!("score : {:?}", game.calculate_score());
+        assert_eq!(game.prisoners(), (25, 26));
+        assert_eq!(EndGame::WinnerByScore(Player::Black, 1.0), game.outcome().unwrap());
     }
 }

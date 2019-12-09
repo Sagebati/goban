@@ -1,5 +1,5 @@
 use crate::pieces::stones::Color;
-use crate::pieces::util::coord::Coord;
+use crate::pieces::util::coord::Point;
 use rand::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
 use std::ops::Index;
@@ -25,10 +25,10 @@ impl ZobristTable {
     }
 }
 
-impl Index<(Coord, Color)> for ZobristTable {
+impl Index<(Point, Color)> for ZobristTable {
     type Output = u64;
 
-    fn index(&self, index: (Coord, Color)) -> &Self::Output {
+    fn index(&self, index: (Point, Color)) -> &Self::Output {
         let x = index.0;
         let color = index.1;
         &self.hashes[x.0 * self.n + x.1][(color as u8 - 1) as usize]

@@ -1,9 +1,10 @@
 //! Module for ruling in the game of go.
 
 use crate::pieces::stones::{Color, Stone};
-use crate::pieces::util::coord::Coord;
+use crate::pieces::util::coord::Point;
 use crate::rules::game::Game;
 use std::ops::Not;
+use crate::rules::Rule::{Japanese, Chinese};
 
 pub mod game;
 mod sgf_bridge;
@@ -70,7 +71,7 @@ pub enum Move {
     Play(usize, usize),
 }
 
-impl From<Coord> for Move {
+impl From<Point> for Move {
     fn from(x: (usize, usize)) -> Self {
         Move::Play(x.0, x.1)
     }
@@ -123,7 +124,7 @@ impl Rule {
     ///
     pub fn count_points(self, game: &Game) -> (f32, f32) {
         match self {
-            Rule::Japanese => {
+            Japanese => {
                 let mut scores = game.goban().calculate_territories();
                 scores.0 += game.prisoners().0 as f32;
                 scores.1 += game.prisoners().1 as f32;
@@ -131,7 +132,7 @@ impl Rule {
 
                 scores
             }
-            Rule::Chinese => {
+            Chinese => {
                 // Territories in seki are not counted
                 let mut scores = game.goban().calculate_territories();
                 let ns = game.goban().number_of_stones();
@@ -145,9 +146,9 @@ impl Rule {
     ///
     /// Specify the constraints in the move validation by rule.
     ///
-    pub fn move_validation(self, game: &Game, stone: Stone) -> Option<PlayError> {
+    pub fn move_validation(self, game: &mut Game, stone: Stone) -> Option<PlayError> {
         match self {
-            Rule::Japanese | Rule::Chinese => {
+            Japanese | Chinese => {
                 if game.is_suicide(stone) {
                     Some(PlayError::Suicide)
                 } else if game.ko(stone) {
@@ -160,7 +161,9 @@ impl Rule {
     }
 
     pub fn is_suicide_valid(self) -> bool {
-        false
+        match self {
+            Japanese |Chinese => false
+        }
     }
 
     pub fn from_sgf_code(s: &str) -> Result<Rule, String> {

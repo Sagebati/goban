@@ -71,5 +71,5 @@ pub fn game_play_bench(_c: &mut Criterion) {
         .bench_function("game_play", |b| b.iter(|| play_game()));
 }
 
-criterion_group!(benches, game_play_bench, perft_bench);
+criterion_group!(benches, game_play_bench);
 criterion_main!(benches);
