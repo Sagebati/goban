@@ -58,8 +58,8 @@ etc...
 - Japanese Rules
 - Chinese Rules
 
+
 ## What is not in point:
 - Handling dead stones at the end of the game.
 
 ## Actively develloped 
-SGF support
