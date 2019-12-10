@@ -42,7 +42,7 @@ pub struct Game {
     handicap: u8,
 
     #[get = "pub"]
-    plays: Vec<Goban>,
+    plays: Vec<u64>,
 
     hashes: HashSet<u64>,
 }
@@ -150,8 +150,9 @@ impl Game {
                 self
             }
             Move::Play(x, y) => {
-                self.plays.push(self.goban.clone());
-                self.hashes.insert(self.goban.hash());
+                let hash = self.goban.hash();
+                self.plays.push(hash);
+                self.hashes.insert(hash);
                 self.goban.push((x, y), self.turn.get_stone_color());
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
@@ -271,8 +272,7 @@ impl Game {
         if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
-            self.play_for_verification(stone.coordinates) == self.plays[self.plays.len() -
-                1].hash()
+            self.play_for_verification(stone.coordinates) == self.plays[self.plays.len() - 1]
         }
     }
 
