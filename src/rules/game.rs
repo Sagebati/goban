@@ -233,10 +233,11 @@ impl Game {
         if self.goban.has_liberties(stone) {
             false
         } else {
-            let mut friendly_strings = vec![];
             for neighbor_go_string in self.goban.get_neighbors_strings(stone.coordinates) {
                 if neighbor_go_string.color == stone.color {
-                    friendly_strings.push(neighbor_go_string)
+                    if neighbor_go_string.number_of_liberties() != 1 {
+                        return false;
+                    }
                 } else {
                     // capture move so not suicide
                     if neighbor_go_string.number_of_liberties() == 1 {
@@ -244,11 +245,7 @@ impl Game {
                     }
                 }
             }
-            // If all of the same color go strings have only one liberty then
-            // it's self capture
-            friendly_strings
-                .into_iter()
-                .all(|go_str_ptr| go_str_ptr.number_of_liberties() == 1)
+            true
         }
     }
 
