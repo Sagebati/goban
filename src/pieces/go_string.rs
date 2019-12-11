@@ -38,14 +38,19 @@ impl GoString {
     }
 
     #[inline]
+    pub fn contains_liberties(&self, point: Point) -> bool {
+        self.liberties.contains(&point)
+    }
+
+    #[inline]
     pub fn remove_liberty(&mut self, point: Point) {
-        debug_assert!(self.liberties.contains(&point));
+        // debug_assert!(self.liberties.contains(&point));
         self.liberties.remove(&point);
     }
 
     #[inline]
     pub fn add_liberty(&mut self, point: Point) {
-        //debug_assert!(!self.liberties.contains(&point));
+        // debug_assert!(!self.liberties.contains(&point));
         self.liberties.insert(point);
     }
 

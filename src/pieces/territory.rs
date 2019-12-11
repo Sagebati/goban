@@ -16,7 +16,7 @@ impl Goban {
     ) -> impl Iterator<Item=GoStringPtr> + '_ {
         self.go_strings()
             .values()
-            .filter(move |go_str| go_str.borrow().is_dead() && go_str.borrow().color == color)
+            .filter(move |go_str| go_str.is_dead() && go_str.color == color)
             .map(ToOwned::to_owned)
     }
 
