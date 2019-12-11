@@ -10,7 +10,7 @@ use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::rc::Rc;
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 
 pub type GoStringPtr = ByAddress<Rc<GoString>>;
 
@@ -21,7 +21,7 @@ pub type GoStringPtr = ByAddress<Rc<GoString>>;
 #[derive(Getters, Setters, CopyGetters, Debug, Clone)]
 pub struct Goban {
     #[get = "pub"]
-    go_strings: HashMap<Point, GoStringPtr>,
+    go_strings: Vec<Option<GoStringPtr>>,
 
     #[get_copy = "pub"]
     size: usize,
@@ -39,7 +39,7 @@ impl Goban {
             size,
             coord_util: CoordUtil::new(size, size),
             hash: 0,
-            go_strings: HashMap::with_capacity(300),
+            go_strings: vec![Option::None; size * size],
         }
     }
 
@@ -88,7 +88,7 @@ impl Goban {
             .into_iter()
             .filter(|&x| self.is_coord_valid(x))
             {
-                match self.go_strings.get(&p) {
+                match &self.go_strings[self.coord_util.to(p)] {
                     Some(go_str_ptr) => {
                         match go_str_ptr.color {
                             go_str_color if go_str_color == color => {
@@ -144,8 +144,7 @@ impl Goban {
     /// Function for getting the stone in the goban.
     ///
     pub fn get_stone(&self, point: Point) -> Color {
-        self.go_strings
-            .get(&point)
+        self.go_strings[self.coord_util.to(point)].as_ref()
             .map_or(Color::None, |go_str_ptr| go_str_ptr.color)
     }
 
@@ -179,8 +178,7 @@ impl Goban {
         neighbors_points(coord)
             .into_iter()
             .filter(move |&x| self.is_coord_valid(x))
-            .filter_map(move |coord| self.go_strings.get(&coord))
-            .map(ToOwned::to_owned)
+            .filter_map(move |coord| self.go_strings[self.coord_util.to(coord)].clone())
     }
 
     #[inline]
@@ -324,8 +322,8 @@ impl Goban {
     /// Deletes all the Rc from the go_strings set then merges the two_string
     ///
     fn merge_two_strings(&mut self, first: GoString, other: GoStringPtr) -> GoString {
-        for point in other.stones() {
-            self.go_strings.remove(&point);
+        for &point in other.stones() {
+            self.go_strings[self.coord_util.to(point)] = Option::None;
         }
 
         first.merge_with((**other).clone())
@@ -333,7 +331,7 @@ impl Goban {
 
     fn update_map_indexes(&mut self, go_string: GoStringPtr) {
         for &stone in go_string.stones() {
-            self.go_strings.insert(stone, go_string.clone());
+            self.go_strings[self.coord_util.to(stone)] = Some(go_string.clone());
         }
     }
 
@@ -354,7 +352,7 @@ impl Goban {
             self.hash ^= ZOBRIST[(point, color_of_the_string)];
 
             // Remove each point from the map. The Rc will be dropped "normally".
-            self.go_strings.remove(&point);
+            self.go_strings[self.coord_util.to(point)] = Option::None;
         }
     }
 }
