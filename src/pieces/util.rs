@@ -1,6 +1,7 @@
 //! Module with the logic for calculating coordinates.
 
 pub mod coord {
+    use arrayvec::ArrayVec;
 
     /// Defining the policy for the colums.
     pub type Point = (usize, usize);
@@ -20,23 +21,23 @@ pub mod coord {
     }
 
     #[inline]
-    pub fn neighbors_points((x1, x2): Point) -> Vec<Point> {
-        vec![
+    pub fn neighbors_points((x1, x2): Point) -> ArrayVec<[Point; 4]> {
+        ArrayVec::from([
             (x1.wrapping_add(1), x2),
             (x1.wrapping_sub(1), x2),
             (x1, x2.wrapping_add(1)),
             (x1, x2.wrapping_sub(1)),
-        ]
+        ])
     }
 
     #[inline]
-    pub fn corner_coords((x1, x2): Point) -> Vec<Point> {
-        vec![
+    pub fn corner_coords((x1, x2): Point) -> ArrayVec<[Point; 4]> {
+        ArrayVec::from([
             (x1.wrapping_add(1), x2.wrapping_add(1)),
             (x1.wrapping_sub(1), x2.wrapping_sub(1)),
             (x1.wrapping_add(1), x2.wrapping_sub(1)),
             (x1.wrapping_sub(1), x2.wrapping_add(1)),
-        ]
+        ])
     }
 
     impl CoordUtil {

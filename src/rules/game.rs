@@ -42,7 +42,7 @@ pub struct Game {
     handicap: u8,
 
     #[get = "pub"]
-    plays: Vec<Goban>,
+    plays: Vec<u64>,
 
     hashes: HashSet<u64>,
 }
@@ -150,8 +150,9 @@ impl Game {
                 self
             }
             Move::Play(x, y) => {
-                self.plays.push(self.goban.clone());
-                self.hashes.insert(self.goban.hash());
+                let hash = self.goban.hash();
+                self.plays.push(hash);
+                self.hashes.insert(hash);
                 self.goban.push((x, y), self.turn.get_stone_color());
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
@@ -232,22 +233,19 @@ impl Game {
         if self.goban.has_liberties(stone) {
             false
         } else {
-            let mut friendly_strings = vec![];
             for neighbor_go_string in self.goban.get_neighbors_strings(stone.coordinates) {
-                if neighbor_go_string.borrow().color == stone.color {
-                    friendly_strings.push(neighbor_go_string)
+                if neighbor_go_string.color == stone.color {
+                    if neighbor_go_string.number_of_liberties() != 1 {
+                        return false;
+                    }
                 } else {
                     // capture move so not suicide
-                    if neighbor_go_string.borrow().number_of_liberties() == 1 {
+                    if neighbor_go_string.number_of_liberties() == 1 {
                         return false;
                     }
                 }
             }
-            // If all of the same color go strings have only one liberty then
-            // it's self capture
-            friendly_strings
-                .into_iter()
-                .all(|go_str_ptr| go_str_ptr.borrow().number_of_liberties() == 1)
+            true
         }
     }
 
@@ -258,9 +256,9 @@ impl Game {
     pub fn will_capture(&self, point: Point) -> bool {
         self.goban
             .get_neighbors_strings(point)
-            .filter(|go_str_ptr| go_str_ptr.borrow().color != self.turn.get_stone_color())
+            .filter(|go_str_ptr| go_str_ptr.color != self.turn.get_stone_color())
             // if an enemy string has only liberty it's a capture move
-            .any(|go_str_ptr| go_str_ptr.borrow().number_of_liberties() == 1)
+            .any(|go_str_ptr| go_str_ptr.number_of_liberties() == 1)
     }
 
     ///
@@ -271,8 +269,7 @@ impl Game {
         if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
-            self.play_for_verification(stone.coordinates) == self.plays[self.plays.len() -
-                1].hash()
+            self.play_for_verification(stone.coordinates) == self.plays[self.plays.len() - 1]
         }
     }
 
@@ -333,7 +330,7 @@ impl Game {
             .collect::<HashSet<_>>();
         for group_of_stones in string_without_liberties
             {
-                number_of_stones_captured += group_of_stones.borrow().stones().len() as u32;
+                number_of_stones_captured += group_of_stones.stones().len() as u32;
                 self.goban.remove_string(group_of_stones);
             }
         number_of_stones_captured
