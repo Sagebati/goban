@@ -6,9 +6,6 @@ use crate::pieces::stones::Stone;
 use std::collections::HashSet;
 
 impl Goban {
-    ///
-    ///
-    ///
     #[inline]
     pub fn get_strings_of_stones_without_liberties_wth_color(
         &self,

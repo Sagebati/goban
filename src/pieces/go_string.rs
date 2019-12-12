@@ -55,7 +55,7 @@ impl GoString {
     }
 
     ///
-    /// Takes ownership of self and the other string the merge into one string
+    /// Takes ownership of self and the other string then merge into one string
     ///
     #[inline]
     pub fn merge_with(
