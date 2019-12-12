@@ -9,7 +9,6 @@ use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
 use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, GobanSizes, Move};
-use sloth::Lazy;
 use std::collections::HashSet;
 
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
@@ -136,14 +135,13 @@ impl Game {
     ///
     #[inline]
     pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
-        let mut test_game = Lazy::new(move || self.clone());
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
                 coordinates: s,
             })
-            .filter(move |&s| self.rule.move_validation(&mut test_game, s).is_none())
-            .map(|s| (s.coordinates.0, s.coordinates.1))
+            .filter(move |&s| self.rule.move_validation(&self, s).is_none())
+            .map(|s| s.coordinates)
     }
 
     ///
@@ -176,13 +174,14 @@ impl Game {
         }
     }
 
-    fn play_for_verification(&mut self, (x, y): Point) -> u64 {
-        let actual_goban = self.goban.clone();
-        self.goban.push((x, y), self.turn.get_stone_color());
-        self.remove_captured_stones();
-        let new_goban_hash = self.goban.hash();
-        self.goban = actual_goban;
-        new_goban_hash
+    fn play_for_verification(&self, (x, y): Point) -> u64 {
+        let mut test_goban = self.goban.clone();
+        test_goban.push((x, y), self.turn.get_stone_color());
+        test_goban.remove_captured_stones_turn((!self.turn).get_stone_color());
+        if self.rule.is_suicide_valid() {
+            test_goban.remove_captured_stones_turn(self.turn.get_stone_color());
+        }
+        test_goban.hash()
     }
 
     ///
@@ -275,7 +274,7 @@ impl Game {
     /// Test if a play is ko.
     /// If the goban is in the configuration of the two plays ago returns true
     ///
-    pub fn ko(&mut self, stone: Stone) -> bool {
+    pub fn ko(&self, stone: Stone) -> bool {
         if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
@@ -286,7 +285,7 @@ impl Game {
     ///
     /// Rule of the super Ko, if any before configuration was already played then return true.
     ///
-    pub fn super_ko(&mut self, stone: Stone) -> bool {
+    pub fn super_ko(&self, stone: Stone) -> bool {
         if !self.will_capture(stone.coordinates) {
             false
         } else {
@@ -309,39 +308,23 @@ impl Game {
     #[inline]
     fn remove_captured_stones(&mut self) -> (u32, u32) {
         let mut new_prisoners = self.prisoners;
-        match self.turn {
-            Black => {
-                new_prisoners.0 += self.remove_captured_stones_turn(White);
-                if self.rule.is_suicide_valid() {
-                    new_prisoners.1 += self.remove_captured_stones_turn(Black);
-                }
-                new_prisoners
-            }
-            White => {
-                new_prisoners.1 += self.remove_captured_stones_turn(Black);
-                if self.rule.is_suicide_valid() {
-                    new_prisoners.0 += self.remove_captured_stones_turn(White);
-                }
-                new_prisoners
-            }
-        }
-    }
-
-    ///
-    /// Removes the dead stones from the goban by specifying a color stone.
-    /// Returns the number of stones removed from the goban.
-    ///
-    fn remove_captured_stones_turn(&mut self, player: Player) -> u32 {
-        let mut number_of_stones_captured = 0u32;
-        let string_without_liberties = self
+        let pris = self
             .goban
-            .get_strings_of_stones_without_liberties_wth_color(player.get_stone_color())
-            .collect::<HashSet<_>>();
-        for group_of_stones in string_without_liberties {
-            number_of_stones_captured += group_of_stones.stones().len() as u32;
-            self.goban.remove_string(group_of_stones);
+            .remove_captured_stones_turn((!self.turn).get_stone_color());
+        match self.turn {
+            Black => new_prisoners.0 += pris,
+            White => new_prisoners.1 += pris,
+        };
+        if self.rule.is_suicide_valid() {
+            let pris = self
+                .goban
+                .remove_captured_stones_turn(self.turn.get_stone_color());
+            match self.turn {
+                Black => new_prisoners.1 += pris,
+                White => new_prisoners.0 += pris,
+            };
         }
-        number_of_stones_captured
+        new_prisoners
     }
 }
 

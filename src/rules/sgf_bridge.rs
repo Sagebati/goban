@@ -1,7 +1,7 @@
+use crate::pieces::util::coord::Point;
 use crate::rules::game::{Game, GameBuilder};
 use crate::rules::{EndGame, Move, Player};
 use sgf_parser::{Action, Color, Outcome, SgfToken};
-use crate::pieces::util::coord::Point;
 
 impl Game {
     pub fn from_sgf(sgf_str: &str) -> Result<Self, String> {

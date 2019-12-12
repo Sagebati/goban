@@ -364,6 +364,22 @@ impl Goban {
             self.go_strings[self.coord_util.to(point)] = Option::None;
         }
     }
+
+    ///
+    /// Removes the dead stones from the goban by specifying a color stone.
+    /// Returns the number of stones removed from the goban.
+    ///
+    pub fn remove_captured_stones_turn(&mut self, color: Color) -> u32 {
+        let mut number_of_stones_captured = 0u32;
+        let string_without_liberties = self
+            .get_strings_of_stones_without_liberties_wth_color(color)
+            .collect::<HashSet<_>>();
+        for group_of_stones in string_without_liberties {
+            number_of_stones_captured += group_of_stones.stones().len() as u32;
+            self.remove_string(group_of_stones);
+        }
+        number_of_stones_captured
+    }
 }
 
 impl Display for Goban {
