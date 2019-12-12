@@ -16,8 +16,12 @@ maintenance = {status = "actively-developed"}
 [profile.release]
 lto = true
 
+[features]
+history = []
+thread-safe = []
+
 [dependencies]
-hashbrown = "0.6.3"
+arrayvec = "0.5.1"
 sloth = "0.2.0"
 by_address = "1.0.4"
 getset = "0.0.9"
@@ -25,7 +29,6 @@ lazy_static = "1.4.0"
 rand_xorshift = "0.2.0"
 rand = "0.7.2"
 sgf-parser = "2.3.0"
-arrayvec = "0.5.1"
 
 [dev-dependencies]
 criterion = "0.3.0"

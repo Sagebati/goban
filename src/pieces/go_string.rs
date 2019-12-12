@@ -1,6 +1,6 @@
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 
 type Set = HashSet<Point>;
 
@@ -44,13 +44,13 @@ impl GoString {
 
     #[inline]
     pub fn remove_liberty(&mut self, point: Point) {
-        // debug_assert!(self.liberties.contains(&point));
+        debug_assert!(self.liberties.contains(&point));
         self.liberties.remove(&point);
     }
 
     #[inline]
     pub fn add_liberty(&mut self, point: Point) {
-        // debug_assert!(!self.liberties.contains(&point));
+        debug_assert!(!self.liberties.contains(&point));
         self.liberties.insert(point);
     }
 

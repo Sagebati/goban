@@ -41,8 +41,12 @@ pub struct Game {
     #[set]
     handicap: u8,
 
+    #[cfg(feature="history")]
     #[get = "pub"]
-    plays: Vec<u64>,
+    plays: Vec<Goban>,
+
+    #[get = "pub"]
+    last_hash: u64,
 
     hashes: HashSet<u64>,
 }
@@ -52,21 +56,25 @@ impl Game {
         let goban = Goban::new(size.into());
         let komi = 5.5;
         let pass = 0;
-        let plays = Vec::with_capacity(300);
+        #[cfg(feature = "history")]
+            let plays = Vec::with_capacity(300);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashSet::with_capacity(300);
+        let last_hash = 0;
         Game {
             goban,
             turn: Player::Black,
             komi,
             prisoners,
             passes: pass,
+            #[cfg(feature = "history")]
             plays,
             outcome: None,
             rule,
             handicap,
             hashes,
+            last_hash,
         }
     }
 }
@@ -151,7 +159,9 @@ impl Game {
             }
             Move::Play(x, y) => {
                 let hash = self.goban.hash();
-                self.plays.push(hash);
+                self.last_hash = hash;
+                #[cfg(feature="history")]
+                self.plays.push(self.goban.clone());
                 self.hashes.insert(hash);
                 self.goban.push((x, y), self.turn.get_stone_color());
                 self.prisoners = self.remove_captured_stones();
@@ -266,10 +276,10 @@ impl Game {
     /// If the goban is in the configuration of the two plays ago returns true
     ///
     pub fn ko(&mut self, stone: Stone) -> bool {
-        if self.plays.len() <= 2 || !self.will_capture(stone.coordinates) {
+        if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
-            self.play_for_verification(stone.coordinates) == self.plays[self.plays.len() - 1]
+            self.play_for_verification(stone.coordinates) == self.last_hash
         }
     }
 
@@ -420,8 +430,10 @@ impl GameBuilder {
             komi: self.komi,
             rule: self.rule,
             handicap: self.handicap_points.len() as u8,
+            #[cfg(feature="history")]
             plays: vec![],
             hashes: Default::default(),
+            last_hash: 0,
         };
 
         for &m in &self.moves {

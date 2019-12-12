@@ -9,10 +9,20 @@ use by_address::ByAddress;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
-use std::rc::Rc;
-use hashbrown::HashSet;
 
+#[cfg(not(feature = "thread-safe"))]
+use std::rc::Rc;
+
+#[cfg(not(feature = "thread-safe"))]
 pub type GoStringPtr = ByAddress<Rc<GoString>>;
+
+
+#[cfg(feature = "thread-safe")]
+use std::sync::Arc;
+use std::collections::HashSet;
+
+#[cfg(feature = "thread-safe")]
+pub type GoStringPtr = ByAddress<Arc<GoString>>;
 
 ///
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
@@ -53,10 +63,8 @@ impl Goban {
         stones
             .iter()
             .enumerate()
-            .map(|k| {
-                // k.0 is the index of the coord
-                // k.1 is the color
-                (coord_util.from(k.0), k.1)
+            .map(|(index, color)| {
+                (coord_util.from(index), color)
             })
             .filter(|s| *(*s).1 != Color::None)
             .for_each(|coord_color| {
@@ -81,8 +89,8 @@ impl Goban {
             panic!("We can't put empty stones")
         }
         let mut liberties = HashSet::new();
-        let mut adjacent_same_color_set = HashSet::new();
-        let mut adjacent_opposite_color_set =HashSet::new();
+        let mut adjacent_same_color_str_set = HashSet::new();
+        let mut adjacent_opposite_color_str_set = HashSet::new();
 
         for p in neighbors_points(point)
             .into_iter()
@@ -92,14 +100,14 @@ impl Goban {
                     Some(go_str_ptr) => {
                         match go_str_ptr.color {
                             go_str_color if go_str_color == color => {
-                                adjacent_same_color_set.insert(go_str_ptr.to_owned());
+                                adjacent_same_color_str_set.insert(go_str_ptr.to_owned());
                             }
                             Color::None => panic!("a string cannot be of color none"),
                             _ => {
-                                adjacent_opposite_color_set.insert(go_str_ptr.to_owned());
+                                adjacent_opposite_color_str_set.insert(go_str_ptr.to_owned());
                             }
                         }
-                    },
+                    }
                     Option::None => {
                         liberties.insert(p);
                     }
@@ -107,16 +115,18 @@ impl Goban {
             }
         let mut stones = HashSet::new();
         stones.insert(point);
-        let mut new_string = GoString::new(color,stones, liberties);
+        let mut new_string = GoString::new(color, stones, liberties);
         // Merges the neighbors allies string and then creates the string
-        for same_color_string in adjacent_same_color_set.drain() {
+        for same_color_string in adjacent_same_color_str_set.drain() {
             new_string = self.merge_two_strings(new_string, same_color_string);
         }
 
         self.hash ^= ZOBRIST[(point, color)];
 
         self.create_string(new_string);
-        for mut other_color_string in adjacent_opposite_color_set.drain().map(|x| (**x).clone()) {
+        for mut other_color_string in adjacent_opposite_color_str_set
+            .drain()
+            .map(|go_str_ptr| (**go_str_ptr).clone()) {
             other_color_string.remove_liberty(point);
             self.create_string(other_color_string);
         }
@@ -143,6 +153,7 @@ impl Goban {
     ///
     /// Function for getting the stone in the goban.
     ///
+    #[inline]
     pub fn get_stone(&self, point: Point) -> Color {
         self.go_strings[self.coord_util.to(point)].as_ref()
             .map_or(Color::None, |go_str_ptr| go_str_ptr.color)
@@ -182,7 +193,7 @@ impl Goban {
     }
 
     #[inline]
-    pub fn get_points(&self) -> impl Iterator<Item=Point> + '_ {
+    fn get_points(&self) -> impl Iterator<Item=Point> + '_ {
         (0..self.size * self.size).map(move |index| self.coord_util.from(index))
     }
 
@@ -314,7 +325,10 @@ impl Goban {
     /// moves out the string.
     ///
     fn create_string(&mut self, string_to_add: GoString) {
-        let new_string: GoStringPtr = Rc::new(string_to_add).into();
+        #[cfg(not(feature = "thread-safe"))]
+            let new_string: GoStringPtr = Rc::new(string_to_add).into();
+        #[cfg(feature = "thread-safe")]
+            let new_string: GoStringPtr = Arc::new(string_to_add).into();
         self.update_map_indexes(new_string);
     }
 
