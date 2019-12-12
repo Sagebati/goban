@@ -67,7 +67,7 @@ pub fn perft_bench(_c: &mut Criterion) {
 pub fn game_play_bench(_c: &mut Criterion) {
     let criterion: Criterion = Default::default();
     criterion
-        .sample_size(10)
+        .sample_size(100)
         .bench_function("game_play", |b| b.iter(|| play_game()));
 }
 

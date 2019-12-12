@@ -29,8 +29,11 @@ impl Game {
                         SgfToken::Result(o) => {
                             gamebuilder.outcome((*o).into());
                         }
-                        SgfToken::Add { color, coordinate: (x, y) } if *color == Color::Black => {
-                            handicap.push((*x as usize -1, *y as usize -1));
+                        SgfToken::Add {
+                            color,
+                            coordinate: (x, y),
+                        } if *color == Color::Black => {
+                            handicap.push((*x as usize - 1, *y as usize - 1));
                         }
                         //TODO another options
                         _ => (),

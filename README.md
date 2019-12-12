@@ -6,9 +6,15 @@
 
 *Channel : stable*
 
-
 Only contains move generation, and rules there is no IA, neither
 front-end.
+
+rust cargo features: 
+- thread-safe # for using Arc instead of Rc. decrease perfs.
+- history     # each game will have his all history so you can iterate over it. decrease perfs.
+
+Thanks to some help in profiling and optimisation we can run a playout radomly of an entire game in 28ms (before it was 600ms) ! 
+
 
 Exemple :
 
@@ -54,12 +60,13 @@ etc...
 - Resigning
 - Implementation to count points
 - Printing an *ugly* ascii goban
-- Generate legals moves (Handling Ko detection and Suicide moves)
+- SGF Import
+- Generate legals moves (Handling Ko detection, Suicide moves, Super ko)
 - Japanese Rules
 - Chinese Rules
-
 
 ## What is not in point:
 - Handling dead stones at the end of the game.
 
-## Actively develloped 
+## Actively developed 
+- Iterate over the game and history

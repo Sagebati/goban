@@ -4,7 +4,6 @@ use crate::pieces::stones::{Color, Stone};
 use crate::pieces::util::coord::Point;
 use crate::rules::game::Game;
 use std::ops::Not;
-use crate::rules::Rule::{Japanese, Chinese};
 
 pub mod game;
 mod sgf_bridge;
@@ -124,7 +123,7 @@ impl Rule {
     ///
     pub fn count_points(self, game: &Game) -> (f32, f32) {
         match self {
-            Japanese => {
+            Rule::Japanese => {
                 let mut scores = game.goban().calculate_territories();
                 scores.0 += game.prisoners().0 as f32;
                 scores.1 += game.prisoners().1 as f32;
@@ -132,7 +131,7 @@ impl Rule {
 
                 scores
             }
-            Chinese => {
+            Rule::Chinese => {
                 // Territories in seki are not counted
                 let mut scores = game.goban().calculate_territories();
                 let ns = game.goban().number_of_stones();
@@ -148,10 +147,19 @@ impl Rule {
     ///
     pub fn move_validation(self, game: &mut Game, stone: Stone) -> Option<PlayError> {
         match self {
-            Japanese | Chinese => {
+            Rule::Japanese => {
                 if game.is_suicide(stone) {
                     Some(PlayError::Suicide)
                 } else if game.ko(stone) {
+                    Some(PlayError::Ko)
+                } else {
+                    None
+                }
+            }
+            Rule::Chinese => {
+                if game.is_suicide(stone) {
+                    Some(PlayError::Suicide)
+                } else if game.super_ko(stone) {
                     Some(PlayError::Ko)
                 } else {
                     None
@@ -161,9 +169,7 @@ impl Rule {
     }
 
     pub fn is_suicide_valid(self) -> bool {
-        match self {
-            Japanese |Chinese => false
-        }
+        false
     }
 
     pub fn from_sgf_code(s: &str) -> Result<Rule, String> {
