@@ -5,7 +5,7 @@
 
 pub mod go_string;
 pub mod goban;
-pub mod territory;
 pub mod stones;
+pub mod territory;
 pub mod util;
 pub mod zobrist;

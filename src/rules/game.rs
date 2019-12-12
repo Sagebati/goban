@@ -9,8 +9,8 @@ use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
 use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, GobanSizes, Move};
-use std::collections::HashSet;
 use sloth::Lazy;
+use std::collections::HashSet;
 
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
@@ -41,7 +41,7 @@ pub struct Game {
     #[set]
     handicap: u8,
 
-    #[cfg(feature="history")]
+    #[cfg(feature = "history")]
     #[get = "pub"]
     plays: Vec<Goban>,
 
@@ -57,7 +57,7 @@ impl Game {
         let komi = 5.5;
         let pass = 0;
         #[cfg(feature = "history")]
-            let plays = Vec::with_capacity(300);
+        let plays = Vec::with_capacity(300);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashSet::with_capacity(300);
@@ -126,7 +126,7 @@ impl Game {
     /// Generate all moves on all intersections.
     ///
     #[inline]
-    fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
+    fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
@@ -135,7 +135,7 @@ impl Game {
     /// In the list will appear suicides moves, and ko moves.
     ///
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
         let mut test_game = Lazy::new(move || self.clone());
         self.pseudo_legals()
             .map(move |s| Stone {
@@ -160,7 +160,7 @@ impl Game {
             Move::Play(x, y) => {
                 let hash = self.goban.hash();
                 self.last_hash = hash;
-                #[cfg(feature="history")]
+                #[cfg(feature = "history")]
                 self.plays.push(self.goban.clone());
                 self.hashes.insert(hash);
                 self.goban.push((x, y), self.turn.get_stone_color());
@@ -291,8 +291,7 @@ impl Game {
             false
         } else {
             let hash_test_goban = self.play_for_verification(stone.coordinates);
-            self.hashes
-                .contains(&hash_test_goban)
+            self.hashes.contains(&hash_test_goban)
         }
     }
 
@@ -338,11 +337,10 @@ impl Game {
             .goban
             .get_strings_of_stones_without_liberties_wth_color(player.get_stone_color())
             .collect::<HashSet<_>>();
-        for group_of_stones in string_without_liberties
-            {
-                number_of_stones_captured += group_of_stones.stones().len() as u32;
-                self.goban.remove_string(group_of_stones);
-            }
+        for group_of_stones in string_without_liberties {
+            number_of_stones_captured += group_of_stones.stones().len() as u32;
+            self.goban.remove_string(group_of_stones);
+        }
         number_of_stones_captured
     }
 }
@@ -430,7 +428,7 @@ impl GameBuilder {
             komi: self.komi,
             rule: self.rule,
             handicap: self.handicap_points.len() as u8,
-            #[cfg(feature="history")]
+            #[cfg(feature = "history")]
             plays: vec![],
             hashes: Default::default(),
             last_hash: 0,

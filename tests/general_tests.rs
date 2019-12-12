@@ -410,12 +410,12 @@ mod tests {
                     println!("({},{})", x, y);
                     println!("({},{})", inv_coord[x], y);
                     println!("({},{})", inv_coord[x] + 1, y + 1);
-                    if inv_coord[x] == 6  && y == 14 && g.turn() == Player::White {
+                    if inv_coord[x] == 6 && y == 14 && g.turn() == Player::White {
                         println!("bug")
                     }
                     Play(inv_coord[x], y)
                 }
-                m => m
+                m => m,
             };
             g.play_with_verifications(to_play).unwrap();
             println!("prisoners: {:?}", g.prisoners());
@@ -546,7 +546,7 @@ mod tests {
             Some(endgame) => Ok(endgame),
             _ => Err("Game not finished"),
         }
-            .expect("Game finished");
+        .expect("Game finished");
         let (black, white) = g.calculate_score();
         assert_eq!(black, 81.);
         assert_eq!(white, 5.5);
@@ -629,7 +629,10 @@ mod tests {
     fn sgf_test() {
         let game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
-        assert_eq!(EndGame::WinnerByScore(Player::Black, 2.0), game.outcome().unwrap());
+        assert_eq!(
+            EndGame::WinnerByScore(Player::Black, 2.0),
+            game.outcome().unwrap()
+        );
         assert_eq!(game.prisoners(), (29, 31));
     }
 
@@ -638,7 +641,10 @@ mod tests {
         let game = Game::from_sgf(include_str!("sgf_2_2ha.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
         assert_eq!(game.prisoners(), (25, 26));
-        assert_eq!(EndGame::WinnerByScore(Player::Black, 1.0), game.outcome().unwrap());
+        assert_eq!(
+            EndGame::WinnerByScore(Player::Black, 1.0),
+            game.outcome().unwrap()
+        );
     }
 
     #[test]
@@ -646,7 +652,10 @@ mod tests {
         let game = Game::from_sgf(include_str!("sgf_1.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
         println!("prisoners : {:?}", game.prisoners());
-        assert_eq!(game.prisoners(), (9,2));
-        assert_eq!(EndGame::WinnerByResign(Player::White), game.outcome().unwrap())
+        assert_eq!(game.prisoners(), (9, 2));
+        assert_eq!(
+            EndGame::WinnerByResign(Player::White),
+            game.outcome().unwrap()
+        )
     }
 }

@@ -69,11 +69,7 @@ impl GoString {
         debug_assert!(color == self.color);
         self.stones.extend(stones.drain());
         self.liberties.extend(liberties.drain());
-        self.liberties = self
-            .liberties
-            .difference(&self.stones)
-            .copied()
-            .collect();
+        self.liberties = self.liberties.difference(&self.stones).copied().collect();
 
         self
     }

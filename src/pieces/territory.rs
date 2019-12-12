@@ -13,7 +13,7 @@ impl Goban {
     pub fn get_strings_of_stones_without_liberties_wth_color(
         &self,
         color: Color,
-    ) -> impl Iterator<Item=GoStringPtr> + '_ {
+    ) -> impl Iterator<Item = GoStringPtr> + '_ {
         self.go_strings()
             .iter()
             .filter_map(|x| x.as_ref())
@@ -58,7 +58,7 @@ impl Goban {
     ///
     pub fn get_strings_from_stones(
         &self,
-        stones: impl Iterator<Item=Stone>,
+        stones: impl Iterator<Item = Stone>,
     ) -> Vec<HashSet<Stone>> {
         let mut groups_of_stones: Vec<HashSet<Stone>> = Default::default();
         for s in stones {
@@ -89,7 +89,7 @@ impl Goban {
     ///
     /// Get two iterators of empty stones.
     ///
-    pub fn get_territories(&self) -> (impl Iterator<Item=Stone>, impl Iterator<Item=Stone>) {
+    pub fn get_territories(&self) -> (impl Iterator<Item = Stone>, impl Iterator<Item = Stone>) {
         let empty_strings = self.get_strings_from_stones(self.get_stones_by_color(Color::None));
         let mut white_territory = Vec::new();
         let mut black_territory = Vec::new();
