@@ -130,12 +130,39 @@ impl Game {
     }
 
     ///
+    /// Generate all moves on all intersections.
+    ///
+    #[inline]
+    fn pseudo_legals_shuffle(&self, rng: &mut impl rand::Rng) -> Vec<Point> {
+        use rand::prelude::SliceRandom;
+        let mut legals = self.goban.get_points_by_color(Color::None).collect::<Vec<_>>();
+        legals.shuffle(rng);
+        legals
+    }
+
+    ///
     /// Returns a list with legals moves,
     /// In the list will appear suicides moves, and ko moves.
     ///
     #[inline]
     pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.pseudo_legals()
+            .map(move |s| Stone {
+                color: self.turn.get_stone_color(),
+                coordinates: s,
+            })
+            .filter(move |&s| self.rule.move_validation(&self, s).is_none())
+            .map(|s| s.coordinates)
+    }
+
+    ///
+    /// Returns a list with legals moves,
+    /// In the list will appear suicides moves, and ko moves.
+    ///
+    #[inline]
+    pub fn legals_shuffle(&self, rng: &mut impl rand::Rng) -> impl Iterator<Item=Point> + '_ {
+        self.pseudo_legals_shuffle(rng)
+            .into_iter()
             .map(move |s| Stone {
                 color: self.turn.get_stone_color(),
                 coordinates: s,
