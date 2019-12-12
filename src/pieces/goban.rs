@@ -193,6 +193,14 @@ impl Goban {
     }
 
     #[inline]
+    pub fn get_empty_points(&self) -> impl Iterator<Item=Point> + '_ {
+        self.go_strings.iter()
+            .enumerate()
+            .filter(|(_, ptr)| ptr.is_none())
+            .map(move |(index, _)| self.coord_util.from(index))
+    }
+
+    #[inline]
     pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item = Point> + '_ {
         self.get_points()
             .filter(move |&point| self.get_stone(point) == color)
