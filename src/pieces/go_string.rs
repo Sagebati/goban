@@ -72,7 +72,7 @@ impl GoString {
         self.liberties = self
             .liberties
             .difference(&self.stones)
-            .map(|&x| x)
+            .copied()
             .collect();
 
         self
