@@ -43,15 +43,19 @@ impl GoString {
     }
 
     #[inline]
-    pub fn remove_liberty(&mut self, point: Point) {
+    pub fn without_liberty(&self, point: Point) -> GoString {
         debug_assert!(self.liberties.contains(&point));
-        self.liberties.remove(&point);
+        let mut new = self.clone();
+        new.liberties.remove(&point);
+        new
     }
 
     #[inline]
-    pub fn add_liberty(&mut self, point: Point) {
+    pub fn with_liberty(&self, point: Point) -> GoString{
         debug_assert!(!self.liberties.contains(&point));
-        self.liberties.insert(point);
+        let mut new = self.clone();
+        new.liberties.insert(point);
+        new
     }
 
     ///

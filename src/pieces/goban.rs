@@ -120,11 +120,10 @@ impl Goban {
         self.hash ^= ZOBRIST[(point, color)];
 
         self.create_string(new_string);
-        for mut other_color_string in adjacent_opposite_color_str_set
+        for other_color_string in adjacent_opposite_color_str_set
             .drain()
-            .map(|go_str_ptr| (**go_str_ptr).clone())
+            .map(|go_str_ptr| go_str_ptr.without_liberty(point))
             {
-                other_color_string.remove_liberty(point);
                 self.create_string(other_color_string);
             }
         self
@@ -358,9 +357,7 @@ impl Goban {
         for &point in go_string_to_remove.stones() {
             for neighbor_str_ptr in self.get_neighbors_strings(point).collect::<HashSet<_>>() {
                 if go_string_to_remove != neighbor_str_ptr {
-                    let mut neighbor_str_ptr = (**neighbor_str_ptr).clone();
-                    neighbor_str_ptr.add_liberty(point);
-                    self.create_string(neighbor_str_ptr)
+                    self.create_string(neighbor_str_ptr.with_liberty(point));
                 }
             }
             self.hash ^= ZOBRIST[(point, color_of_the_string)];
