@@ -28,6 +28,25 @@ pub fn perft(pos: &Game, depth: u8) -> u64 {
     }
 }
 
+pub fn fast_play_random(state: &Game) -> Move {
+    for l in state.legals_shuffle(&mut thread_rng()) {
+        if !state
+            .goban()
+            .is_point_an_eye(l, state.turn().get_stone_color())
+        {
+            return l.into();
+        }
+    }
+    Move::Pass
+}
+
+pub fn fast_play_game() {
+    let mut g = Game::new(GobanSizes::Nineteen, Chinese);
+    while !g.is_over() {
+        g.play(fast_play_random(&g));
+    }
+}
+
 pub fn play_random(state: &Game) -> Move {
     let mut legals = state.legals().collect::<Vec<_>>();
     legals.shuffle(&mut thread_rng());
@@ -51,7 +70,7 @@ pub fn play_game() {
 
 pub fn perft_bench(_c: &mut Criterion) {
     let g = Game::new(GobanSizes::Nineteen, Japanese);
-    let deep = 4;
+    let deep = 2;
     let criterion: Criterion = Default::default();
     criterion.sample_size(10).bench_function_over_inputs(
         "perft",
@@ -60,7 +79,7 @@ pub fn perft_bench(_c: &mut Criterion) {
                 perft(&g, *size);
             })
         },
-        (0..deep).into_iter(),
+        (1..=deep).into_iter(),
     );
 }
 
@@ -68,7 +87,8 @@ pub fn game_play_bench(_c: &mut Criterion) {
     let criterion: Criterion = Default::default();
     criterion
         .sample_size(100)
-        .bench_function("game_play", |b| b.iter(|| play_game()));
+        .bench_function("game_play", |b| b.iter(|| play_game()))
+        .bench_function("fast_play_game", |b| b.iter(|| fast_play_game()));
 }
 
 criterion_group!(benches, game_play_bench);

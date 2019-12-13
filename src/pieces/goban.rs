@@ -193,6 +193,14 @@ impl Goban {
     }
 
     #[inline]
+    pub fn get_empty_points(&self) -> impl Iterator<Item=Point> + '_ {
+        self.go_strings.iter()
+            .enumerate()
+            .filter(|(_, ptr)| ptr.is_none())
+            .map(move |(index, _)| self.coord_util.from(index))
+    }
+
+    #[inline]
     pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item = Point> + '_ {
         self.get_points()
             .filter(move |&point| self.get_stone(point) == color)
@@ -363,6 +371,22 @@ impl Goban {
             // Remove each point from the map. The Rc will be dropped "normally".
             self.go_strings[self.coord_util.to(point)] = Option::None;
         }
+    }
+
+    ///
+    /// Removes the dead stones from the goban by specifying a color stone.
+    /// Returns the number of stones removed from the goban.
+    ///
+    pub fn remove_captured_stones_turn(&mut self, color: Color) -> u32 {
+        let mut number_of_stones_captured = 0u32;
+        let string_without_liberties = self
+            .get_strings_of_stones_without_liberties_wth_color(color)
+            .collect::<HashSet<_>>();
+        for group_of_stones in string_without_liberties {
+            number_of_stones_captured += group_of_stones.stones().len() as u32;
+            self.remove_string(group_of_stones);
+        }
+        number_of_stones_captured
     }
 }
 

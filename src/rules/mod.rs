@@ -145,7 +145,7 @@ impl Rule {
     ///
     /// Specify the constraints in the move validation by rule.
     ///
-    pub fn move_validation(self, game: &mut Game, stone: Stone) -> Option<PlayError> {
+    pub fn move_validation(self, game: &Game, stone: Stone) -> Option<PlayError> {
         match self {
             Rule::Japanese => {
                 if game.is_suicide(stone) {
