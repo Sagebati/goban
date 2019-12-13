@@ -110,6 +110,7 @@ impl Game {
         } else if self.outcome.is_some() {
             self.outcome
         } else {
+            // two passes
             let scores = self.rule.count_points(&self);
             if (scores.0 - scores.1).abs() < std::f32::EPSILON {
                 Some(Draw)
@@ -188,9 +189,9 @@ impl Game {
             Move::Play(x, y) => {
                 let hash = self.goban.hash();
                 self.last_hash = hash;
+                self.hashes.insert(hash);
                 #[cfg(feature = "history")]
                 self.plays.push(self.goban.clone());
-                self.hashes.insert(hash);
                 self.goban.push((x, y), self.turn.get_stone_color());
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;

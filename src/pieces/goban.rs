@@ -14,20 +14,23 @@ use std::fmt::Formatter;
 #[cfg(not(feature = "thread-safe"))]
 use std::rc::Rc;
 
-#[cfg(not(feature = "thread-safe"))]
-pub type GoStringPtr = ByAddress<Rc<GoString>>;
-
 #[cfg(feature = "thread-safe")]
 use std::sync::Arc;
 
+#[cfg(not(feature = "thread-safe"))]
+type Ptr<T> = Rc<T>;
+
 #[cfg(feature = "thread-safe")]
-pub type GoStringPtr = ByAddress<Arc<GoString>>;
+type Ptr<T> = Arc<T>;
+
+pub type GoStringPtr = ByAddress<Ptr<GoString>>;
 
 ///
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
 /// only square boards are possible for the moment.
 ///
-#[derive(Getters, Setters, CopyGetters, Debug, Clone)]
+#[derive(Getters, Setters, CopyGetters, Debug)]
+#[cfg_attr(not(feature = "history"), derive(Clone))]
 pub struct Goban {
     #[get = "pub"]
     go_strings: Vec<Option<GoStringPtr>>,
@@ -70,7 +73,10 @@ impl Goban {
         g
     }
 
-    pub fn tab(&self) -> Vec<Color> {
+    ///
+    /// Returns the underlying goban in a vector with a RowMajor Policy
+    ///
+    pub fn raw(&self) -> Vec<Color> {
         self.go_strings
             .iter()
             .map(|point| {
@@ -128,11 +134,10 @@ impl Goban {
         }
         let mut stones = HashSet::new();
         stones.insert(point);
-        let mut new_string = GoString::new(color, stones, liberties);
-        // Merges the neighbors allies string and then creates the string
-        for same_color_string in adjacent_same_color_str_set.drain() {
-            new_string = self.merge_two_strings(new_string, same_color_string);
-        }
+        let new_string = adjacent_same_color_str_set.drain().fold(
+            GoString::new(color, stones, liberties),
+            |init, same_color_string| self.merge_two_strings(init, same_color_string),
+        );
 
         self.hash ^= ZOBRIST[(point, color)];
 
@@ -330,7 +335,7 @@ impl Goban {
         let color_of_the_string = go_string_to_remove.color;
         for &point in go_string_to_remove.stones() {
             for neighbor_str_ptr in self.get_neighbors_strings(point).collect::<HashSet<_>>() {
-                if !Rc::ptr_eq(&go_string_to_remove, &*neighbor_str_ptr) {
+                if go_string_to_remove != neighbor_str_ptr {
                     self.create_string(neighbor_str_ptr.with_liberty(point));
                 }
             }
@@ -341,9 +346,9 @@ impl Goban {
         }
 
         debug_assert!(
-            Rc::strong_count(&go_string_to_remove) == 1,
+            Ptr::strong_count(&go_string_to_remove) == 1,
             "strong count: {}",
-            Rc::strong_count(&go_string_to_remove)
+            Ptr::strong_count(&go_string_to_remove)
         );
     }
 
@@ -368,10 +373,7 @@ impl Goban {
     /// moves out the string.
     ///
     fn create_string(&mut self, string_to_add: GoString) {
-        #[cfg(not(feature = "thread-safe"))]
-        let new_string: GoStringPtr = Rc::new(string_to_add).into();
-        #[cfg(feature = "thread-safe")]
-        let new_string: GoStringPtr = Arc::new(string_to_add).into();
+        let new_string: GoStringPtr = Ptr::new(string_to_add).into();
         self.update_vec_indexes(new_string);
     }
 
@@ -383,14 +385,39 @@ impl Goban {
             self.go_strings[self.coord_util.to(point)] = Option::None;
         }
 
-        //debug_assert!(Rc::strong_count(&*other) == 1, "strong count: {}",
-        //            Rc::strong_count(&*other));
+        #[cfg(feature = "history")]
+        debug_assert!(
+            Ptr::strong_count(&*other) == 1,
+            "strong count: {}",
+            Ptr::strong_count(&*other)
+        );
         first.merge_with((**other).clone())
     }
 
     fn update_vec_indexes(&mut self, go_string: GoStringPtr) {
         for &stone in go_string.stones() {
             self.go_strings[self.coord_util.to(stone)] = Some(go_string.clone());
+        }
+    }
+}
+
+#[cfg(feature = "history")]
+impl Clone for Goban {
+    fn clone(&self) -> Self {
+        let new_go_strings = self
+            .go_strings
+            .iter()
+            .map(|s| match s {
+                Some(x) => Some(ByAddress::from(Ptr::new((***x).clone()))),
+                Option::None => Option::None,
+            })
+            .collect();
+
+        Goban {
+            go_strings: new_go_strings,
+            size: self.size.clone(),
+            coord_util: self.coord_util.clone(),
+            hash: self.hash.clone(),
         }
     }
 }

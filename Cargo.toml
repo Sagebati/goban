@@ -33,6 +33,7 @@ sgf-parser = "2.3.0"
 criterion = "0.3.0"
 
 [profile.bench]
+lto = true
 debug = true
 
 [[bench]]
