@@ -152,7 +152,7 @@ impl Game {
     pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
-                color: self.turn.get_stone_color(),
+                color: self.turn.stone_color(),
                 coordinates: s,
             })
             .filter(move |&s| self.rule.move_validation(&self, s).is_none())
@@ -168,7 +168,7 @@ impl Game {
         self.pseudo_legals_shuffle(rng)
             .into_iter()
             .map(move |s| Stone {
-                color: self.turn.get_stone_color(),
+                color: self.turn.stone_color(),
                 coordinates: s,
             })
             .filter(move |&s| self.rule.move_validation(&self, s).is_none())
@@ -192,7 +192,7 @@ impl Game {
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
                 self.plays.push(self.goban.clone());
-                self.goban.push((x, y), self.turn.get_stone_color());
+                self.goban.push((x, y), self.turn.stone_color());
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
                 self.passes = 0;
@@ -207,10 +207,10 @@ impl Game {
 
     fn play_for_verification(&self, (x, y): Point) -> u64 {
         let mut test_goban = self.goban.clone();
-        test_goban.push((x, y), self.turn.get_stone_color());
-        test_goban.remove_captured_stones_turn((!self.turn).get_stone_color());
+        test_goban.push((x, y), self.turn.stone_color());
+        test_goban.remove_captured_stones_turn((!self.turn).stone_color());
         if self.rule.is_suicide_valid() {
-            test_goban.remove_captured_stones_turn(self.turn.get_stone_color());
+            test_goban.remove_captured_stones_turn(self.turn.stone_color());
         }
         test_goban.hash()
     }
@@ -232,7 +232,7 @@ impl Game {
                         self,
                         Stone {
                             coordinates: (x, y),
-                            color: self.turn.get_stone_color(),
+                            color: self.turn.stone_color(),
                         },
                     ) {
                         Err(c)
@@ -296,7 +296,7 @@ impl Game {
     pub fn will_capture(&self, point: Point) -> bool {
         self.goban
             .get_neighbors_strings(point)
-            .filter(|go_str_ptr| go_str_ptr.color != self.turn.get_stone_color())
+            .filter(|go_str_ptr| go_str_ptr.color != self.turn.stone_color())
             // if an enemy string has only liberty it's a capture move
             .any(|go_str_ptr| go_str_ptr.number_of_liberties() == 1)
     }
@@ -341,7 +341,7 @@ impl Game {
         let mut new_prisoners = self.prisoners;
         let pris = self
             .goban
-            .remove_captured_stones_turn((!self.turn).get_stone_color());
+            .remove_captured_stones_turn((!self.turn).stone_color());
         match self.turn {
             Black => new_prisoners.0 += pris,
             White => new_prisoners.1 += pris,
@@ -349,7 +349,7 @@ impl Game {
         if self.rule.is_suicide_valid() {
             let pris = self
                 .goban
-                .remove_captured_stones_turn(self.turn.get_stone_color());
+                .remove_captured_stones_turn(self.turn.stone_color());
             match self.turn {
                 Black => new_prisoners.1 += pris,
                 White => new_prisoners.0 += pris,

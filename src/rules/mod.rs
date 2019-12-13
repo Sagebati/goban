@@ -26,7 +26,7 @@ impl Not for Player {
 }
 
 impl Player {
-    pub fn get_stone_color(self) -> Color {
+    pub fn stone_color(self) -> Color {
         match self {
             Player::Black => Color::Black,
             Player::White => Color::White,

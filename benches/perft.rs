@@ -32,7 +32,7 @@ pub fn fast_play_random(state: &Game) -> Move {
     for l in state.legals_shuffle(&mut thread_rng()) {
         if !state
             .goban()
-            .is_point_an_eye(l, state.turn().get_stone_color())
+            .is_point_an_eye(l, state.turn().stone_color())
         {
             return l.into();
         }
@@ -53,7 +53,7 @@ pub fn play_random(state: &Game) -> Move {
     for l in legals {
         if !state
             .goban()
-            .is_point_an_eye(l, state.turn().get_stone_color())
+            .is_point_an_eye(l, state.turn().stone_color())
         {
             return l.into();
         }
