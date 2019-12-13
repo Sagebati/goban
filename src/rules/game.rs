@@ -126,7 +126,7 @@ impl Game {
     ///
     #[inline]
     fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
-        self.goban.get_empty_points()
+        self.goban.get_points_by_color(Color::None)
     }
 
     ///
@@ -135,7 +135,7 @@ impl Game {
     #[inline]
     fn pseudo_legals_shuffle(&self, rng: &mut impl rand::Rng) -> Vec<Point> {
         use rand::prelude::SliceRandom;
-        let mut legals = self.goban.get_empty_points().collect::<Vec<_>>();
+        let mut legals = self.goban.get_points_by_color(Color::None).collect::<Vec<_>>();
         legals.shuffle(rng);
         legals
     }
