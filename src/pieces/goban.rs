@@ -78,6 +78,19 @@ impl Goban {
     }
 
     ///
+    /// Get number of stones on the goban.
+    /// (number of black stones, number of white stones)
+    ///
+    pub fn number_of_stones(&self) -> (u32, u32) {
+        self.get_stones()
+            .fold((0, 0), |(x1, x2), stone| match stone.color {
+                Color::Black => (x1 + 1, x2),
+                Color::White => (x1, x2 + 1),
+                _ => unreachable!(),
+            })
+    }
+
+    ///
     /// Put a stones in the goban. The point depends on the order choose.
     /// default (line, column)
     /// the (0,0) point is in the top left.
@@ -99,7 +112,7 @@ impl Goban {
                         go_str_color if go_str_color == color => {
                             adjacent_same_color_str_set.insert(go_str_ptr.to_owned());
                         }
-                        Color::None => debug_assert!(true, "A string cannot be of color none"),
+                        Color::None => debug_assert!(false, "A string cannot be of color none"),
                         _ => {
                             adjacent_opposite_color_str_set.insert(go_str_ptr.to_owned());
                         }
@@ -145,16 +158,6 @@ impl Goban {
     }
 
     ///
-    /// Function for getting the stone in the goban.
-    ///
-    #[inline]
-    pub fn get_stone(&self, point: Point) -> Color {
-        self.go_strings[self.coord_util.to(point)]
-            .as_ref()
-            .map_or(Color::None, |go_str_ptr| go_str_ptr.color)
-    }
-
-    ///
     /// Get all the neighbors to the coordinate
     ///
     #[inline]
@@ -187,15 +190,14 @@ impl Goban {
             .filter_map(move |coord| self.go_strings[self.coord_util.to(coord)].clone())
     }
 
+    ///
+    /// Function for getting the stone in the goban.
+    ///
     #[inline]
-    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Point> + '_ {
-        self.go_strings.iter()
-            .enumerate()
-            .filter(move |(_, point)| match point {
-                Some(go_str_ptr) => go_str_ptr.color == color,
-                Option::None => color == Color::None
-            })
-            .map(move |(index, _)| self.coord_util.from(index))
+    pub fn get_stone(&self, point: Point) -> Color {
+        self.go_strings[self.coord_util.to(point)]
+            .as_ref()
+            .map_or(Color::None, |go_str_ptr| go_str_ptr.color)
     }
 
     ///
@@ -226,6 +228,18 @@ impl Goban {
         })
     }
 
+    #[inline]
+    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Point> + '_ {
+        self.go_strings.iter()
+            .enumerate()
+            .filter(move |(_, point)| match point {
+                Some(go_str_ptr) => go_str_ptr.color == color,
+                Option::None => color == Color::None
+            })
+            .map(move |(index, _)| self.coord_util.from(index))
+    }
+
+
     ///
     /// Returns the empty stones connected to the stone
     ///
@@ -243,38 +257,6 @@ impl Goban {
         self.get_liberties(point).next().is_some()
     }
 
-    ///
-    /// Get a string for printing the goban in normal shape (0,0) left bottom
-    ///
-    pub fn pretty_string(&self) -> String {
-        let mut buff = String::new();
-        for i in 0..self.size {
-            buff.push('|');
-            for j in 0..self.size {
-                buff.push(match self.get_stone((i, j)) {
-                    Color::White => WHITE_STONE,
-                    Color::Black => BLACK_STONE,
-                    Color::None => EMPTY_STONE,
-                });
-            }
-            buff.push('|');
-            buff.push('\n');
-        }
-        buff
-    }
-
-    ///
-    /// Get number of stones on the goban.
-    /// (number of black stones, number of white stones)
-    ///
-    pub fn number_of_stones(&self) -> (u32, u32) {
-        self.get_stones()
-            .fold((0, 0), |(x1, x2), stone| match stone.color {
-                Color::Black => (x1 + 1, x2),
-                Color::White => (x1, x2 + 1),
-                _ => unreachable!(),
-            })
-    }
 
     /// Detects true eyes.
     /// Except for this form :
@@ -320,32 +302,23 @@ impl Goban {
     }
 
     ///
-    /// Just create the Rc pointer and add it to the set.
-    /// moves out the string.
+    /// Get a string for printing the goban in normal shape (0,0) left bottom
     ///
-    fn create_string(&mut self, string_to_add: GoString) {
-        #[cfg(not(feature = "thread-safe"))]
-            let new_string: GoStringPtr = Rc::new(string_to_add).into();
-        #[cfg(feature = "thread-safe")]
-            let new_string: GoStringPtr = Arc::new(string_to_add).into();
-        self.update_map_indexes(new_string);
-    }
-
-    ///
-    /// Deletes all the Rc from the go_strings set then merges the two_string
-    ///
-    fn merge_two_strings(&mut self, first: GoString, other: GoStringPtr) -> GoString {
-        for &point in other.stones() {
-            self.go_strings[self.coord_util.to(point)] = Option::None;
+    pub fn pretty_string(&self) -> String {
+        let mut buff = String::new();
+        for i in 0..self.size {
+            buff.push('|');
+            for j in 0..self.size {
+                buff.push(match self.get_stone((i, j)) {
+                    Color::White => WHITE_STONE,
+                    Color::Black => BLACK_STONE,
+                    Color::None => EMPTY_STONE,
+                });
+            }
+            buff.push('|');
+            buff.push('\n');
         }
-
-        first.merge_with((**other).clone())
-    }
-
-    fn update_map_indexes(&mut self, go_string: GoStringPtr) {
-        for &stone in go_string.stones() {
-            self.go_strings[self.coord_util.to(stone)] = Some(go_string.clone());
-        }
+        buff
     }
 
     ///
@@ -365,6 +338,9 @@ impl Goban {
             // Remove each point from the map. The Rc will be dropped "normally".
             self.go_strings[self.coord_util.to(point)] = Option::None;
         }
+
+        debug_assert!(Rc::strong_count(&*go_string_to_remove) == 1, "strong count: {}",
+                      Rc::strong_count(&*go_string_to_remove));
     }
 
     ///
@@ -381,6 +357,37 @@ impl Goban {
             self.remove_string(group_of_stones);
         }
         number_of_stones_captured
+    }
+
+    ///
+    /// Just create the Rc pointer and add it to the set.
+    /// moves out the string.
+    ///
+    fn create_string(&mut self, string_to_add: GoString) {
+        #[cfg(not(feature = "thread-safe"))]
+            let new_string: GoStringPtr = Rc::new(string_to_add).into();
+        #[cfg(feature = "thread-safe")]
+            let new_string: GoStringPtr = Arc::new(string_to_add).into();
+        self.update_vec_indexes(new_string);
+    }
+
+    ///
+    /// Deletes all the Rc from the go_strings, then merges the two_string
+    ///
+    fn merge_two_strings(&mut self, first: GoString, other: GoStringPtr) -> GoString {
+        for &point in other.stones() {
+            self.go_strings[self.coord_util.to(point)] = Option::None;
+        }
+
+        //debug_assert!(Rc::strong_count(&*other) == 1, "strong count: {}",
+        //            Rc::strong_count(&*other));
+        first.merge_with((**other).clone())
+    }
+
+    fn update_vec_indexes(&mut self, go_string: GoStringPtr) {
+        for &stone in go_string.stones() {
+            self.go_strings[self.coord_util.to(stone)] = Some(go_string.clone());
+        }
     }
 }
 
