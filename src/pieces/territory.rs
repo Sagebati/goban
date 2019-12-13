@@ -1,63 +1,21 @@
 //! Module with tools for getting the connected stones and liberties.
 
-use crate::pieces::goban::Goban;
+use crate::pieces::goban::{GoStringPtr, Goban};
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use std::collections::HashSet;
 
 impl Goban {
-    ///
-    /// Test if a group of string is dead.
-    ///
-    /// "a group of string is dead if it doesn't have liberties"
-    ///
-    #[inline]
-    pub fn is_string_dead(&self, string: &HashSet<Stone>) -> bool {
-        !string // If there is one stone connected who has liberties, they are not captured.
-            .iter()
-            .any(|s| self.has_liberties(*s))
-    }
-
-    ///
-    /// Count the liberties of a string
-    ///
-    #[inline]
-    pub fn count_string_liberties(&self, string: &HashSet<Stone>) -> u8 {
-        string
-            .iter()
-            .flat_map(|s| self.get_liberties(*s))
-            .collect::<HashSet<Stone>>()
-            .len() as u8
-    }
-
-    ///
-    /// Get all the groups of connected stones, who has at least one stones
-    /// without liberties.
-    ///
-    pub fn get_strings_of_stones_without_liberties(&self) -> Vec<HashSet<Stone>> {
-        let stones_without_liberties = self
-            // get all stones without liberties
-            .get_stones()
-            .filter(|point| !self.has_liberties(*point));
-
-        self.get_strings_from_stones(stones_without_liberties)
-    }
-
-    ///
-    /// Get all the strings of a color who doesn't have liberties.
-    ///
-    /// Ex: Passing black to this function will return an structure like this
-    /// [[a,b,c],[t,x,y],[y]]
     #[inline]
     pub fn get_strings_of_stones_without_liberties_wth_color(
         &self,
         color: Color,
-    ) -> Vec<HashSet<Stone>> {
-        let stones_without_libnerties = self
-            .get_stones_by_color(color)
-            // get all stones without liberties
-            .filter(|point| !self.has_liberties(*point));
-        self.get_strings_from_stones(stones_without_libnerties)
+    ) -> impl Iterator<Item = GoStringPtr> + '_ {
+        self.go_strings()
+            .iter()
+            .filter_map(|x| x.as_ref())
+            .filter(move |go_str| go_str.is_dead() && go_str.color == color)
+            .map(ToOwned::to_owned)
     }
 
     ///

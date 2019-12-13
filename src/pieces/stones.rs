@@ -27,11 +27,12 @@ pub struct Stone {
 
 impl From<u8> for Color {
     fn from(x: u8) -> Self {
+        debug_assert!(x <= 2, "Error in the conversion from u8 to stone");
         match x {
             2 => Color::White,
             1 => Color::Black,
             0 => Color::None,
-            _ => panic!("Error int the conversion from u8 to Stone"),
+            _ => unreachable!(),
         }
     }
 }

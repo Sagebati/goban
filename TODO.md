@@ -1,14 +1,10 @@
 TODO
 ==
 
-# Problem
-- Cannot implement a pop() function for the moment.
-
 # Optimizing
 
-- Don't know how to optimize, tested with pre-stored string structure, was so slow.
-
 # Functionalities
-
-- Detect dead stones at the end of the game.
-- SGF Import
+- Detect dead stones at the end of the game with an mcts.
+- Iterator on the history
+- SGF Export
+- Get Rid of ByAdress

@@ -28,15 +28,11 @@ impl ZobristTable {
 impl Index<(Point, Color)> for ZobristTable {
     type Output = u64;
 
-    fn index(&self, index: (Point, Color)) -> &Self::Output {
-        let x = index.0;
-        let color = index.1;
+    fn index(&self, (x, color): (Point, Color)) -> &Self::Output {
         &self.hashes[x.0 * self.n + x.1][(color as u8 - 1) as usize]
     }
 }
 
 lazy_static! {
-    pub static ref ZOBRIST19: ZobristTable = ZobristTable::new(19);
-    pub static ref ZOBRIST13: ZobristTable = ZobristTable::new(13);
-    pub static ref ZOBRIST9: ZobristTable = ZobristTable::new(9);
+    pub static ref ZOBRIST: ZobristTable = ZobristTable::new(19);
 }
