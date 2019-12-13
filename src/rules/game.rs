@@ -135,7 +135,10 @@ impl Game {
     #[inline]
     fn pseudo_legals_shuffle(&self, rng: &mut impl rand::Rng) -> Vec<Point> {
         use rand::prelude::SliceRandom;
-        let mut legals = self.goban.get_points_by_color(Color::None).collect::<Vec<_>>();
+        let mut legals = self
+            .goban
+            .get_points_by_color(Color::None)
+            .collect::<Vec<_>>();
         legals.shuffle(rng);
         legals
     }
@@ -160,7 +163,7 @@ impl Game {
     /// In the list will appear suicides moves, and ko moves.
     ///
     #[inline]
-    pub fn legals_shuffle(&self, rng: &mut impl rand::Rng) -> impl Iterator<Item=Point> + '_ {
+    pub fn legals_shuffle(&self, rng: &mut impl rand::Rng) -> impl Iterator<Item = Point> + '_ {
         self.pseudo_legals_shuffle(rng)
             .into_iter()
             .map(move |s| Stone {

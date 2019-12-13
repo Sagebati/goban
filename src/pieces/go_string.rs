@@ -51,7 +51,7 @@ impl GoString {
     }
 
     #[inline]
-    pub fn with_liberty(&self, point: Point) -> GoString{
+    pub fn with_liberty(&self, point: Point) -> GoString {
         debug_assert!(!self.liberties.contains(&point));
         let mut new = self.clone();
         new.liberties.insert(point);
