@@ -38,7 +38,7 @@ impl GoString {
     }
 
     #[inline]
-    pub fn contains_liberties(&self, point: Point) -> bool {
+    pub fn contains_liberty(&self, point: Point) -> bool {
         self.liberties.contains(&point)
     }
 
