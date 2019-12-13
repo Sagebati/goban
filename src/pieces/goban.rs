@@ -99,7 +99,7 @@ impl Goban {
                         go_str_color if go_str_color == color => {
                             adjacent_same_color_str_set.insert(go_str_ptr.to_owned());
                         }
-                        Color::None => panic!("a string cannot be of color none"),
+                        Color::None => debug_assert!(true, "A string cannot be of color none"),
                         _ => {
                             adjacent_opposite_color_str_set.insert(go_str_ptr.to_owned());
                         }
