@@ -9,7 +9,7 @@ use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
 use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, GobanSizes, Move};
-use std::collections::HashSet;
+use hash_hasher::{HashedSet, HashBuildHasher};
 
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
@@ -47,7 +47,10 @@ pub struct Game {
     #[get = "pub"]
     last_hash: u64,
 
-    hashes: HashSet<u64>,
+    #[get_copy = "pub"]
+    last_move: Option<Move>,
+
+    hashes: HashedSet<u64>,
 }
 
 impl Game {
@@ -56,10 +59,10 @@ impl Game {
         let komi = 5.5;
         let pass = 0;
         #[cfg(feature = "history")]
-        let plays = Vec::with_capacity(300);
+            let plays = Vec::with_capacity(300);
         let prisoners = (0, 0);
         let handicap = 0;
-        let hashes = HashSet::with_capacity(300);
+        let hashes = HashedSet::with_capacity_and_hasher(300, HashBuildHasher::default());
         let last_hash = 0;
         Game {
             goban,
@@ -74,6 +77,7 @@ impl Game {
             handicap,
             hashes,
             last_hash,
+            last_move: None,
         }
     }
 }
@@ -126,7 +130,7 @@ impl Game {
     /// Generate all moves on all intersections.
     ///
     #[inline]
-    fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
+    fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
@@ -149,7 +153,7 @@ impl Game {
     /// In the list will appear suicides moves, and ko moves.
     ///
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
         self.pseudo_legals()
             .map(move |s| Stone {
                 color: self.turn.stone_color(),
@@ -164,7 +168,7 @@ impl Game {
     /// In the list will appear suicides moves, and ko moves.
     ///
     #[inline]
-    pub fn legals_shuffle(&self, rng: &mut impl rand::Rng) -> impl Iterator<Item = Point> + '_ {
+    pub fn legals_shuffle(&self, rng: &mut impl rand::Rng) -> impl Iterator<Item=Point> + '_ {
         self.pseudo_legals_shuffle(rng)
             .into_iter()
             .map(move |s| Stone {
@@ -180,6 +184,7 @@ impl Game {
     /// (0,0) is in the top left corner of the goban.
     ///
     pub fn play(&mut self, play: Move) -> &mut Self {
+        self.last_move = Some(play);
         match play {
             Move::Pass => {
                 self.turn = !self.turn;
@@ -191,7 +196,7 @@ impl Game {
                 self.last_hash = hash;
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
-                self.plays.push(self.goban.clone());
+                    self.plays.push(self.goban.clone());
                 self.goban.push((x, y), self.turn.stone_color());
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
@@ -446,6 +451,7 @@ impl GameBuilder {
             plays: vec![],
             hashes: Default::default(),
             last_hash: 0,
+            last_move: None,
         };
 
         for &m in &self.moves {
