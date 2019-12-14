@@ -29,8 +29,7 @@ pub type GoStringPtr = ByAddress<Ptr<GoString>>;
 /// Represents a Goban. With an array with the stones encoded in u8. and the size.
 /// only square boards are possible for the moment.
 ///
-#[derive(Getters, Setters, CopyGetters, Debug)]
-#[cfg_attr(not(feature = "history"), derive(Clone))]
+#[derive(Getters, Setters, CopyGetters, Debug, Clone)]
 pub struct Goban {
     #[get = "pub"]
     go_strings: Vec<Option<GoStringPtr>>,
@@ -385,39 +384,12 @@ impl Goban {
             self.go_strings[self.coord_util.to(point)] = Option::None;
         }
 
-        #[cfg(feature = "history")]
-        debug_assert!(
-            Ptr::strong_count(&*other) == 1,
-            "strong count: {}",
-            Ptr::strong_count(&*other)
-        );
         first.merge_with((**other).clone())
     }
 
     fn update_vec_indexes(&mut self, go_string: GoStringPtr) {
         for &stone in go_string.stones() {
             self.go_strings[self.coord_util.to(stone)] = Some(go_string.clone());
-        }
-    }
-}
-
-#[cfg(feature = "history")]
-impl Clone for Goban {
-    fn clone(&self) -> Self {
-        let new_go_strings = self
-            .go_strings
-            .iter()
-            .map(|s| match s {
-                Some(x) => Some(ByAddress::from(Ptr::new((***x).clone()))),
-                Option::None => Option::None,
-            })
-            .collect();
-
-        Goban {
-            go_strings: new_go_strings,
-            size: self.size.clone(),
-            coord_util: self.coord_util.clone(),
-            hash: self.hash.clone(),
         }
     }
 }
