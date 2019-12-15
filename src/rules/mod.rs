@@ -42,13 +42,13 @@ pub enum GobanSizes {
     Custom(usize, usize),
 }
 
-impl Into<usize> for GobanSizes {
-    fn into(self) -> usize {
+impl Into<(usize, usize)> for GobanSizes {
+    fn into(self) -> (usize, usize) {
         match self {
-            GobanSizes::Nine => 9,
-            GobanSizes::Thirteen => 13,
-            GobanSizes::Nineteen => 19,
-            GobanSizes::Custom(width, _) => width
+            GobanSizes::Nine => (9, 9),
+            GobanSizes::Thirteen => (13, 13),
+            GobanSizes::Nineteen => (19, 19),
+            GobanSizes::Custom(height, width) => (height, width)
         }
     }
 }

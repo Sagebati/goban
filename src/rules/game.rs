@@ -434,7 +434,7 @@ impl GameBuilder {
     }
 
     pub fn build(&mut self) -> Result<Game, String> {
-        let mut goban: Goban = Goban::new(self.size.0 as usize);
+        let mut goban: Goban = Goban::new((self.size.0 as usize, self.size.1 as usize ));
         if !self.handicap_points.is_empty() {
             goban.push_many(&self.handicap_points, Color::Black);
         }

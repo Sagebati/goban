@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn atari() {
-        let mut goban = Goban::new(9);
+        let mut goban = Goban::new((9,9));
         let s = Stone {
             coordinates: (4, 4),
             color: Color::Black,
