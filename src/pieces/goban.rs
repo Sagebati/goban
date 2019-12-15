@@ -312,15 +312,26 @@ impl Goban {
     pub fn pretty_string(&self) -> String {
         let mut buff = String::new();
         for i in 0..self.size.0 {
-            buff.push('|');
             for j in 0..self.size.1 {
                 buff.push(match self.get_stone((i, j)) {
-                    Color::White => WHITE_STONE,
-                    Color::Black => BLACK_STONE,
-                    Color::None => EMPTY_STONE,
+                    Color::White => '●',
+                    Color::Black => '○',
+                    Color::None =>
+                        match (i == 0, i == self.size.0 - 1, j == 0, j == self.size.1 - 1) {
+                            (true, _, true, _) => '┏',
+                            (true, _, _, true) => '┓',
+
+                            (_, true, true, _) => '┗',
+                            (_, true, _, true) => '┛',
+
+                            (true, _, _, _) => '┯',
+                            (_, true, _, _) => '┷',
+                            (_, _, true, _) => '┠',
+                            (_, _, _, true) => '┨',
+                           _ => '┼'
+                        },
                 });
             }
-            buff.push('|');
             buff.push('\n');
         }
         buff
