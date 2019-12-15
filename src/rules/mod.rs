@@ -39,6 +39,7 @@ pub enum GobanSizes {
     Nineteen,
     Nine,
     Thirteen,
+    Custom(usize, usize),
 }
 
 impl Into<usize> for GobanSizes {
@@ -47,6 +48,7 @@ impl Into<usize> for GobanSizes {
             GobanSizes::Nine => 9,
             GobanSizes::Thirteen => 13,
             GobanSizes::Nineteen => 19,
+            GobanSizes::Custom(width, _) => width
         }
     }
 }
