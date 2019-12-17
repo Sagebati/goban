@@ -341,7 +341,7 @@ impl Goban {
     /// Remove a string from the game, it add liberties to all
     /// adjacent string of not the same color.
     ///
-    pub fn remove_string(&mut self, go_string_to_remove: GoStringPtr) {
+    pub fn remove_go_string(&mut self, go_string_to_remove: GoStringPtr) {
         let color_of_the_string = go_string_to_remove.color;
         for &point in go_string_to_remove.stones() {
             for neighbor_str_ptr in self.get_neighbors_strings(point).collect::<HashSet<_>>() {
@@ -373,7 +373,7 @@ impl Goban {
             .collect::<HashSet<_>>();
         for group_of_stones in string_without_liberties {
             number_of_stones_captured += group_of_stones.stones().len() as u32;
-            self.remove_string(group_of_stones);
+            self.remove_go_string(group_of_stones);
         }
         number_of_stones_captured
     }

@@ -325,9 +325,7 @@ impl Game {
         }
     }
 
-    ///
     /// Displays the internal board.
-    ///
     pub fn display_goban(&self) {
         println!("{}", self.goban)
     }
