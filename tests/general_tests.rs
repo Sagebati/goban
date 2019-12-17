@@ -26,7 +26,7 @@ mod tests {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
         g.push((1, 2), Color::White);
         g.push((1, 3), Color::Black);
-        let tab = g.tab();
+        let tab = g.raw();
         let g2 = Goban::from_array(&tab, Order::RowMajor);
         assert_eq!(g, g2)
     }
@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn atari() {
-        let mut goban = Goban::new(9);
+        let mut goban = Goban::new((9,9));
         let s = Stone {
             coordinates: (4, 4),
             color: Color::Black,

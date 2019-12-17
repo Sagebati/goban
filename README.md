@@ -23,30 +23,30 @@ use crate::goban::rules::*;
 use crate::goban::rules::game::*;
 use rand::seq::IteratorRandom;
 
-    let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
-      let mut i = 35;
-       while !g.over() && i != 0 {
-           g.play(
-                // legals return an iterator on (x,y) points
-               g.legals()
-                   .choose(&mut rand::thread_rng())
-                   .map(|point| Move::Play(point.0,point.1))
-                    .unwrap());
-           i -= 1;
-           println!("{}", g);
-       }
+let mut g = Game::new(GobanSizes::Nine, Rule::Chinese);
+let mut i = 35;
+while !g.over() && i != 0 {
+   g.play(
+        // legals return an iterator on (x,y) points
+       g.legals()
+           .choose(&mut rand::thread_rng())
+           .map(|point| Move::Play(point.0,point.1))
+           .unwrap());
+   i -= 1;
+   println!("{}", g);
+}
 ```
 
 ```{bash}
-.........
-.........
-.........
-.........
-.........
-.........
-.........
-⚪........
-.........
+┏┯┯┯┯┯┯┯┓
+┠┼┼┼┼┼┼┼┨
+┠┼┼┼┼┼┼┼┨
+┠┼┼┼┼┼┼┼┨
+┠┼┼┼┼┼┼┼┨
+┠┼┼┼┼┼┼┼┨
+┠┼┼┼┼┼┼┼┨
+○┼┼┼┼┼┼┼┨
+┗┷┷┷┷┷┷┷┛
 
 
 etc...
@@ -59,7 +59,7 @@ etc...
 - Passing
 - Resigning
 - Implementation to count points
-- Printing an *ugly* ascii goban
+- Printing an *pretty* unicode Board on the terminal !
 - SGF Import
 - Generate legals moves (Handling Ko detection, Suicide moves, Super ko)
 - Japanese Rules

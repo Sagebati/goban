@@ -1,6 +1,6 @@
 [package]
 name = "goban"
-version = "0.8.0"
+version = "0.8.1"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme= "README.md"
 description= "Library for go move generation and go ruling."
@@ -24,6 +24,7 @@ thread-safe = []
 arrayvec = "0.5.1"
 by_address = "1.0.4"
 getset = "0.0.9"
+hash_hasher = "2.0.2"
 lazy_static = "1.4.0"
 rand_xorshift = "0.2.0"
 rand = "0.7.2"
@@ -33,6 +34,7 @@ sgf-parser = "2.3.0"
 criterion = "0.3.0"
 
 [profile.bench]
+lto = true
 debug = true
 
 [[bench]]

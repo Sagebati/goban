@@ -8,7 +8,7 @@ use std::ops::Not;
 pub mod game;
 mod sgf_bridge;
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
 pub enum Player {
     White,
     Black,
@@ -26,7 +26,7 @@ impl Not for Player {
 }
 
 impl Player {
-    pub fn get_stone_color(self) -> Color {
+    pub fn stone_color(self) -> Color {
         match self {
             Player::Black => Color::Black,
             Player::White => Color::White,
@@ -39,14 +39,16 @@ pub enum GobanSizes {
     Nineteen,
     Nine,
     Thirteen,
+    Custom(usize, usize),
 }
 
-impl Into<usize> for GobanSizes {
-    fn into(self) -> usize {
+impl Into<(usize, usize)> for GobanSizes {
+    fn into(self) -> (usize, usize) {
         match self {
-            GobanSizes::Nine => 9,
-            GobanSizes::Thirteen => 13,
-            GobanSizes::Nineteen => 19,
+            GobanSizes::Nine => (9, 9),
+            GobanSizes::Thirteen => (13, 13),
+            GobanSizes::Nineteen => (19, 19),
+            GobanSizes::Custom(height, width) => (height, width)
         }
     }
 }
@@ -63,7 +65,7 @@ impl From<usize> for GobanSizes {
 }
 
 /// Enum for playing in the Goban.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Move {
     Pass,
     Resign(Player),
