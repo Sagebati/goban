@@ -59,7 +59,7 @@ etc...
 - Passing
 - Resigning
 - Implementation to count points
-- Printing an *ugly* ascii goban
+- Printing an *pretty* unicode Board on the terminal !
 - SGF Import
 - Generate legals moves (Handling Ko detection, Suicide moves, Super ko)
 - Japanese Rules
