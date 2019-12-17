@@ -8,7 +8,7 @@ use std::ops::Not;
 pub mod game;
 mod sgf_bridge;
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
 pub enum Player {
     White,
     Black,
@@ -65,7 +65,7 @@ impl From<usize> for GobanSizes {
 }
 
 /// Enum for playing in the Goban.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Move {
     Pass,
     Resign(Player),

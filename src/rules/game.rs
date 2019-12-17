@@ -47,9 +47,6 @@ pub struct Game {
     #[get = "pub"]
     last_hash: u64,
 
-    #[get_copy = "pub"]
-    last_move: Option<Move>,
-
     hashes: HashedSet<u64>,
 }
 
@@ -77,7 +74,6 @@ impl Game {
             handicap,
             hashes,
             last_hash,
-            last_move: None,
         }
     }
 }
@@ -184,7 +180,6 @@ impl Game {
     /// (0,0) is in the top left corner of the goban.
     ///
     pub fn play(&mut self, play: Move) -> &mut Self {
-        self.last_move = Some(play);
         match play {
             Move::Pass => {
                 self.turn = !self.turn;
@@ -451,7 +446,6 @@ impl GameBuilder {
             plays: vec![],
             hashes: Default::default(),
             last_hash: 0,
-            last_move: None,
         };
 
         for &m in &self.moves {
