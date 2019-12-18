@@ -205,7 +205,9 @@ impl Game {
         }
     }
 
-    fn play_for_verification(&self, (x, y): Point) -> u64 {
+    /// This methods plays a move a then return the hash of the goban simulated,
+    /// used in legals for fast move simulation in Ko ans Super Ko situations.
+    pub fn play_for_verification(&self, (x, y): Point) -> u64 {
         let mut test_goban = self.goban.clone();
         test_goban.push((x, y), self.turn.stone_color());
         test_goban.remove_captured_stones_turn((!self.turn).stone_color());
