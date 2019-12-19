@@ -52,14 +52,16 @@ pub struct Game {
 
 impl Game {
     pub fn new(size: GobanSizes, rule: Rule) -> Self {
+        let (width, height) = size.into();
         let goban = Goban::new(size.into());
-        let komi = 5.5;
+        let komi = rule.komi();
         let pass = 0;
         #[cfg(feature = "history")]
-            let plays = Vec::with_capacity(300);
+            let plays = Vec::with_capacity(width * height);
         let prisoners = (0, 0);
         let handicap = 0;
-        let hashes = HashedSet::with_capacity_and_hasher(300, HashBuildHasher::default());
+        let hashes =
+            HashedSet::with_capacity_and_hasher(width * height, HashBuildHasher::default());
         let last_hash = 0;
         Game {
             goban,
@@ -423,13 +425,20 @@ impl GameBuilder {
         self
     }
 
+    /// Overrides the komi,  dont use after komi !
+    pub fn rule(&mut self, rule: Rule) -> &mut Self {
+        self.rule = rule;
+        self.komi = rule.komi();
+        self
+    }
+
     pub fn white_player(&mut self, white_player_name: &str) -> &mut Self {
         self.white_player = white_player_name.to_string();
         self
     }
 
     pub fn build(&mut self) -> Result<Game, String> {
-        let mut goban: Goban = Goban::new((self.size.0 as usize, self.size.1 as usize ));
+        let mut goban: Goban = Goban::new((self.size.0 as usize, self.size.1 as usize));
         if !self.handicap_points.is_empty() {
             goban.push_many(&self.handicap_points, Color::Black);
         }

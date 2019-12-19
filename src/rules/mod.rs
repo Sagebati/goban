@@ -120,6 +120,15 @@ pub enum Rule {
 }
 
 impl Rule {
+
+    /// Gets the komi defined in the rule
+    pub fn komi(self) -> f32{
+        match self {
+            Self::Japanese => 6.5,
+            Self::Chinese => 7.5
+        }
+    }
+
     ///
     /// Count the points of the game
     ///
