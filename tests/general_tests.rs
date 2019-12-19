@@ -485,7 +485,7 @@ mod tests {
         g.play(Move::Pass);
         let score = g.calculate_score();
         assert_eq!(score.0, 80.); //Black
-        assert_eq!(score.1, 5.5); //White
+        assert_eq!(score.1, Rule::Japanese.komi()); //White
     }
 
     #[test]
@@ -549,8 +549,8 @@ mod tests {
         .expect("Game finished");
         let (black, white) = g.calculate_score();
         assert_eq!(black, 81.);
-        assert_eq!(white, 5.5);
-        assert_eq!(outcome, EndGame::WinnerByScore(Player::Black, 81. - 5.5))
+        assert_eq!(white, g.komi());
+        assert_eq!(outcome, EndGame::WinnerByScore(Player::Black, 81. - g.komi()))
     }
 
     #[test]
