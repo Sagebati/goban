@@ -41,7 +41,7 @@ pub struct Goban {
     coord_util: CoordUtil,
 
     #[get_copy = "pub"]
-    hash: u64,
+    zobrist_hash: u64,
 }
 
 impl Goban {
@@ -49,7 +49,7 @@ impl Goban {
         Goban {
             size: (height, width),
             coord_util: CoordUtil::new(height, width),
-            hash: 0,
+            zobrist_hash: 0,
             go_strings: vec![Option::None; height * width],
         }
     }
@@ -138,7 +138,7 @@ impl Goban {
             |init, same_color_string| self.merge_two_strings(init, same_color_string),
         );
 
-        self.hash ^= ZOBRIST[(point, color)];
+        self.zobrist_hash ^= ZOBRIST[(point, color)];
 
         self.create_string(new_string);
         for other_color_string in adjacent_opposite_color_str_set
@@ -349,7 +349,7 @@ impl Goban {
                     self.create_string(neighbor_str_ptr.with_liberty(point));
                 }
             }
-            self.hash ^= ZOBRIST[(point, color_of_the_string)];
+            self.zobrist_hash ^= ZOBRIST[(point, color_of_the_string)];
 
             // Remove each point from the map. The Rc will be dropped "normally".
             self.go_strings[self.coord_util.to(point)] = Option::None;
@@ -413,7 +413,7 @@ impl Display for Goban {
 
 impl PartialEq for Goban {
     fn eq(&self, other: &Goban) -> bool {
-        other.hash == self.hash
+        other.zobrist_hash == self.zobrist_hash
     }
 }
 

@@ -187,7 +187,7 @@ impl Game {
                 self
             }
             Move::Play(x, y) => {
-                let hash = self.goban.hash();
+                let hash = self.goban.zobrist_hash();
                 self.last_hash = hash;
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
@@ -205,7 +205,7 @@ impl Game {
         }
     }
 
-    /// This methods plays a move a then return the hash of the goban simulated,
+    /// This methods plays a move then return the hash of the goban simulated,
     /// used in legals for fast move simulation in Ko ans Super Ko situations.
     pub fn play_for_verification(&self, (x, y): Point) -> u64 {
         let mut test_goban = self.goban.clone();
@@ -214,7 +214,7 @@ impl Game {
         if self.rule.is_suicide_valid() {
             test_goban.remove_captured_stones_turn(self.turn.stone_color());
         }
-        test_goban.hash()
+        test_goban.zobrist_hash()
     }
 
     ///
