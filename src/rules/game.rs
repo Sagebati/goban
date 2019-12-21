@@ -97,7 +97,7 @@ impl Game {
         if self.outcome.is_some() {
             true
         } else {
-            self.passes == 2
+            self.passes >= 2
         }
     }
 
