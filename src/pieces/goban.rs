@@ -16,6 +16,7 @@ use std::rc::Rc;
 
 #[cfg(feature = "thread-safe")]
 use std::sync::Arc;
+use std::hash::{Hash, Hasher};
 
 #[cfg(not(feature = "thread-safe"))]
 type Ptr<T> = Rc<T>;
@@ -328,7 +329,7 @@ impl Goban {
                             (_, true, _, _) => '┷',
                             (_, _, true, _) => '┠',
                             (_, _, _, true) => '┨',
-                           _ => '┼'
+                            _ => '┼'
                         },
                 });
             }
@@ -414,6 +415,12 @@ impl Display for Goban {
 impl PartialEq for Goban {
     fn eq(&self, other: &Goban) -> bool {
         other.zobrist_hash == self.zobrist_hash
+    }
+}
+
+impl Hash for Goban {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.zobrist_hash.hash(state)
     }
 }
 

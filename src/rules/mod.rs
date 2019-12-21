@@ -88,9 +88,7 @@ pub enum EndGame {
 }
 
 impl EndGame {
-    ///
     /// Return the winner of the game, if none the game is draw.
-    ///
     pub fn get_winner(self) -> Option<Player> {
         match self {
             EndGame::WinnerByScore(p, _) => Some(p),
@@ -133,9 +131,9 @@ impl Rule {
     /// Count the points of the game
     ///
     pub fn count_points(self, game: &Game) -> (f32, f32) {
+        let mut scores = game.goban().calculate_territories();
         match self {
             Rule::Japanese => {
-                let mut scores = game.goban().calculate_territories();
                 scores.0 += game.prisoners().0 as f32;
                 scores.1 += game.prisoners().1 as f32;
                 scores.1 += game.komi();
@@ -144,7 +142,6 @@ impl Rule {
             }
             Rule::Chinese => {
                 // Territories in seki are not counted
-                let mut scores = game.goban().calculate_territories();
                 let ns = game.goban().number_of_stones();
                 scores.0 += ns.0 as f32;
                 scores.1 += ns.1 as f32;
