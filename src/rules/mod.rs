@@ -4,6 +4,7 @@ use crate::pieces::stones::{Color, Stone};
 use crate::pieces::util::coord::Point;
 use crate::rules::game::Game;
 use std::ops::Not;
+use std::str::FromStr;
 
 pub mod game;
 mod sgf_bridge;
@@ -118,18 +119,15 @@ pub enum Rule {
 }
 
 impl Rule {
-
     /// Gets the komi defined in the rule
-    pub fn komi(self) -> f32{
+    pub fn komi(self) -> f32 {
         match self {
             Self::Japanese => 6.5,
             Self::Chinese => 7.5
         }
     }
 
-    ///
-    /// Count the points of the game
-    ///
+    /// Count the points of the game including komi and territories.
     pub fn count_points(self, game: &Game) -> (f32, f32) {
         let mut scores = game.goban().calculate_territories();
         match self {
@@ -150,9 +148,8 @@ impl Rule {
             }
         }
     }
-    ///
+
     /// Specify the constraints in the move validation by rule.
-    ///
     pub fn move_validation(self, game: &Game, stone: Stone) -> Option<PlayError> {
         match self {
             Rule::Japanese => {
@@ -179,12 +176,18 @@ impl Rule {
     pub fn is_suicide_valid(self) -> bool {
         false
     }
+}
 
-    pub fn from_sgf_code(s: &str) -> Result<Rule, String> {
+impl FromStr for Rule {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "JAP" => Ok(Rule::Japanese),
             "CHI" => Ok(Rule::Chinese),
-            _ => Err("The rule is not implemented yet.".to_string()),
+            _ => Err(
+                format!("The rule {} is not implemented yet.", s)
+            ),
         }
     }
 }
