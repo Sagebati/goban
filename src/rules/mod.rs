@@ -49,7 +49,7 @@ impl Into<(usize, usize)> for GobanSizes {
             GobanSizes::Nine => (9, 9),
             GobanSizes::Thirteen => (13, 13),
             GobanSizes::Nineteen => (19, 19),
-            GobanSizes::Custom(height, width) => (height, width)
+            GobanSizes::Custom(height, width) => (height, width),
         }
     }
 }
@@ -123,7 +123,7 @@ impl Rule {
     pub fn komi(self) -> f32 {
         match self {
             Self::Japanese => 6.5,
-            Self::Chinese => 7.5
+            Self::Chinese => 7.5,
         }
     }
 
@@ -185,9 +185,7 @@ impl FromStr for Rule {
         match s {
             "JAP" => Ok(Rule::Japanese),
             "CHI" => Ok(Rule::Chinese),
-            _ => Err(
-                format!("The rule {} is not implemented yet.", s)
-            ),
+            _ => Err(format!("The rule {} is not implemented yet.", s)),
         }
     }
 }

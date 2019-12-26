@@ -1,7 +1,7 @@
 use crate::pieces::util::coord::Point;
 use crate::rules::game::{Game, GameBuilder};
 use crate::rules::{EndGame, Move, Player, Rule};
-use sgf_parser::{Action, Color, Outcome, SgfToken, RuleSet};
+use sgf_parser::{Action, Color, Outcome, RuleSet, SgfToken};
 
 impl Game {
     pub fn from_sgf(sgf_str: &str) -> Result<Self, String> {
@@ -60,11 +60,13 @@ impl From<RuleSet> for Rule {
         match r {
             RuleSet::Japanese => Rule::Japanese,
             RuleSet::Chinese => Rule::Chinese,
-            _ => panic!(format!("The rule {} is not implemented yet !", r.to_string()))
+            _ => panic!(format!(
+                "The rule {} is not implemented yet !",
+                r.to_string()
+            )),
         }
     }
 }
-
 
 impl From<Outcome> for EndGame {
     fn from(o: Outcome) -> Self {

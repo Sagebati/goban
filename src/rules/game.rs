@@ -9,7 +9,7 @@ use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
 use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, GobanSizes, Move};
-use hash_hasher::{HashedSet, HashBuildHasher};
+use hash_hasher::{HashBuildHasher, HashedSet};
 
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
@@ -57,7 +57,7 @@ impl Game {
         let komi = rule.komi();
         let pass = 0;
         #[cfg(feature = "history")]
-            let plays = Vec::with_capacity(width * height);
+        let plays = Vec::with_capacity(width * height);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes =
@@ -128,50 +128,45 @@ impl Game {
     /// Generate all moves on all intersections.
     ///
     #[inline]
-    fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
+    fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
     ///
-    /// Generate all moves on all intersections.
+    /// Generate all moves on all intersections, and the randomize.
     ///
     #[inline]
     fn pseudo_legals_shuffle(&self, rng: &mut impl rand::Rng) -> Vec<Point> {
         use rand::prelude::SliceRandom;
-        let mut legals = self
-            .goban
-            .get_points_by_color(Color::None)
-            .collect::<Vec<_>>();
+        let mut legals = self.pseudo_legals().collect::<Vec<_>>();
         legals.shuffle(rng);
         legals
     }
 
     ///
-    /// Returns a list with legals moves,
-    /// In the list will appear suicides moves, and ko moves.
+    /// Returns a list with legals moves, takes
     ///
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.pseudo_legals()
-            .map(move |s| Stone {
+            .map(move |point| Stone {
+                coordinates: point,
                 color: self.turn.stone_color(),
-                coordinates: s,
             })
             .filter(move |&s| self.rule.move_validation(&self, s).is_none())
             .map(|s| s.coordinates)
     }
 
     ///
-    /// Returns a list with legals moves,
-    /// In the list will appear suicides moves, and ko moves.
+    /// Returns a list with legals moves but shuffled with the rng passed in param.
     ///
     #[inline]
-    pub fn legals_shuffle(&self, rng: &mut impl rand::Rng) -> impl Iterator<Item=Point> + '_ {
+    pub fn legals_shuffle(&self, rng: &mut impl rand::Rng) -> impl Iterator<Item = Point> + '_ {
         self.pseudo_legals_shuffle(rng)
             .into_iter()
-            .map(move |s| Stone {
+            .map(move |point| Stone {
+                coordinates: point,
                 color: self.turn.stone_color(),
-                coordinates: s,
             })
             .filter(move |&s| self.rule.move_validation(&self, s).is_none())
             .map(|s| s.coordinates)
@@ -193,7 +188,7 @@ impl Game {
                 self.last_hash = hash;
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
-                    self.plays.push(self.goban.clone());
+                self.plays.push(self.goban.clone());
                 self.goban.push((x, y), self.turn.stone_color());
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
@@ -274,22 +269,21 @@ impl Game {
     /// Returns true if the move is a suicide
     ///
     pub fn is_suicide(&self, stone: Stone) -> bool {
-        if self.goban.has_liberties(stone) {
+        if self.goban.has_liberties(stone.coordinates) {
             false
         } else {
-            for neighbor_go_string in self.goban.get_neighbors_strings(stone.coordinates) {
-                if neighbor_go_string.color == stone.color {
-                    if neighbor_go_string.number_of_liberties() != 1 {
-                        return false;
+            !self
+                .goban
+                .get_neighbors_strings(stone.coordinates)
+                .any(|neighbor_go_string| {
+                    if neighbor_go_string.color == stone.color {
+                        // Connecting with an other string which is not in danger
+                        !neighbor_go_string.is_atari()
+                    } else {
+                        // Capture move
+                        neighbor_go_string.is_atari()
                     }
-                } else {
-                    // capture move so not suicide
-                    if neighbor_go_string.number_of_liberties() == 1 {
-                        return false;
-                    }
-                }
-            }
-            true
+                })
         }
     }
 
@@ -302,12 +296,12 @@ impl Game {
             .get_neighbors_strings(point)
             .filter(|go_str_ptr| go_str_ptr.color != self.turn.stone_color())
             // if an enemy string has only liberty it's a capture move
-            .any(|go_str_ptr| go_str_ptr.number_of_liberties() == 1)
+            .any(|go_str_ptr| go_str_ptr.is_atari())
     }
 
     ///
     /// Test if a play is ko.
-    /// If the goban is in the configuration of the two plays ago returns true
+    /// If the goban is in the configuration of  two plays ago returns true
     ///
     pub fn ko(&self, stone: Stone) -> bool {
         if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {
@@ -340,24 +334,24 @@ impl Game {
     ///
     #[inline]
     fn remove_captured_stones(&mut self) -> (u32, u32) {
-        let mut new_prisoners = self.prisoners;
         let pris = self
             .goban
             .remove_captured_stones_turn((!self.turn).stone_color());
-        match self.turn {
-            Black => new_prisoners.0 += pris,
-            White => new_prisoners.1 += pris,
+        let new_prisoners = match self.turn {
+            Black => (self.prisoners.0 + pris, self.prisoners.1),
+            White => (self.prisoners.0, self.prisoners.1 + pris),
         };
         if self.rule.is_suicide_valid() {
             let pris = self
                 .goban
                 .remove_captured_stones_turn(self.turn.stone_color());
             match self.turn {
-                Black => new_prisoners.1 += pris,
-                White => new_prisoners.0 += pris,
-            };
+                Black => (new_prisoners.0, new_prisoners.1 + pris),
+                White => (new_prisoners.0 + pris, new_prisoners.1 + pris),
+            }
+        } else {
+            new_prisoners
         }
-        new_prisoners
     }
 }
 

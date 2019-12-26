@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn atari() {
-        let mut goban = Goban::new((9,9));
+        let mut goban = Goban::new((9, 9));
         let s = Stone {
             coordinates: (4, 4),
             color: Color::Black,
@@ -440,7 +440,7 @@ mod tests {
         goban.push_stone(s);
         println!("{}", goban.pretty_string());
         let cl = goban.clone();
-        let x = cl.get_liberties(s);
+        let x = cl.get_liberties(s.coordinates);
 
         x.for_each(|s| {
             println!("{:?}", s.coordinates);
@@ -452,7 +452,7 @@ mod tests {
 
         println!("{}", goban.pretty_string());
 
-        assert_eq!(goban.get_liberties(s).count(), 0);
+        assert_eq!(goban.get_liberties(s.coordinates).count(), 0);
     }
 
     #[test]
@@ -550,7 +550,10 @@ mod tests {
         let (black, white) = g.calculate_score();
         assert_eq!(black, 81.);
         assert_eq!(white, g.komi());
-        assert_eq!(outcome, EndGame::WinnerByScore(Player::Black, 81. - g.komi()))
+        assert_eq!(
+            outcome,
+            EndGame::WinnerByScore(Player::Black, 81. - g.komi())
+        )
     }
 
     #[test]

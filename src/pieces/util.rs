@@ -23,9 +23,9 @@ pub mod coord {
     #[inline]
     pub fn neighbors_points((x1, x2): Point) -> ArrayVec<[Point; 4]> {
         ArrayVec::from([
-            (x1.wrapping_add(1), x2),
+            (x1 + 1, x2),
             (x1.wrapping_sub(1), x2),
-            (x1, x2.wrapping_add(1)),
+            (x1, x2 + 1),
             (x1, x2.wrapping_sub(1)),
         ])
     }
@@ -33,10 +33,10 @@ pub mod coord {
     #[inline]
     pub fn corner_coords((x1, x2): Point) -> ArrayVec<[Point; 4]> {
         ArrayVec::from([
-            (x1.wrapping_add(1), x2.wrapping_add(1)),
+            (x1 + 1, x2 + 1),
             (x1.wrapping_sub(1), x2.wrapping_sub(1)),
-            (x1.wrapping_add(1), x2.wrapping_sub(1)),
-            (x1.wrapping_sub(1), x2.wrapping_add(1)),
+            (x1 + 1, x2.wrapping_sub(1)),
+            (x1.wrapping_sub(1), x2 + 1),
         ])
     }
 
