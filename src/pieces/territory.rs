@@ -88,8 +88,8 @@ impl Goban {
     ///
     pub fn get_territories(&self) -> (impl Iterator<Item=Stone>, impl Iterator<Item=Stone>) {
         let empty_strings = self.get_strings_from_stones(self.get_stones_by_color(Color::None));
-        let mut white_territory = Vec::with_capacity(100);
-        let mut black_territory = Vec::with_capacity(100);
+        let mut white_territory = Vec::with_capacity(50);
+        let mut black_territory = Vec::with_capacity(50);
         for group in empty_strings {
             let mut neutral = (false, false);
             for empty_intersection in &group {
