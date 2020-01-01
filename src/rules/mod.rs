@@ -129,22 +129,17 @@ impl Rule {
 
     /// Count the points of the game including komi and territories.
     pub fn count_points(self, game: &Game) -> (f32, f32) {
-        let mut scores = game.goban().calculate_territories();
+        let (black_score, white_score) = game.goban().calculate_territories();
         match self {
             Rule::Japanese => {
-                scores.0 += game.prisoners().0 as f32;
-                scores.1 += game.prisoners().1 as f32;
-                scores.1 += game.komi();
-
-                scores
+                (black_score as f32 , white_score as f32 + game.komi())
             }
             Rule::Chinese => {
                 // Territories in seki are not counted
-                let ns = game.goban().number_of_stones();
-                scores.0 += ns.0 as f32;
-                scores.1 += ns.1 as f32;
-                scores.1 += game.komi();
-                scores
+                let (black_stones, white_stones) = game.goban().number_of_stones();
+                (black_score as f32 + black_stones as f32, white_score as f32 + white_stones as
+                    f32 + game
+                    .komi())
             }
         }
     }
