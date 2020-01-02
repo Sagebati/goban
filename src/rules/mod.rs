@@ -90,11 +90,12 @@ pub enum EndGame {
 
 impl EndGame {
     /// Return the winner of the game, if none the game is draw.
+    #[inline]
     pub fn get_winner(self) -> Option<Player> {
         match self {
-            EndGame::WinnerByScore(p, _) => Some(p),
-            EndGame::WinnerByResign(p) => Some(p),
-            EndGame::WinnerByTime(p) => Some(p),
+            EndGame::WinnerByScore(p, _) |
+            EndGame::WinnerByResign(p) |
+            EndGame::WinnerByTime(p) |
             EndGame::WinnerByForfeit(p) => Some(p),
             EndGame::Draw => None,
         }
@@ -120,6 +121,7 @@ pub enum Rule {
 
 impl Rule {
     /// Gets the komi defined in the rule
+    #[inline]
     pub fn komi(self) -> f32 {
         match self {
             Self::Japanese => 6.5,
@@ -128,6 +130,7 @@ impl Rule {
     }
 
     /// Count the points of the game including komi and territories.
+    #[inline]
     pub fn count_points(self, game: &Game) -> (f32, f32) {
         let (black_score, white_score) = game.goban().calculate_territories();
         match self {
@@ -158,7 +161,7 @@ impl Rule {
             Rule::Chinese => {
                 if game.is_suicide(stone) {
                     Some(PlayError::Suicide)
-                } else if game.super_ko(stone) {
+                }else if game.super_ko(stone) {
                     Some(PlayError::Ko)
                 } else {
                     None
@@ -168,7 +171,9 @@ impl Rule {
     }
 
     pub fn is_suicide_valid(self) -> bool {
-        false
+        match self {
+            Rule::Chinese | Rule::Japanese => false
+        }
     }
 }
 

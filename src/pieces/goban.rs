@@ -167,7 +167,7 @@ impl Goban {
     }
 
     ///
-    /// Get all the neighbors to the coordinate
+    /// Get all the neighbors to the coordinate inluding empty intersections
     ///
     #[inline]
     pub fn get_neighbors(&self, coord: Point) -> impl Iterator<Item = Stone> + '_ {
