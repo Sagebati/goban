@@ -116,7 +116,7 @@ pub enum PlayError {
 #[derive(Clone, Eq, PartialEq, Debug, Copy)]
 pub enum Rule {
     Japanese,
-    Chinese,
+    Chinese, // Transparent to Taylor-Davis
 }
 
 impl Rule {
