@@ -14,7 +14,7 @@ pub struct ZobristTable {
 }
 
 impl ZobristTable {
-    fn new(n: usize) -> Self {
+    pub(crate) fn new(n: usize) -> Self {
         let mut rng = XorShiftRng::seed_from_u64(SEED);
         let mut hashes = vec![vec![0; 2]; 19 * 19];
         for i in 0..n * n {

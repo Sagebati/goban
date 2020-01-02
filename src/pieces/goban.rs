@@ -10,11 +10,11 @@ use std::collections::HashSet;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
+use std::hash::{Hash, Hasher};
 
 #[cfg(not(feature = "thread-safe"))]
 use std::rc::Rc;
 
-use std::hash::{Hash, Hasher};
 #[cfg(feature = "thread-safe")]
 use std::sync::Arc;
 
