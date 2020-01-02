@@ -75,12 +75,9 @@ impl Goban {
     /// Returns (black territory,  white territory)
     ///
     #[inline]
-    pub fn calculate_territories(&self) -> (f32, f32) {
+    pub fn calculate_territories(&self) -> (usize, usize) {
         let (black_territory, white_territoty) = self.get_territories();
-        (
-            black_territory.count() as f32,
-            white_territoty.count() as f32,
-        )
+        (black_territory.count(), white_territoty.count())
     }
 
     ///
@@ -88,8 +85,8 @@ impl Goban {
     ///
     pub fn get_territories(&self) -> (impl Iterator<Item = Stone>, impl Iterator<Item = Stone>) {
         let empty_strings = self.get_strings_from_stones(self.get_stones_by_color(Color::None));
-        let mut white_territory = Vec::new();
-        let mut black_territory = Vec::new();
+        let mut white_territory = Vec::with_capacity(50);
+        let mut black_territory = Vec::with_capacity(50);
         for group in empty_strings {
             let mut neutral = (false, false);
             for empty_intersection in &group {

@@ -32,6 +32,10 @@ impl GoString {
         self.liberties.len()
     }
 
+    pub fn is_atari(&self) -> bool {
+        self.liberties.len() == 1
+    }
+
     #[inline]
     pub fn contains_stone(&self, point: Point) -> bool {
         self.stones.contains(&point)

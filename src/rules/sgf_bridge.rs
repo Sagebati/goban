@@ -1,7 +1,7 @@
 use crate::pieces::util::coord::Point;
 use crate::rules::game::{Game, GameBuilder};
-use crate::rules::{EndGame, Move, Player};
-use sgf_parser::{Action, Color, Outcome, SgfToken};
+use crate::rules::{EndGame, Move, Player, Rule};
+use sgf_parser::{Action, Color, Outcome, RuleSet, SgfToken};
 
 impl Game {
     pub fn from_sgf(sgf_str: &str) -> Result<Self, String> {
@@ -35,6 +35,9 @@ impl Game {
                         } if *color == Color::Black => {
                             handicap.push((*x as usize - 1, *y as usize - 1));
                         }
+                        SgfToken::Rule(rule) => {
+                            gamebuilder.rule(rule.clone().into());
+                        }
                         //TODO another options
                         _ => (),
                     }
@@ -50,6 +53,18 @@ impl Game {
         gamebuilder.handicap(&handicap);
         gamebuilder.moves(&moves);
         gamebuilder.build()
+    }
+}
+impl From<RuleSet> for Rule {
+    fn from(r: RuleSet) -> Self {
+        match r {
+            RuleSet::Japanese => Rule::Japanese,
+            RuleSet::Chinese => Rule::Chinese,
+            _ => panic!(format!(
+                "The rule {} is not implemented yet !",
+                r.to_string()
+            )),
+        }
     }
 }
 

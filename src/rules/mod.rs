@@ -4,6 +4,7 @@ use crate::pieces::stones::{Color, Stone};
 use crate::pieces::util::coord::Point;
 use crate::rules::game::Game;
 use std::ops::Not;
+use std::str::FromStr;
 
 pub mod game;
 mod sgf_bridge;
@@ -48,7 +49,7 @@ impl Into<(usize, usize)> for GobanSizes {
             GobanSizes::Nine => (9, 9),
             GobanSizes::Thirteen => (13, 13),
             GobanSizes::Nineteen => (19, 19),
-            GobanSizes::Custom(height, width) => (height, width)
+            GobanSizes::Custom(height, width) => (height, width),
         }
     }
 }
@@ -88,21 +89,20 @@ pub enum EndGame {
 }
 
 impl EndGame {
-    ///
     /// Return the winner of the game, if none the game is draw.
-    ///
+    #[inline]
     pub fn get_winner(self) -> Option<Player> {
         match self {
-            EndGame::WinnerByScore(p, _) => Some(p),
-            EndGame::WinnerByResign(p) => Some(p),
-            EndGame::WinnerByTime(p) => Some(p),
-            EndGame::WinnerByForfeit(p) => Some(p),
+            EndGame::WinnerByScore(p, _)
+            | EndGame::WinnerByResign(p)
+            | EndGame::WinnerByTime(p)
+            | EndGame::WinnerByForfeit(p) => Some(p),
             EndGame::Draw => None,
         }
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Copy)]
 pub enum PlayError {
     Ko,
     Suicide,
@@ -116,37 +116,37 @@ pub enum PlayError {
 #[derive(Clone, Eq, PartialEq, Debug, Copy)]
 pub enum Rule {
     Japanese,
-    Chinese,
+    Chinese, // Transparent to Taylor-Davis
 }
 
 impl Rule {
-    ///
-    /// Count the points of the game
-    ///
-    pub fn count_points(self, game: &Game) -> (f32, f32) {
+    /// Gets the komi defined in the rule
+    #[inline]
+    pub fn komi(self) -> f32 {
         match self {
-            Rule::Japanese => {
-                let mut scores = game.goban().calculate_territories();
-                scores.0 += game.prisoners().0 as f32;
-                scores.1 += game.prisoners().1 as f32;
-                scores.1 += game.komi();
+            Self::Japanese => 6.5,
+            Self::Chinese => 7.5,
+        }
+    }
 
-                scores
-            }
+    /// Count the points of the game including komi and territories.
+    #[inline]
+    pub fn count_points(self, game: &Game) -> (f32, f32) {
+        let (black_score, white_score) = game.goban().calculate_territories();
+        match self {
+            Rule::Japanese => (black_score as f32, white_score as f32 + game.komi()),
             Rule::Chinese => {
                 // Territories in seki are not counted
-                let mut scores = game.goban().calculate_territories();
-                let ns = game.goban().number_of_stones();
-                scores.0 += ns.0 as f32;
-                scores.1 += ns.1 as f32;
-                scores.1 += game.komi();
-                scores
+                let (black_stones, white_stones) = game.goban().number_of_stones();
+                (
+                    black_score as f32 + black_stones as f32,
+                    white_score as f32 + white_stones as f32 + game.komi(),
+                )
             }
         }
     }
-    ///
+
     /// Specify the constraints in the move validation by rule.
-    ///
     pub fn move_validation(self, game: &Game, stone: Stone) -> Option<PlayError> {
         match self {
             Rule::Japanese => {
@@ -171,14 +171,20 @@ impl Rule {
     }
 
     pub fn is_suicide_valid(self) -> bool {
-        false
+        match self {
+            Rule::Chinese | Rule::Japanese => false,
+        }
     }
+}
 
-    pub fn from_sgf_code(s: &str) -> Result<Rule, String> {
+impl FromStr for Rule {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "JAP" => Ok(Rule::Japanese),
             "CHI" => Ok(Rule::Chinese),
-            _ => Err("The rule is not implemented yet.".to_string()),
+            _ => Err(format!("The rule {} is not implemented yet.", s)),
         }
     }
 }

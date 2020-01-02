@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn atari() {
-        let mut goban = Goban::new((9,9));
+        let mut goban = Goban::new((9, 9));
         let s = Stone {
             coordinates: (4, 4),
             color: Color::Black,
@@ -440,7 +440,7 @@ mod tests {
         goban.push_stone(s);
         println!("{}", goban.pretty_string());
         let cl = goban.clone();
-        let x = cl.get_liberties(s);
+        let x = cl.get_liberties(s.coordinates);
 
         x.for_each(|s| {
             println!("{:?}", s.coordinates);
@@ -452,7 +452,7 @@ mod tests {
 
         println!("{}", goban.pretty_string());
 
-        assert_eq!(goban.get_liberties(s).count(), 0);
+        assert_eq!(goban.get_liberties(s.coordinates).count(), 0);
     }
 
     #[test]
@@ -485,7 +485,7 @@ mod tests {
         g.play(Move::Pass);
         let score = g.calculate_score();
         assert_eq!(score.0, 80.); //Black
-        assert_eq!(score.1, 5.5); //White
+        assert_eq!(score.1, Rule::Japanese.komi()); //White
     }
 
     #[test]
@@ -524,7 +524,7 @@ mod tests {
         );
 
         let terr = goban.calculate_territories();
-        assert_eq!(terr, (27., 8. * 19. + 1.));
+        assert_eq!(terr, (27, 8 * 19 + 1));
 
         goban.push_many(
             &vec![(17, 18), (18, 17), (18, 15), (17, 16), (16, 17), (15, 18)],
@@ -533,7 +533,7 @@ mod tests {
 
         let terr = goban.calculate_territories();
         println!("{}", goban);
-        assert_eq!(terr, (27. + 4., 8. * 19. + 1.));
+        assert_eq!(terr, (27 + 4, 8 * 19 + 1));
     }
 
     #[test]
@@ -549,8 +549,11 @@ mod tests {
         .expect("Game finished");
         let (black, white) = g.calculate_score();
         assert_eq!(black, 81.);
-        assert_eq!(white, 5.5);
-        assert_eq!(outcome, EndGame::WinnerByScore(Player::Black, 81. - 5.5))
+        assert_eq!(white, g.komi());
+        assert_eq!(
+            outcome,
+            EndGame::WinnerByScore(Player::Black, 81. - g.komi())
+        )
     }
 
     #[test]
