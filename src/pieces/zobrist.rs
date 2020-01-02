@@ -6,6 +6,7 @@ use std::ops::Index;
 
 const SEED: u64 = 172_147_124;
 
+
 #[derive(Debug, Clone)]
 pub struct ZobristTable {
     hashes: Vec<Vec<u64>>,

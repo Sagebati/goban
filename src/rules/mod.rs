@@ -101,7 +101,7 @@ impl EndGame {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Copy)]
 pub enum PlayError {
     Ko,
     Suicide,
@@ -131,15 +131,14 @@ impl Rule {
     pub fn count_points(self, game: &Game) -> (f32, f32) {
         let (black_score, white_score) = game.goban().calculate_territories();
         match self {
-            Rule::Japanese => {
-                (black_score as f32 , white_score as f32 + game.komi())
-            }
+            Rule::Japanese => (black_score as f32, white_score as f32 + game.komi()),
             Rule::Chinese => {
                 // Territories in seki are not counted
                 let (black_stones, white_stones) = game.goban().number_of_stones();
-                (black_score as f32 + black_stones as f32, white_score as f32 + white_stones as
-                    f32 + game
-                    .komi())
+                (
+                    black_score as f32 + black_stones as f32,
+                    white_score as f32 + white_stones as f32 + game.komi(),
+                )
             }
         }
     }
