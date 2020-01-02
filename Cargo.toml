@@ -15,6 +15,7 @@ maintenance = {status = "actively-developed"}
 
 [profile.release]
 lto = true
+panic = "abort"
 
 [features]
 history = []

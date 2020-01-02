@@ -93,10 +93,10 @@ impl EndGame {
     #[inline]
     pub fn get_winner(self) -> Option<Player> {
         match self {
-            EndGame::WinnerByScore(p, _) |
-            EndGame::WinnerByResign(p) |
-            EndGame::WinnerByTime(p) |
-            EndGame::WinnerByForfeit(p) => Some(p),
+            EndGame::WinnerByScore(p, _)
+            | EndGame::WinnerByResign(p)
+            | EndGame::WinnerByTime(p)
+            | EndGame::WinnerByForfeit(p) => Some(p),
             EndGame::Draw => None,
         }
     }
@@ -161,7 +161,7 @@ impl Rule {
             Rule::Chinese => {
                 if game.is_suicide(stone) {
                     Some(PlayError::Suicide)
-                }else if game.super_ko(stone) {
+                } else if game.super_ko(stone) {
                     Some(PlayError::Ko)
                 } else {
                     None
@@ -172,7 +172,7 @@ impl Rule {
 
     pub fn is_suicide_valid(self) -> bool {
         match self {
-            Rule::Chinese | Rule::Japanese => false
+            Rule::Chinese | Rule::Japanese => false,
         }
     }
 }
