@@ -1,5 +1,6 @@
 # Goban
 
+
 **Library to play with a rusty "Goban" (name of the board where we play Go ! )** 
 
 **Use the version > 5.0 because in a bug detecting dead stones and in Ko detection**
