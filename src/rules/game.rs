@@ -176,6 +176,10 @@ impl Game {
     /// Method to play on the goban or pass.
     /// (0,0) is in the top left corner of the goban.
     ///
+    /// # Panics
+    ///
+    /// If the coordinates of the move are outside the goban
+    ///
     pub fn play(&mut self, play: Move) -> &mut Self {
         match play {
             Move::Pass => {
