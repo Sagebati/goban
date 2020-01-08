@@ -16,13 +16,13 @@ pub struct Game {
     #[get = "pub"]
     goban: Goban,
 
+    #[get_copy = "pub"]
     passes: u8,
 
     #[get_copy = "pub"]
     prisoners: (u32, u32),
 
-    /// None if hte game is not finished
-    /// the player in the option is the player who resigned.
+    /// None if the game is not finished,
     outcome: Option<EndGame>,
 
     #[get_copy = "pub"]
@@ -37,7 +37,6 @@ pub struct Game {
     rule: Rule,
 
     #[get_copy = "pub"]
-    #[set]
     handicap: u8,
 
     #[cfg(feature = "history")]
@@ -128,19 +127,20 @@ impl Game {
     /// Generate all moves on all intersections.
     ///
     #[inline]
-    fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
+    pub fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
-    ///
-    /// Generate all moves on all intersections, and the randomize.
-    ///
+    /// Test if a point is legal or not for the current player,
     #[inline]
-    fn pseudo_legals_shuffle(&self, rng: &mut impl rand::Rng) -> Vec<Point> {
-        use rand::prelude::SliceRandom;
-        let mut legals = self.pseudo_legals().collect::<Vec<_>>();
-        legals.shuffle(rng);
-        legals
+    pub fn check_point(&self, point: Point) -> Option<PlayError> {
+        self.rule.move_validation(
+            &self,
+            Stone {
+                coordinates: point,
+                color: self.turn.stone_color(),
+            },
+        )
     }
 
     ///
@@ -149,32 +149,16 @@ impl Game {
     #[inline]
     pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.pseudo_legals()
-            .map(move |point| Stone {
-                coordinates: point,
-                color: self.turn.stone_color(),
-            })
-            .filter(move |&s| self.rule.move_validation(&self, s).is_none())
-            .map(|s| s.coordinates)
-    }
-
-    ///
-    /// Returns a list with legals moves but shuffled with the rng passed in param.
-    ///
-    #[inline]
-    pub fn legals_shuffle(&self, rng: &mut impl rand::Rng) -> impl Iterator<Item = Point> + '_ {
-        self.pseudo_legals_shuffle(rng)
-            .into_iter()
-            .map(move |point| Stone {
-                coordinates: point,
-                color: self.turn.stone_color(),
-            })
-            .filter(move |&s| self.rule.move_validation(&self, s).is_none())
-            .map(|s| s.coordinates)
+            .filter(move |&s| self.check_point(s).is_none())
     }
 
     ///
     /// Method to play on the goban or pass.
     /// (0,0) is in the top left corner of the goban.
+    ///
+    /// # Panics
+    ///
+    /// If the coordinates of the move are outside the goban
     ///
     pub fn play(&mut self, play: Move) -> &mut Self {
         match play {
@@ -217,28 +201,25 @@ impl Game {
     ///
     /// Method to play but it verifies if the play is legal or not.
     ///
+    /// # Errors
+    ///
+    /// If the move is a suicide Move return SuicideMove
+    /// If the move is a Ko Move returns Ko
+    /// If the game is paused then return GamePaused
+    ///
     pub fn play_with_verifications(&mut self, play: Move) -> Result<&mut Game, PlayError> {
         if self.passes == 2 {
             Err(PlayError::GamePaused)
         } else {
             match play {
-                Move::Pass | Move::Resign(_) => {
-                    self.play(play);
-                    Ok(self)
-                }
                 Move::Play(x, y) => {
-                    if let Some(c) = self.rule.move_validation(
-                        self,
-                        Stone {
-                            coordinates: (x, y),
-                            color: self.turn.stone_color(),
-                        },
-                    ) {
+                    if let Some(c) = self.check_point((x, y)) {
                         Err(c)
                     } else {
                         Ok(self.play(play))
                     }
                 }
+                Move::Pass | Move::Resign(_) => Ok(self.play(play)),
             }
         }
     }
