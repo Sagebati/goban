@@ -110,8 +110,16 @@ impl Goban {
     ///
     pub fn push(&mut self, point: Point, color: Color) -> &mut Self {
         assert_ne!(color, Color::None, "We can't push Empty stones");
-        assert!(point.0 < self.size.0, "Coordinate point.0 {} out of bounds", point.0);
-        assert!(point.1 < self.size.1, "Coordinate point.1 {} out of bounds", point.1);
+        assert!(
+            point.0 < self.size.0,
+            "Coordinate point.0 {} out of bounds",
+            point.0
+        );
+        assert!(
+            point.1 < self.size.1,
+            "Coordinate point.1 {} out of bounds",
+            point.1
+        );
 
         let mut liberties = HashSet::new();
         let mut adjacent_same_color_str_set = HashSet::new();
@@ -144,7 +152,6 @@ impl Goban {
         );
 
         self.zobrist_hash ^= ZOBRIST[(point, color)];
-
 
         self.create_string(new_string);
         // for every string of opposite color remove a liberty and the create another string.

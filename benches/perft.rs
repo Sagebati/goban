@@ -32,7 +32,10 @@ pub fn fast_play_random(state: &Game) -> Move {
     let mut v: Vec<_> = state.pseudo_legals().collect();
     v.shuffle(&mut thread_rng());
 
-    for l in v.into_iter().filter(|&point| state.check_point(point).is_none()) {
+    for l in v
+        .into_iter()
+        .filter(|&point| state.check_point(point).is_none())
+    {
         if !state.goban().is_point_an_eye(l, state.turn().stone_color()) {
             return l.into();
         }

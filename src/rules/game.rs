@@ -56,7 +56,7 @@ impl Game {
         let komi = rule.komi();
         let pass = 0;
         #[cfg(feature = "history")]
-            let plays = Vec::with_capacity(width * height);
+        let plays = Vec::with_capacity(width * height);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes =
@@ -127,25 +127,27 @@ impl Game {
     /// Generate all moves on all intersections.
     ///
     #[inline]
-    pub fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
+    pub fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
-
 
     /// Test if a point is legal or not for the current player,
     #[inline]
     pub fn check_point(&self, point: Point) -> Option<PlayError> {
-        self.rule.move_validation(&self, Stone {
-            coordinates: point,
-            color: self.turn.stone_color(),
-        })
+        self.rule.move_validation(
+            &self,
+            Stone {
+                coordinates: point,
+                color: self.turn.stone_color(),
+            },
+        )
     }
 
     ///
     /// Returns a list with legals moves, takes
     ///
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.pseudo_legals()
             .filter(move |&s| self.check_point(s).is_none())
     }
@@ -170,7 +172,7 @@ impl Game {
                 self.last_hash = hash;
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
-                    self.plays.push(self.goban.clone());
+                self.plays.push(self.goban.clone());
                 self.goban.push((x, y), self.turn.stone_color());
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
@@ -216,8 +218,8 @@ impl Game {
                     } else {
                         Ok(self.play(play))
                     }
-                },
-                Move::Pass | Move::Resign(_) => Ok(self.play(play))
+                }
+                Move::Pass | Move::Resign(_) => Ok(self.play(play)),
             }
         }
     }
