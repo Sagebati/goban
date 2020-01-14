@@ -1,20 +1,20 @@
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
-use std::collections::HashSet;
+use crate::pieces::Set;
 
-type Set = HashSet<Point>;
+type SetPoints = Set<Point>;
 
-#[derive(Clone, Debug, CopyGetters, PartialEq, Getters, Eq)]
+#[derive(Clone, Debug, PartialEq, Getters, Eq)]
 pub struct GoString {
     pub color: Color,
     #[get = "pub"]
-    stones: Set,
+    stones: SetPoints,
     #[get = "pub"]
-    liberties: Set,
+    liberties: SetPoints,
 }
 
 impl GoString {
-    pub fn new(color: Color, stones: Set, liberties: Set) -> GoString {
+    pub fn new(color: Color, stones: SetPoints, liberties: SetPoints) -> GoString {
         GoString {
             color,
             stones,
@@ -32,6 +32,7 @@ impl GoString {
         self.liberties.len()
     }
 
+    #[inline]
     pub fn is_atari(&self) -> bool {
         self.liberties.len() == 1
     }
@@ -70,13 +71,18 @@ impl GoString {
         mut self,
         GoString {
             color,
-            mut stones,
-            mut liberties,
+            stones,
+            liberties,
         }: GoString,
     ) -> Self {
-        debug_assert!(color == self.color);
-        self.stones.extend(stones.drain());
-        self.liberties.extend(liberties.drain());
+        assert_eq!(
+            self.color, color,
+            "When merging two strings, the 2  go strings need to be of \
+        same color. Colors found {} and {}",
+            self.color, color
+        );
+        self.stones.extend(stones);
+        self.liberties.extend(liberties);
         self.liberties = self.liberties.difference(&self.stones).copied().collect();
 
         self

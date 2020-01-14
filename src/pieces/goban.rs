@@ -3,29 +3,14 @@
 use crate::pieces::go_string::GoString;
 use crate::pieces::stones::Color::None;
 use crate::pieces::stones::*;
-use crate::pieces::util::coord::{corner_coords, neighbors_points, CoordUtil, Order, Point};
+use crate::pieces::util::coord::{corner_points, neighbor_points, CoordUtil, Order, Point};
 use crate::pieces::zobrist::*;
-use by_address::ByAddress;
+use crate::pieces::{GoStringPtr, Ptr, Set};
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
-
-#[cfg(not(feature = "thread-safe"))]
-use std::rc::Rc;
-
-#[cfg(feature = "thread-safe")]
-use std::sync::Arc;
-
-#[cfg(not(feature = "thread-safe"))]
-type Ptr<T> = Rc<T>;
-
-#[cfg(feature = "thread-safe")]
-type Ptr<T> = Arc<T>;
-
-/// The go string pointer, ByAddress is needed for equality of pointer by address the hashmap
-pub type GoStringPtr = ByAddress<Ptr<GoString>>;
 
 ///
 /// Represents a Goban.
@@ -121,21 +106,21 @@ impl Goban {
             point.1
         );
 
-        let mut liberties = HashSet::new();
-        let mut adjacent_same_color_str_set = HashSet::new();
-        let mut adjacent_opposite_color_str_set = HashSet::new();
-        for p in neighbors_points(point)
-            .into_iter()
-            .filter(|&x| self.is_coord_valid(x))
-        {
+        let mut liberties = Set::with_capacity(4);
+        let mut adjacent_same_color_str_set = Set::with_capacity(4);
+        let mut adjacent_opposite_color_str_set = Set::with_capacity(4);
+        for p in self.neighbor_points(point) {
             match &self.go_strings[self.coord_util.to(p)] {
-                Some(go_str_ptr) => match go_str_ptr.color {
+                Some(adj_go_str_ptr) => match adj_go_str_ptr.color {
                     go_str_color if go_str_color == color => {
-                        adjacent_same_color_str_set.insert(go_str_ptr.to_owned());
+                        adjacent_same_color_str_set.insert(adj_go_str_ptr.to_owned());
                     }
-                    Color::None => debug_assert!(false, "A string cannot be of color none"),
+                    Color::None => {
+                        debug_assert!(false, "A string cannot be of color none");
+                        unreachable!()
+                    }
                     _ => {
-                        adjacent_opposite_color_str_set.insert(go_str_ptr.to_owned());
+                        adjacent_opposite_color_str_set.insert(adj_go_str_ptr.to_owned());
                     }
                 },
                 Option::None => {
@@ -143,7 +128,7 @@ impl Goban {
                 }
             }
         }
-        let mut stones = HashSet::new();
+        let mut stones = Set::new();
         stones.insert(point);
         // for every string of same color "connected" merge it into one string
         let new_string = adjacent_same_color_str_set.drain().fold(
@@ -184,13 +169,10 @@ impl Goban {
     ///
     #[inline]
     pub fn get_neighbors(&self, coord: Point) -> impl Iterator<Item = Stone> + '_ {
-        neighbors_points(coord)
-            .into_iter()
-            .filter(move |&point| self.is_coord_valid(point))
-            .map(move |point| Stone {
-                coordinates: point,
-                color: self.get_stone(point),
-            })
+        self.neighbor_points(coord).map(move |point| Stone {
+            coordinates: point,
+            color: self.get_stone(point),
+        })
     }
 
     ///
@@ -206,9 +188,7 @@ impl Goban {
     ///
     #[inline]
     pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item = GoStringPtr> + '_ {
-        neighbors_points(coord)
-            .into_iter()
-            .filter(move |&x| self.is_coord_valid(x))
+        self.neighbor_points(coord)
             .filter_map(move |coord| self.go_strings[self.coord_util.to(coord)].clone())
     }
 
@@ -295,7 +275,7 @@ impl Goban {
         }
         let mut corner_ally = 0;
         let mut corner_off_board = 0;
-        for point in corner_coords(point) {
+        for point in corner_points(point) {
             if self.is_coord_valid(point) {
                 if self.get_stone(point) == color {
                     corner_ally += 1
@@ -412,6 +392,7 @@ impl Goban {
         first.merge_with((**other).clone())
     }
 
+    /// updates the indexes to math actual goban. must use after an we put a stone
     fn update_vec_indexes(&mut self, go_string: GoStringPtr) {
         for &stone in go_string.stones() {
             unsafe {
@@ -419,6 +400,14 @@ impl Goban {
                     Some(go_string.clone());
             }
         }
+    }
+
+    /// Get the neighbors points filtered by limits of the board.
+    #[inline]
+    fn neighbor_points(&self, point: Point) -> impl Iterator<Item = Point> + '_ {
+        neighbor_points(point)
+            .into_iter()
+            .filter(move |&p| self.is_coord_valid(p))
     }
 }
 

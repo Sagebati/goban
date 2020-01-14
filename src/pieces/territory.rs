@@ -1,8 +1,9 @@
 //! Module with tools for getting the connected stones and liberties.
 
-use crate::pieces::goban::{GoStringPtr, Goban};
+use crate::pieces::goban::Goban;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
+use crate::pieces::GoStringPtr;
 use std::collections::HashSet;
 
 impl Goban {
