@@ -8,7 +8,7 @@ use crate::rules::{EndGame, Move, Player, Rule};
 pub struct GameBuilder {
     size: (u32, u32),
     komi: f32,
-    manal_komi: bool,
+    manual_komi: bool,
     black_player: String,
     white_player: String,
     rule: Rule,
@@ -23,7 +23,7 @@ impl GameBuilder {
         GameBuilder {
             size: (19, 19),
             komi: Chinese.komi(),
-            manal_komi: false,
+            manual_komi: false,
             black_player: "".to_string(),
             white_player: "".to_string(),
             handicap_points: vec![],
@@ -44,9 +44,10 @@ impl GameBuilder {
         self
     }
 
+    /// Overrides the turn because it's a game with handicap. So White begins.
     pub fn handicap(&mut self, points: &[Point]) -> &mut Self {
         self.handicap_points = points.to_vec();
-        self.turn = !self.turn;
+        self.turn = Player::White;
         self
     }
 
@@ -68,7 +69,7 @@ impl GameBuilder {
 
     pub fn rule(&mut self, rule: Rule) -> &mut Self {
         self.rule = rule;
-        if !self.manal_komi {
+        if !self.manual_komi {
             self.komi = rule.komi();
         }
         self
@@ -81,9 +82,9 @@ impl GameBuilder {
 
     pub fn build(&mut self) -> Result<Game, String> {
         let mut goban: Goban = Goban::new((self.size.0 as usize, self.size.1 as usize));
-        if !self.handicap_points.is_empty() {
-            goban.push_many(&self.handicap_points, Color::Black);
-        }
+
+        goban.push_many(&self.handicap_points, Color::Black);
+
         let mut g = Game {
             goban,
             passes: 0,
