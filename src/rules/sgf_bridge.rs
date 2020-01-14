@@ -1,5 +1,6 @@
 use crate::pieces::util::coord::Point;
-use crate::rules::game::{Game, GameBuilder};
+use crate::rules::game::Game;
+use crate::rules::game_builder::GameBuilder;
 use crate::rules::{EndGame, Move, Player, Rule};
 use sgf_parser::{Action, Color, Outcome, RuleSet, SgfToken};
 

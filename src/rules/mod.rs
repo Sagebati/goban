@@ -8,6 +8,7 @@ use std::ops::Not;
 use std::str::FromStr;
 
 pub mod game;
+pub mod game_builder;
 mod sgf_bridge;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
