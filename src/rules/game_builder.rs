@@ -8,6 +8,7 @@ use crate::rules::{EndGame, Move, Player, Rule};
 pub struct GameBuilder {
     size: (u32, u32),
     komi: f32,
+    manal_komi: bool,
     black_player: String,
     white_player: String,
     rule: Rule,
@@ -21,7 +22,8 @@ impl GameBuilder {
     fn new() -> GameBuilder {
         GameBuilder {
             size: (19, 19),
-            komi: 0.,
+            komi: Chinese.komi(),
+            manal_komi: false,
             black_player: "".to_string(),
             white_player: "".to_string(),
             handicap_points: vec![],
@@ -55,6 +57,7 @@ impl GameBuilder {
 
     pub fn komi(&mut self, komi: f32) -> &mut Self {
         self.komi = komi;
+        self.manual_komi = true;
         self
     }
 
@@ -63,10 +66,11 @@ impl GameBuilder {
         self
     }
 
-    /// Overrides the komi,  dont use after komi !
     pub fn rule(&mut self, rule: Rule) -> &mut Self {
         self.rule = rule;
-        self.komi = rule.komi();
+        if !self.manal_komi {
+            self.komi = rule.komi();
+        }
         self
     }
 
