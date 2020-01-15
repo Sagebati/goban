@@ -18,7 +18,7 @@ use std::hash::{Hash, Hasher};
 #[derive(Getters, Setters, CopyGetters, Debug, Clone)]
 pub struct Goban {
     #[get = "pub"]
-    go_strings: Vec<Option<GoStringPtr>>,
+    pub(super) go_strings: Vec<Option<GoStringPtr>>,
 
     #[get_copy = "pub"]
     size: (usize, usize),
@@ -363,7 +363,7 @@ impl Goban {
     pub fn remove_captured_stones_turn(&mut self, color: Color) -> u32 {
         let mut number_of_stones_captured = 0u32;
         let string_without_liberties = self
-            .get_strings_of_stones_without_liberties_wth_color(color)
+            .get_strings_of_stones_without_liberties_by_color(color)
             .collect::<HashSet<_>>();
         for group_of_stones in string_without_liberties {
             number_of_stones_captured += group_of_stones.stones().len() as u32;
