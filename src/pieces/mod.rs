@@ -3,10 +3,6 @@
 //! The goban structure. The stone structure.
 //!
 
-use crate::pieces::go_string::GoString;
-use by_address::ByAddress;
-use hash_hasher::{HashedSet};
-
 #[cfg(not(feature = "thread-safe"))]
 use std::rc::Rc;
 
@@ -19,9 +15,15 @@ type Ptr<T> = Rc<T>;
 #[cfg(feature = "thread-safe")]
 type Ptr<T> = Arc<T>;
 
+
+use crate::pieces::go_string::GoString;
+use by_address::ByAddress;
+use std::collections::HashSet;
+
+
 /// The go string pointer, ByAddress is needed for equality of pointer by address the hashmap
 type GoStringPtr = ByAddress<Ptr<GoString>>;
-type Set<T> = HashedSet<T>;
+type Set<T> = HashSet<T>;
 
 pub mod go_string;
 pub mod goban;

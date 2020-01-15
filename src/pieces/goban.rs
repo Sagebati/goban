@@ -11,7 +11,6 @@ use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
-use hash_hasher::HashBuildHasher;
 
 ///
 /// Represents a Goban.
@@ -107,11 +106,9 @@ impl Goban {
             point.1
         );
 
-        let mut liberties = Set::with_capacity_and_hasher(4, HashBuildHasher::default());
-        let mut adjacent_same_color_str_set = Set::with_capacity_and_hasher(4,
-                                                                            HashBuildHasher::default());
-        let mut adjacent_opposite_color_str_set = Set::with_capacity_and_hasher(4,
-                                                                                HashBuildHasher::default());
+        let mut liberties = Set::with_capacity(4);
+        let mut adjacent_same_color_str_set = Set::with_capacity(4);
+        let mut adjacent_opposite_color_str_set = Set::with_capacity(4);
         for p in self.neighbor_points(point) {
             match &self.go_strings[self.coord_util.to(p)] {
                 Some(adj_go_str_ptr) => match adj_go_str_ptr.color {
@@ -131,7 +128,7 @@ impl Goban {
                 }
             }
         }
-        let mut stones = HashSet::default();
+        let mut stones = Set::default();
         stones.insert(point);
         // for every string of same color "connected" merge it into one string
         let new_string = adjacent_same_color_str_set.drain().fold(
