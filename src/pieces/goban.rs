@@ -77,14 +77,11 @@ impl Goban {
     /// (number of black stones, number of white stones)
     ///
     pub fn number_of_stones(&self) -> (u32, u32) {
-        self.go_strings
-            .iter()
-            .filter(|s| s.is_some())
-            .map(|s| s.as_ref().unwrap())
-            .fold((0, 0), |(x1, x2), go_str_ptr| match go_str_ptr.color {
-                Color::Black => (x1 + go_str_ptr.stones().len() as u32, x2),
-                Color::White => (x1, x2 + go_str_ptr.stones().len() as u32),
-                _ => unreachable!(),
+        self.get_stones()
+            .fold((0, 0), |(x1, x2), stone| match stone.color {
+                Color::Black => (x1 + 1, x2),
+                Color::White => (x1, x2 + 1),
+                _ => unreachable!("A stone cannot be empty"),
             })
     }
 
@@ -145,9 +142,9 @@ impl Goban {
         for other_color_string in adjacent_opposite_color_str_set
             .drain()
             .map(|go_str_ptr| go_str_ptr.without_liberty(point))
-        {
-            self.create_string(other_color_string);
-        }
+            {
+                self.create_string(other_color_string);
+            }
         self
     }
 
@@ -170,7 +167,7 @@ impl Goban {
     /// Get all the neighbors to the coordinate inluding empty intersections
     ///
     #[inline]
-    pub fn get_neighbors(&self, coord: Point) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_neighbors(&self, coord: Point) -> impl Iterator<Item=Stone> + '_ {
         self.neighbor_points(coord).map(move |point| Stone {
             coordinates: point,
             color: self.get_stone(point),
@@ -181,7 +178,7 @@ impl Goban {
     /// Get all the stones that are neighbor to the coord except empty intersections
     ///
     #[inline]
-    pub fn get_neighbors_stones(&self, coord: Point) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_neighbors_stones(&self, coord: Point) -> impl Iterator<Item=Stone> + '_ {
         self.get_neighbors(coord).filter(|s| s.color != Color::None)
     }
 
@@ -189,7 +186,7 @@ impl Goban {
     /// Get all the neighbors go strings to the point. Only return point with a color.
     ///
     #[inline]
-    pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item = GoStringPtr> + '_ {
+    pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item=GoStringPtr> + '_ {
         self.neighbor_points(coord)
             .filter_map(move |coord| self.go_strings[self.coord_util.to(coord)].clone())
     }
@@ -208,7 +205,7 @@ impl Goban {
     /// Get all the stones except "Empty stones"
     ///
     #[inline]
-    pub fn get_stones(&self) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_stones(&self) -> impl Iterator<Item=Stone> + '_ {
         self.go_strings
             .iter()
             .enumerate()
@@ -223,7 +220,7 @@ impl Goban {
     /// Get stones by their color.
     ///
     #[inline]
-    pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item=Stone> + '_ {
         self.get_points_by_color(color).map(move |c| Stone {
             color,
             coordinates: c,
@@ -231,7 +228,7 @@ impl Goban {
     }
 
     #[inline]
-    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item = Point> + '_ {
+    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Point> + '_ {
         self.go_strings
             .iter()
             .enumerate()
@@ -246,7 +243,7 @@ impl Goban {
     /// Returns the empty stones connected to the stone
     ///
     #[inline]
-    pub fn get_liberties(&self, point: Point) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_liberties(&self, point: Point) -> impl Iterator<Item=Stone> + '_ {
         self.get_neighbors(point).filter(|s| s.color == Color::None)
     }
 
@@ -406,7 +403,7 @@ impl Goban {
 
     /// Get the neighbors points filtered by limits of the board.
     #[inline]
-    fn neighbor_points(&self, point: Point) -> impl Iterator<Item = Point> + '_ {
+    fn neighbor_points(&self, point: Point) -> impl Iterator<Item=Point> + '_ {
         neighbor_points(point)
             .into_iter()
             .filter(move |&p| self.is_coord_valid(p))
