@@ -7,46 +7,45 @@ use crate::rules::PlayError;
 use crate::rules::Player;
 use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
-use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, GobanSizes, Move};
 use hash_hasher::{HashBuildHasher, HashedSet};
 
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
     #[get = "pub"]
-    goban: Goban,
+    pub(super) goban: Goban,
 
     #[get_copy = "pub"]
-    passes: u8,
+    pub(super) passes: u8,
 
     #[get_copy = "pub"]
-    prisoners: (u32, u32),
+    pub(super) prisoners: (u32, u32),
 
     /// None if the game is not finished,
-    outcome: Option<EndGame>,
+    pub(super) outcome: Option<EndGame>,
 
     #[get_copy = "pub"]
-    turn: Player,
-
-    #[get_copy = "pub"]
-    #[set = "pub"]
-    komi: f32,
+    pub(super) turn: Player,
 
     #[get_copy = "pub"]
     #[set = "pub"]
-    rule: Rule,
+    pub(super) komi: f32,
 
     #[get_copy = "pub"]
-    handicap: u8,
+    #[set = "pub"]
+    pub(super) rule: Rule,
+
+    #[get_copy = "pub"]
+    pub(super) handicap: u8,
 
     #[cfg(feature = "history")]
     #[get = "pub"]
-    plays: Vec<Goban>,
+    pub(super) plays: Vec<Goban>,
 
     #[get = "pub"]
-    last_hash: u64,
+    pub(super) last_hash: u64,
 
-    hashes: HashedSet<u64>,
+    pub(super) hashes: HashedSet<u64>,
 }
 
 impl Game {
@@ -296,11 +295,11 @@ impl Game {
     /// Rule of the super Ko, if any before configuration was already played then return true.
     ///
     pub fn super_ko(&self, stone: Stone) -> bool {
-        if !self.will_capture(stone.coordinates) {
+        if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
-            let hash_test_goban = self.play_for_verification(stone.coordinates);
-            self.hashes.contains(&hash_test_goban)
+            self.hashes
+                .contains(&self.play_for_verification(stone.coordinates))
         }
     }
 
@@ -339,109 +338,5 @@ impl Game {
 impl Default for Game {
     fn default() -> Self {
         Game::new(GobanSizes::Nineteen, Rule::Japanese)
-    }
-}
-
-pub struct GameBuilder {
-    size: (u32, u32),
-    komi: f32,
-    black_player: String,
-    white_player: String,
-    rule: Rule,
-    handicap_points: Vec<Point>,
-    turn: Player,
-    moves: Vec<Move>,
-    outcome: Option<EndGame>,
-}
-
-impl GameBuilder {
-    fn new() -> GameBuilder {
-        GameBuilder {
-            size: (19, 19),
-            komi: 0.,
-            black_player: "".to_string(),
-            white_player: "".to_string(),
-            handicap_points: vec![],
-            rule: Chinese,
-            turn: Player::Black,
-            moves: vec![],
-            outcome: None,
-        }
-    }
-
-    pub fn moves(&mut self, moves: &[Move]) -> &mut Self {
-        self.moves = moves.to_vec();
-        self
-    }
-
-    pub fn outcome(&mut self, outcome: EndGame) -> &mut Self {
-        self.outcome = Some(outcome);
-        self
-    }
-
-    pub fn handicap(&mut self, points: &[Point]) -> &mut Self {
-        self.handicap_points = points.to_vec();
-        self.turn = !self.turn;
-        self
-    }
-
-    pub fn size(&mut self, size: (u32, u32)) -> &mut Self {
-        self.size = size;
-        self
-    }
-
-    pub fn komi(&mut self, komi: f32) -> &mut Self {
-        self.komi = komi;
-        self
-    }
-
-    pub fn black_player(&mut self, black_player_name: &str) -> &mut Self {
-        self.black_player = black_player_name.to_string();
-        self
-    }
-
-    /// Overrides the komi,  dont use after komi !
-    pub fn rule(&mut self, rule: Rule) -> &mut Self {
-        self.rule = rule;
-        self.komi = rule.komi();
-        self
-    }
-
-    pub fn white_player(&mut self, white_player_name: &str) -> &mut Self {
-        self.white_player = white_player_name.to_string();
-        self
-    }
-
-    pub fn build(&mut self) -> Result<Game, String> {
-        let mut goban: Goban = Goban::new((self.size.0 as usize, self.size.1 as usize));
-        if !self.handicap_points.is_empty() {
-            goban.push_many(&self.handicap_points, Color::Black);
-        }
-        let mut g = Game {
-            goban,
-            passes: 0,
-            prisoners: (0, 0),
-            outcome: self.outcome,
-            turn: self.turn,
-            komi: self.komi,
-            rule: self.rule,
-            handicap: self.handicap_points.len() as u8,
-            #[cfg(feature = "history")]
-            plays: vec![],
-            hashes: Default::default(),
-            last_hash: 0,
-        };
-
-        for &m in &self.moves {
-            g.play(m); // without verifications of Ko
-        }
-
-        Ok(g)
-    }
-}
-
-impl Default for GameBuilder {
-    fn default() -> Self {
-        Self::new()
     }
 }

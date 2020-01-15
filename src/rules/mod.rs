@@ -3,10 +3,12 @@
 use crate::pieces::stones::{Color, Stone};
 use crate::pieces::util::coord::Point;
 use crate::rules::game::Game;
+use std::fmt::{Display, Error, Formatter};
 use std::ops::Not;
 use std::str::FromStr;
 
 pub mod game;
+pub mod game_builder;
 mod sgf_bridge;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
@@ -22,6 +24,15 @@ impl Not for Player {
         match self {
             Player::Black => Player::White,
             Player::White => Player::Black,
+        }
+    }
+}
+
+impl Display for Player {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        match self {
+            Player::White => write!(f, "White"),
+            Player::Black => write!(f, "Black"),
         }
     }
 }

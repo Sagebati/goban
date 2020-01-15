@@ -1,21 +1,22 @@
 //! Module with tools for getting the connected stones and liberties.
 
-use crate::pieces::goban::{GoStringPtr, Goban};
+use crate::pieces::goban::Goban;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
+use crate::pieces::GoStringPtr;
 use std::collections::HashSet;
 
 impl Goban {
     #[inline]
-    pub fn get_strings_of_stones_without_liberties_wth_color(
+    pub fn get_strings_of_stones_without_liberties_by_color(
         &self,
         color: Color,
     ) -> impl Iterator<Item = GoStringPtr> + '_ {
-        self.go_strings()
+        self.go_strings
             .iter()
-            .filter_map(|x| x.as_ref())
+            .cloned()
+            .filter_map(|x| x)
             .filter(move |go_str| go_str.is_dead() && go_str.color == color)
-            .map(ToOwned::to_owned)
     }
 
     ///
