@@ -295,11 +295,11 @@ impl Game {
     /// Rule of the super Ko, if any before configuration was already played then return true.
     ///
     pub fn super_ko(&self, stone: Stone) -> bool {
-        if !self.will_capture(stone.coordinates) {
+        if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
-            let hash_test_goban = self.play_for_verification(stone.coordinates);
-            self.hashes.contains(&hash_test_goban)
+            self.hashes
+                .contains(&self.play_for_verification(stone.coordinates))
         }
     }
 

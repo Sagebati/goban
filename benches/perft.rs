@@ -4,7 +4,7 @@ extern crate criterion;
 use criterion::Criterion;
 use goban::rules::game::Game;
 use goban::rules::Rule::{Chinese, Japanese};
-use goban::rules::{GobanSizes, Move};
+use goban::rules::{GobanSizes, Move, Rule};
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 
@@ -43,8 +43,8 @@ pub fn fast_play_random(state: &Game) -> Move {
     Move::Pass
 }
 
-pub fn fast_play_game() {
-    let mut g = Game::new(GobanSizes::Nineteen, Chinese);
+pub fn fast_play_game(rule: Rule) {
+    let mut g = Game::new(GobanSizes::Nineteen, rule);
     while !g.is_over() {
         g.play(fast_play_random(&g));
     }
@@ -88,7 +88,12 @@ pub fn game_play_bench(_c: &mut Criterion) {
     criterion
         .sample_size(20)
         .bench_function("game_play", |b| b.iter(play_game))
-        .bench_function("fast_play_game", |b| b.iter(fast_play_game));
+        .bench_function("fast_play_game_chinese", |b| {
+            b.iter(|| fast_play_game(Chinese))
+        })
+        .bench_function("fast_play_game_jap", |b| {
+            b.iter(|| fast_play_game(Japanese))
+        });
 }
 
 criterion_group!(benches, game_play_bench);
