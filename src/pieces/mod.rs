@@ -19,7 +19,8 @@ use crate::pieces::go_string::GoString;
 use by_address::ByAddress;
 use std::collections::HashSet;
 
-/// The go string pointer, ByAddress is needed for equality of pointer by address the hashmap
+/// The go string pointer.
+/// ByAddress is needed for equality/hash of pointer by address the hashmap.
 type GoStringPtr = ByAddress<Ptr<GoString>>;
 type Set<T> = HashSet<T>;
 

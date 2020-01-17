@@ -281,7 +281,7 @@ impl Game {
 
     ///
     /// Test if a play is ko.
-    /// If the goban is in the configuration of  two plays ago returns true
+    /// If the goban is in the configuration of two plays ago returns true
     ///
     pub fn ko(&self, stone: Stone) -> bool {
         if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {

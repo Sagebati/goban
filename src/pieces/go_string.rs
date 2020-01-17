@@ -78,7 +78,7 @@ impl GoString {
         assert_eq!(
             self.color, color,
             "When merging two strings, the 2  go strings need to be of \
-        same color. Colors found {} and {}",
+             same color. Colors found {} and {}",
             self.color, color
         );
         self.stones.extend(stones);
