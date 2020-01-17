@@ -15,12 +15,11 @@ pub struct ZobristTable {
 impl ZobristTable {
     pub(crate) fn new(n: usize) -> Self {
         let mut rng = XorShiftRng::seed_from_u64(SEED);
-        let mut hashes = vec![vec![0; 2]; 19 * 19];
-        for i in 0..n * n {
-            for j in 0..2 {
-                hashes[i][j] = rng.next_u64();
-            }
-        }
+        let hashes = (0..n * n)
+            .map(|_| (0..2)
+                .map(|_| rng.next_u64())
+                .collect())
+            .collect();
         ZobristTable { hashes, n }
     }
 }
