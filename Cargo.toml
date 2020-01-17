@@ -7,7 +7,7 @@ description= "Library for Go move generation and Go ruling."
 edition = "2018"
 license = "MIT"
 repository = "https://gitlab.com/Sabati/goban"
-keywords=["go","goban","Igo","Baduk", "game", "board game", "move generation"]
+keywords=["go","goban","igo","baduk", "game", "board_game", "move_generation"]
 
 [badges]
 gitlab = {repository ="Sabati/goban"}

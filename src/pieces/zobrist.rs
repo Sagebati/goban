@@ -16,9 +16,7 @@ impl ZobristTable {
     pub(crate) fn new(n: usize) -> Self {
         let mut rng = XorShiftRng::seed_from_u64(SEED);
         let hashes = (0..n * n)
-            .map(|_| (0..2)
-                .map(|_| rng.next_u64())
-                .collect())
+            .map(|_| (0..2).map(|_| rng.next_u64()).collect())
             .collect();
         ZobristTable { hashes, n }
     }
