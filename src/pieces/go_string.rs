@@ -8,20 +8,12 @@ type SetPoints = Set<Point>;
 pub struct GoString {
     pub color: Color,
     #[get = "pub"]
-    stones: SetPoints,
+    pub(super) stones: SetPoints,
     #[get = "pub"]
-    liberties: SetPoints,
+    pub(super) liberties: SetPoints,
 }
 
 impl GoString {
-    pub fn new(color: Color, stones: SetPoints, liberties: SetPoints) -> GoString {
-        GoString {
-            color,
-            stones,
-            liberties,
-        }
-    }
-
     #[inline]
     pub fn is_dead(&self) -> bool {
         self.liberties.is_empty()
