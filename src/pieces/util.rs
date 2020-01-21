@@ -6,21 +6,26 @@ pub mod coord {
     /// Defining the policy for the colums.
     pub type Point = (usize, usize);
 
-    #[derive(Debug, Clone, PartialEq, Eq, Copy)]
+    /// Return true if the coord is in the goban.
+    #[inline]
+    pub fn is_coord_valid((height, width): (usize, usize), coord: Point) -> bool {
+        coord.0 < height && coord.1 < width
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
     pub enum Order {
         RowMajor,
         ColumnMajor,
     }
 
     /// Waiting for const numeric.
-    #[derive(Debug, Clone, PartialEq, Eq, Copy)]
+    #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
     pub struct CoordUtil {
         n_rows: usize,
         n_cols: usize,
         order: Order,
     }
 
-    #[inline]
     pub fn neighbor_points((x1, x2): Point) -> ArrayVec<[Point; 4]> {
         ArrayVec::from([
             (x1 + 1, x2),
@@ -30,7 +35,6 @@ pub mod coord {
         ])
     }
 
-    #[inline]
     pub fn corner_points((x1, x2): Point) -> ArrayVec<[Point; 4]> {
         ArrayVec::from([
             (x1 + 1, x2 + 1),
@@ -56,7 +60,7 @@ pub mod coord {
             }
         }
 
-        #[inline]
+        #[inline(always)]
         pub fn to(self, coord: Point) -> usize {
             match self.order {
                 Order::ColumnMajor => (coord.0 * self.n_cols + coord.1 % self.n_rows),
@@ -64,7 +68,7 @@ pub mod coord {
             }
         }
 
-        #[inline]
+        #[inline(always)]
         pub fn from(self, index: usize) -> Point {
             match self.order {
                 Order::ColumnMajor => (index / self.n_cols, index % self.n_rows),
