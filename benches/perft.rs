@@ -34,7 +34,7 @@ pub fn fast_play_random(state: &Game) -> Move {
 
     for l in v
         .into_iter()
-        .filter(|&point| state.check_move(point).is_none())
+        .filter(|&point| state.is_point_legal(point).is_none())
     {
         if !state.goban().is_point_an_eye(l, state.turn().stone_color()) {
             return l.into();

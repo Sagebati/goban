@@ -132,7 +132,7 @@ impl Game {
 
     /// Test if a point is legal or not for the current player,
     #[inline]
-    pub fn check_move(&self, point: Point) -> Option<PlayError> {
+    pub fn is_point_legal(&self, point: Point) -> Option<PlayError> {
         self.rule.move_validation(
             &self,
             Stone {
@@ -148,7 +148,7 @@ impl Game {
     #[inline]
     pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.pseudo_legals()
-            .filter(move |&s| self.check_move(s).is_none())
+            .filter(move |&s| self.is_point_legal(s).is_none())
     }
 
     ///
@@ -212,7 +212,7 @@ impl Game {
         } else {
             match play {
                 Move::Play(x, y) => {
-                    if let Some(c) = self.check_move((x, y)) {
+                    if let Some(c) = self.is_point_legal((x, y)) {
                         Err(c)
                     } else {
                         Ok(self.play(play))
