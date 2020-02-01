@@ -55,7 +55,7 @@ impl Game {
         let komi = rule.komi();
         let pass = 0;
         #[cfg(feature = "history")]
-        let plays = Vec::with_capacity(width * height);
+            let plays = Vec::with_capacity(width * height);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes =
@@ -126,7 +126,7 @@ impl Game {
     /// Generate all moves on all intersections.
     ///
     #[inline]
-    pub fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
+    pub fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
@@ -146,7 +146,7 @@ impl Game {
     /// Returns a list with legals moves, takes
     ///
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
         self.pseudo_legals()
             .filter(move |&s| self.check_point(s).is_none())
     }
@@ -171,7 +171,7 @@ impl Game {
                 self.last_hash = hash;
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
-                self.plays.push(self.goban.clone());
+                    self.plays.push(self.goban.clone());
                 self.goban.push((x, y), self.turn.stone_color());
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
@@ -248,7 +248,7 @@ impl Game {
     /// dead.
     /// Returns true if the move is a suicide
     ///
-    pub fn is_suicide(&self, point: Stone) -> bool {
+    pub fn is_suicide(&self, stone: Stone) -> bool {
         if self.goban.has_liberties(stone.coordinates) {
             false
         } else {
