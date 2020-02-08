@@ -63,8 +63,8 @@ impl GoString {
         mut self,
         GoString {
             color,
-            stones,
-            liberties,
+            mut stones,
+            mut liberties,
         }: GoString,
     ) -> Self {
         assert_eq!(
@@ -73,10 +73,27 @@ impl GoString {
              same color. Colors found {} and {}",
             self.color, color
         );
-        self.stones.extend(stones);
-        self.liberties.extend(liberties);
-        self.liberties = self.liberties.difference(&self.stones).copied().collect();
+        let new_stones = if stones.len() < self.stones.len() {
+            self.stones.extend(stones);
+            self.stones
+        } else {
+            stones.extend(self.stones);
+            stones
+        };
 
-        self
+        let mut new_liberties = if liberties.len() < self.liberties.len() {
+            self.liberties.extend(liberties);
+            self.liberties
+        } else {
+            liberties.extend(self.liberties);
+            liberties
+        };
+        new_liberties = new_liberties.difference(&new_stones).copied().collect();
+
+        GoString {
+            color,
+            stones: new_stones,
+            liberties: new_liberties
+        }
     }
 }
