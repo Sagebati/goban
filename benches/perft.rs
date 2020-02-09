@@ -62,7 +62,7 @@ pub fn play_random(state: &Game) -> Move {
 }
 
 pub fn play_game() {
-    let mut g = Game::new(GobanSizes::Nineteen, Chinese);
+    let mut g = Game::new(GobanSizes::Nineteen, Japanese);
     while !g.is_over() {
         g.play(play_random(&g));
     }

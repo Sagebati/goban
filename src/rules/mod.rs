@@ -1,8 +1,7 @@
 //! Module for ruling in the game of go.
 
-use crate::pieces::stones::{Color, Stone};
+use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
-use crate::rules::game::Game;
 use std::fmt::{Display, Error, Formatter};
 use std::ops::Not;
 use std::str::FromStr;
@@ -122,6 +121,27 @@ pub enum PlayError {
     GamePaused,
 }
 
+type FlagUInt = u32;
+bitflags! {
+    /// Behaviours not permitted, if the flag is up then the move is not legal.
+    pub struct IllegalRules: FlagUInt{
+        const KO = 1;
+        const SUPERKO = 1 << 1;
+        const SUICIDE = 1 << 2;
+    }
+}
+bitflags! {
+    /// Types of scoring rules.
+    pub struct ScoreRules : FlagUInt {
+        /// Stones needs to ben counted to the final score.
+        const STONES = 1;
+        /// The komi needs to be added.
+        const KOMI = 1 << 1;
+        /// The prisoners need to be added to the score.
+        const PRISONNERS = 1 << 2;
+    }
+}
+
 ///
 /// This enum describes the rules for the game.
 /// for example in chinese rules we don't count prisoners.
@@ -134,7 +154,7 @@ pub enum Rule {
 
 impl Rule {
     /// Gets the komi defined in the rule
-    #[inline]
+    #[inline(always)]
     pub fn komi(self) -> f32 {
         match self {
             Self::Japanese => 6.5,
@@ -142,50 +162,19 @@ impl Rule {
         }
     }
 
-    /// Count the points of the game including komi and territories.
-    #[inline]
-    pub fn count_points(self, game: &Game) -> (f32, f32) {
-        let (black_score, white_score) = game.goban().calculate_territories();
+    #[inline(always)]
+    pub fn illegal_flag(self) -> IllegalRules {
         match self {
-            Rule::Japanese => (black_score as f32, white_score as f32 + game.komi()),
-            Rule::Chinese => {
-                // Territories in seki are not counted
-                let (black_stones, white_stones) = game.goban().number_of_stones();
-                (
-                    black_score as f32 + black_stones as f32,
-                    white_score as f32 + white_stones as f32 + game.komi(),
-                )
-            }
+            Self::Japanese => IllegalRules::KO | IllegalRules::SUICIDE,
+            Self::Chinese => IllegalRules::SUPERKO | IllegalRules::SUICIDE,
         }
     }
 
-    /// Specify the constraints in the move validation by rule.
-    pub fn move_validation(self, game: &Game, stone: Stone) -> Option<PlayError> {
+    #[inline(always)]
+    pub fn score_flag(self) -> ScoreRules {
         match self {
-            Rule::Japanese => {
-                if game.is_suicide(stone) {
-                    Some(PlayError::Suicide)
-                } else if game.ko(stone) {
-                    Some(PlayError::Ko)
-                } else {
-                    None
-                }
-            }
-            Rule::Chinese => {
-                if game.is_suicide(stone) {
-                    Some(PlayError::Suicide)
-                } else if game.super_ko(stone) {
-                    Some(PlayError::Ko)
-                } else {
-                    None
-                }
-            }
-        }
-    }
-
-    pub fn is_suicide_valid(self) -> bool {
-        match self {
-            Rule::Chinese | Rule::Japanese => false,
+            Self::Japanese => ScoreRules::KOMI | ScoreRules::PRISONNERS,
+            Self::Chinese => ScoreRules::KOMI | ScoreRules::STONES,
         }
     }
 }

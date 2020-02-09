@@ -98,6 +98,7 @@ impl GameBuilder {
             plays: vec![],
             hashes: Default::default(),
             last_hash: 0,
+            ko_point: None,
         };
 
         for &m in &self.moves {

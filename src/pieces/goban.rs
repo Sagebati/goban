@@ -321,16 +321,21 @@ impl Goban {
     /// Removes the dead stones from the goban by specifying a color stone.
     /// Returns the number of stones removed from the goban.
     ///
-    pub fn remove_captured_stones_turn(&mut self, color: Color) -> u32 {
-        let mut number_of_stones_captured = 0u32;
-        let string_without_liberties = self
+    pub fn remove_captured_stones_turn(&mut self, color: Color) -> (u32, Option<Point>) {
+        let mut number_of_stones_captured = 0;
+        let mut ko_point = None;
+        let rens_without_liberties = self
             .get_strings_of_stones_without_liberties_by_color(color)
             .collect::<HashSet<_>>();
-        for group_of_stones in string_without_liberties {
-            number_of_stones_captured += group_of_stones.stones().len() as u32;
-            self.remove_go_string(group_of_stones);
+        let one_ren_captured = rens_without_liberties.len() == 1;
+        for ren_without_liberties in rens_without_liberties {
+            number_of_stones_captured += ren_without_liberties.stones().len() as u32;
+            if one_ren_captured && number_of_stones_captured == 1 {
+                ko_point = Some(*ren_without_liberties.stones().iter().nth(0).unwrap())
+            }
+            self.remove_go_string(ren_without_liberties);
         }
-        number_of_stones_captured
+        (number_of_stones_captured, ko_point)
     }
 
     ///

@@ -417,7 +417,7 @@ mod tests {
                 }
                 m => m,
             };
-            g.play_with_verifications(to_play).unwrap();
+            g.try_play(to_play).unwrap();
             println!("prisoners: {:?}", g.prisoners());
             g.display_goban()
         }
@@ -493,7 +493,7 @@ mod tests {
         let mut g = Game::new(GobanSizes::Nineteen, Rule::Chinese);
         g.set_komi(0.);
         (0..38).for_each(|x| {
-            g.play_with_verifications(Play(if x % 2 == 0 { 9 } else { 8 }, x / 2))
+            g.try_play(Play(if x % 2 == 0 { 9 } else { 8 }, x / 2))
                 .unwrap();
         });
 
@@ -592,13 +592,13 @@ mod tests {
         //game.play(Move::Play(1, 2)); // black takes back
         //println!("{}", game);
         // ko
-        assert!(game.ko(Stone {
+        assert!(game.check_ko(Stone {
             coordinates: (1, 2),
             color: Color::Black,
         }));
         assert!(!game.legals().any(|m| m == (1, 2)));
-        assert!(game.play_with_verifications(Move::Play(1, 2)).is_err());
-        assert!(game.super_ko(Stone {
+        assert!(game.try_play(Move::Play(1, 2)).is_err());
+        assert!(game.check_superko(Stone {
             coordinates: (1, 2),
             color: Color::Black,
         }));
@@ -620,12 +620,12 @@ mod tests {
         //game.play(Move::Play(0, 1)); // white suicide whith
         //println!("{}", game);
         // suicide
-        assert!(game.is_suicide(Stone {
+        assert!(game.check_suicide(Stone {
             coordinates: (0, 1),
             color: Color::White,
         }));
         assert!(!game.legals().any(|m| m == (0, 1)));
-        assert!(game.play_with_verifications(Move::Play(0, 1)).is_err());
+        assert!(game.try_play(Move::Play(0, 1)).is_err());
     }
 
     #[test]

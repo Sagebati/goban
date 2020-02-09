@@ -23,6 +23,7 @@ thread-safe = []
 
 [dependencies]
 arrayvec = "0.5.1"
+bitflags = "1.2.1"
 by_address = "1.0.4"
 getset = "0.0.9"
 hash_hasher = "2.0.2"

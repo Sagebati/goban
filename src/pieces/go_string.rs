@@ -93,7 +93,7 @@ impl GoString {
         GoString {
             color,
             stones: new_stones,
-            liberties: new_liberties
+            liberties: new_liberties,
         }
     }
 }
