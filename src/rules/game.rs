@@ -258,26 +258,26 @@ impl Game {
     /// Calculates score. with prisoners and komi.
     /// Dependant of the rule in the game.
     ///
+    #[inline]
     pub fn calculate_score(&self) -> (f32, f32) {
-        self.calculate_score_by_rule(self.rule)
+        self.calculate_score_by(self.rule.score_flag())
     }
 
     /// Calculates the score by the rule passed in parameter.
-    pub fn calculate_score_by_rule(&self, rule: Rule) -> (f32, f32) {
-        let score_flag = rule.score_flag();
+    pub fn calculate_score_by(&self, rule: ScoreRules) -> (f32, f32) {
         let (black_score, white_score) = self.goban.calculate_territories().into();
         let mut black_score = black_score as f32;
         let mut white_score = white_score as f32;
-        if score_flag.contains(ScoreRules::PRISONNERS) {
+        if rule.contains(ScoreRules::PRISONNERS) {
             black_score += self.prisoners.0 as f32;
             white_score += self.prisoners.1 as f32;
         }
-        if score_flag.contains(ScoreRules::STONES) {
+        if rule.contains(ScoreRules::STONES) {
             let (black_stones, white_stones) = self.goban.number_of_stones();
             black_score += black_stones as f32;
             white_score += white_stones as f32;
         }
-        if score_flag.contains(ScoreRules::KOMI) {
+        if rule.contains(ScoreRules::KOMI) {
             white_score += self.komi;
         }
 
