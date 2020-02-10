@@ -1,11 +1,11 @@
 //! Module for ruling in the game of go.
 
 use crate::pieces::stones::Color;
+use crate::pieces::uint;
 use crate::pieces::util::coord::Point;
 use std::fmt::{Display, Error, Formatter};
 use std::ops::Not;
 use std::str::FromStr;
-use crate::pieces::uint;
 
 pub mod game;
 pub mod game_builder;
@@ -126,9 +126,14 @@ type FlagUInt = u32;
 bitflags! {
     /// Behaviours not permitted, if the flag is up then the move is not legal.
     pub struct IllegalRules: FlagUInt{
+        /// Rule that filters normal Ko move
         const KO = 1;
+        /// Rule that filters SUPER KO moves
         const SUPERKO = 1 << 1;
+        /// Rule that filters suicides moves
         const SUICIDE = 1 << 2;
+        /// Rule that filters eyes from the legals
+        const EYEFILL = 1 << 3;
     }
 }
 bitflags! {
@@ -167,7 +172,7 @@ impl Rule {
     pub fn illegal_flag(self) -> IllegalRules {
         match self {
             Self::Japanese => IllegalRules::KO | IllegalRules::SUICIDE,
-            Self::Chinese => IllegalRules::SUPERKO | IllegalRules::SUICIDE,
+            Self::Chinese => IllegalRules::SUPERKO | IllegalRules::KO | IllegalRules::SUICIDE,
         }
     }
 

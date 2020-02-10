@@ -1,6 +1,7 @@
 use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
+use crate::pieces::uint;
 use crate::pieces::util::coord::Point;
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::PlayError;
@@ -9,7 +10,6 @@ use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
 use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 use hash_hasher::{HashBuildHasher, HashedSet};
-use crate::pieces::uint;
 
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
@@ -61,8 +61,10 @@ impl Game {
             let plays = Vec::with_capacity((width * height) as usize);
         let prisoners = (0, 0);
         let handicap = 0;
-        let hashes =
-            HashedSet::with_capacity_and_hasher((width * height) as usize, HashBuildHasher::default());
+        let hashes = HashedSet::with_capacity_and_hasher(
+            (width * height) as usize,
+            HashBuildHasher::default(),
+        );
         let last_hash = 0;
         Game {
             goban,
@@ -191,7 +193,9 @@ impl Game {
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
                     self.plays.push(self.goban.clone());
-                self.goban.push((x as uint, y as uint), self.turn.stone_color());
+                self.goban
+                    .push((x as uint, y as uint), self.turn.stone_color());
+                self.ko_point = None;
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
                 self.passes = 0;
@@ -263,7 +267,7 @@ impl Game {
 
     /// Calculates the score by the rule passed in parameter.
     pub fn calculate_score_by(&self, rule: ScoreRules) -> (f32, f32) {
-        let (black_score, white_score) = self.goban.calculate_territories().into();
+        let (black_score, white_score) = self.goban.calculate_territories();
         let mut black_score = black_score as f32;
         let mut white_score = white_score as f32;
         if rule.contains(ScoreRules::PRISONNERS) {
@@ -281,7 +285,6 @@ impl Game {
 
         (black_score as f32, white_score as f32)
     }
-
 
     ///
     /// Returns true if the stone played in that point will capture another
@@ -310,7 +313,9 @@ impl Game {
         if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
-            self.hashes
+            self.check_ko(stone)
+                || self
+                .hashes
                 .contains(&self.play_for_verification(stone.coordinates))
         }
     }

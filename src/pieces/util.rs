@@ -1,8 +1,8 @@
 //! Module with the logic for calculating coordinates.
 
 pub mod coord {
-    use arrayvec::ArrayVec;
     use crate::pieces::uint;
+    use arrayvec::ArrayVec;
 
     /// Defining the policy for the colums.
     pub type Point = (uint, uint);
@@ -12,7 +12,6 @@ pub mod coord {
     pub fn is_coord_valid((height, width): (uint, uint), coord: Point) -> bool {
         coord.0 < height && coord.1 < width
     }
-
 
     #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
     pub enum Order {
@@ -71,10 +70,14 @@ pub mod coord {
         #[inline(always)]
         pub fn from(self, index: usize) -> Point {
             match self.order {
-                Order::ColumnMajor => ((index / self.n_cols as usize) as uint, (index % self.n_rows
-                    as usize) as uint),
-                Order::RowMajor => ((index / self.n_rows as usize) as uint, (index % self.n_cols as
-                    usize) as uint),
+                Order::ColumnMajor => (
+                    (index / self.n_cols as usize) as uint,
+                    (index % self.n_rows as usize) as uint,
+                ),
+                Order::RowMajor => (
+                    (index / self.n_rows as usize) as uint,
+                    (index % self.n_cols as usize) as uint,
+                ),
             }
         }
     }
