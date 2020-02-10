@@ -61,10 +61,11 @@ pub mod coord {
 
         #[inline(always)]
         pub fn to(self, coord: Point) -> usize {
+            let coord = (coord.0 as usize, coord.1 as usize);
             (match self.order {
-                Order::ColumnMajor => (coord.0 * self.n_cols + coord.1 % self.n_rows),
-                Order::RowMajor => (coord.0 * self.n_rows + coord.1 % self.n_cols),
-            }) as usize
+                Order::ColumnMajor => (coord.0 * self.n_cols as usize + coord.1 % self.n_rows as usize),
+                Order::RowMajor => (coord.0 * self.n_rows as usize + coord.1 % self.n_cols as usize),
+            })
         }
 
         #[inline(always)]

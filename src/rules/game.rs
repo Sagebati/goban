@@ -62,7 +62,7 @@ impl Game {
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashedSet::with_capacity_and_hasher(
-            (width * height) as usize,
+            width as usize * height as usize,
             HashBuildHasher::default(),
         );
         let last_hash = 0;
@@ -136,27 +136,6 @@ impl Game {
         self.goban.get_points_by_color(Color::None)
     }
 
-    /// Test if a point is legal or not for the current player,
-    #[inline]
-    pub fn check_point(&self, point: Point) -> Option<PlayError> {
-        self.check_point_by(point, self.rule.illegal_flag())
-    }
-
-    pub fn check_point_by(&self, point: Point, illegal_rules: IllegalRules) -> Option<PlayError> {
-        let stone = Stone {
-            coordinates: point,
-            color: self.turn.stone_color(),
-        };
-        if illegal_rules.contains(IllegalRules::KO) && self.check_ko(stone) {
-            Some(PlayError::Ko)
-        } else if illegal_rules.contains(IllegalRules::SUICIDE) && self.check_suicide(stone) {
-            Some(PlayError::Suicide)
-        } else if illegal_rules.contains(IllegalRules::SUPERKO) && self.check_superko(stone) {
-            Some(PlayError::Ko)
-        } else {
-            None
-        }
-    }
 
     /// Returns a list with legals moves. from the rule specified in at the creation.
     #[inline]
@@ -296,6 +275,30 @@ impl Game {
             .filter(|go_str_ptr| go_str_ptr.color != self.turn.stone_color())
             // if an enemy string has only liberty it's a capture move
             .any(|go_str_ptr| go_str_ptr.is_atari())
+    }
+
+    /// Test if a point is legal or not for the current player,
+    #[inline]
+    pub fn check_point(&self, point: Point) -> Option<PlayError> {
+        self.check_point_by(point, self.rule.illegal_flag())
+    }
+
+    pub fn check_point_by(&self, point: Point, illegal_rules: IllegalRules) -> Option<PlayError> {
+        let stone = Stone {
+            coordinates: point,
+            color: self.turn.stone_color(),
+        };
+        if illegal_rules.contains(IllegalRules::KO) && self.check_ko(stone) {
+            Some(PlayError::Ko)
+        } else if illegal_rules.contains(IllegalRules::FILLEYE) {
+            Some(PlayError::FillEye)
+        } else if illegal_rules.contains(IllegalRules::SUICIDE) && self.check_suicide(stone) {
+            Some(PlayError::Suicide)
+        } else if illegal_rules.contains(IllegalRules::SUPERKO) && self.check_superko(stone) {
+            Some(PlayError::Ko)
+        } else {
+            None
+        }
     }
 
     ///

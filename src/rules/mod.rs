@@ -120,6 +120,7 @@ pub enum PlayError {
     Ko,
     Suicide,
     GamePaused,
+    FillEye
 }
 
 type FlagUInt = u32;
@@ -133,11 +134,11 @@ bitflags! {
         /// Rule that filters suicides moves
         const SUICIDE = 1 << 2;
         /// Rule that filters eyes from the legals
-        const EYEFILL = 1 << 3;
+        const FILLEYE = 1 << 3;
     }
 }
 bitflags! {
-    /// Types of scoring rules.
+    /// Types of scoring rules. the territory score is always added to the rules
     pub struct ScoreRules : FlagUInt {
         /// Stones needs to ben counted to the final score.
         const STONES = 1;

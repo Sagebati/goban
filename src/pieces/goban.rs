@@ -35,7 +35,7 @@ impl Goban {
             size: (height, width),
             coord_util: CoordUtil::new(height, width),
             zobrist_hash: 0,
-            go_strings: vec![Option::None; (height * width) as usize],
+            go_strings: vec![Option::None; height as usize * width as usize],
         }
     }
 
