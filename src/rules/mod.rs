@@ -5,6 +5,7 @@ use crate::pieces::util::coord::Point;
 use std::fmt::{Display, Error, Formatter};
 use std::ops::Not;
 use std::str::FromStr;
+use crate::pieces::uint;
 
 pub mod game;
 pub mod game_builder;
@@ -52,11 +53,11 @@ pub enum GobanSizes {
     Nineteen,
     Nine,
     Thirteen,
-    Custom(usize, usize),
+    Custom(uint, uint),
 }
 
-impl Into<(usize, usize)> for GobanSizes {
-    fn into(self) -> (usize, usize) {
+impl Into<(uint, uint)> for GobanSizes {
+    fn into(self) -> (uint, uint) {
         match self {
             GobanSizes::Nine => (9, 9),
             GobanSizes::Thirteen => (13, 13),
@@ -82,12 +83,12 @@ impl From<usize> for GobanSizes {
 pub enum Move {
     Pass,
     Resign(Player),
-    Play(usize, usize),
+    Play(uint, uint),
 }
 
 impl From<Point> for Move {
-    fn from(x: (usize, usize)) -> Self {
-        Move::Play(x.0, x.1)
+    fn from((x0, x1): Point) -> Self {
+        Move::Play(x0, x1)
     }
 }
 

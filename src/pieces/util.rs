@@ -2,15 +2,17 @@
 
 pub mod coord {
     use arrayvec::ArrayVec;
+    use crate::pieces::uint;
 
     /// Defining the policy for the colums.
-    pub type Point = (usize, usize);
+    pub type Point = (uint, uint);
 
     /// Return true if the coord is in the goban.
     #[inline]
-    pub fn is_coord_valid((height, width): (usize, usize), coord: Point) -> bool {
+    pub fn is_coord_valid((height, width): (uint, uint), coord: Point) -> bool {
         coord.0 < height && coord.1 < width
     }
+
 
     #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
     pub enum Order {
@@ -21,8 +23,8 @@ pub mod coord {
     /// Waiting for const numeric.
     #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
     pub struct CoordUtil {
-        n_rows: usize,
-        n_cols: usize,
+        n_rows: uint,
+        n_cols: uint,
         order: Order,
     }
 
@@ -45,14 +47,12 @@ pub mod coord {
     }
 
     impl CoordUtil {
-        pub fn new(n_rows: usize, n_cols: usize) -> CoordUtil {
-            CoordUtil {
-                n_cols,
-                n_rows,
-                order: Order::RowMajor,
-            }
+        #[inline]
+        pub fn new(n_rows: uint, n_cols: uint) -> CoordUtil {
+            CoordUtil::new_order(n_rows, n_cols, Order::RowMajor)
         }
-        pub fn new_order(n_rows: usize, n_cols: usize, order: Order) -> CoordUtil {
+        #[inline]
+        pub fn new_order(n_rows: uint, n_cols: uint, order: Order) -> CoordUtil {
             CoordUtil {
                 n_rows,
                 n_cols,
@@ -62,17 +62,19 @@ pub mod coord {
 
         #[inline(always)]
         pub fn to(self, coord: Point) -> usize {
-            match self.order {
+            (match self.order {
                 Order::ColumnMajor => (coord.0 * self.n_cols + coord.1 % self.n_rows),
                 Order::RowMajor => (coord.0 * self.n_rows + coord.1 % self.n_cols),
-            }
+            }) as usize
         }
 
         #[inline(always)]
         pub fn from(self, index: usize) -> Point {
             match self.order {
-                Order::ColumnMajor => (index / self.n_cols, index % self.n_rows),
-                Order::RowMajor => (index / self.n_rows, index % self.n_cols),
+                Order::ColumnMajor => ((index / self.n_cols as usize) as uint, (index % self.n_rows
+                    as usize) as uint),
+                Order::RowMajor => ((index / self.n_rows as usize) as uint, (index % self.n_cols as
+                    usize) as uint),
             }
         }
     }

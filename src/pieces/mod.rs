@@ -23,6 +23,8 @@ use std::collections::HashSet;
 /// ByAddress is needed for equality/hash of pointer by address the hashmap.
 type GoStringPtr = ByAddress<Ptr<GoString>>;
 type Set<T> = HashSet<T>;
+#[allow(non_camel_case_types)]
+pub type uint = u16;
 
 pub mod go_string;
 pub mod goban;

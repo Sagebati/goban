@@ -4,6 +4,7 @@ use crate::pieces::util::coord::Point;
 use crate::rules::game::Game;
 use crate::rules::Rule::Chinese;
 use crate::rules::{EndGame, Move, Player, Rule};
+use crate::pieces::uint;
 
 pub struct GameBuilder {
     size: (u32, u32),
@@ -81,7 +82,7 @@ impl GameBuilder {
     }
 
     pub fn build(&mut self) -> Result<Game, String> {
-        let mut goban: Goban = Goban::new((self.size.0 as usize, self.size.1 as usize));
+        let mut goban: Goban = Goban::new((self.size.0 as uint, self.size.1 as uint));
 
         goban.push_many(&self.handicap_points, Color::Black);
 

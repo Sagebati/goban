@@ -12,6 +12,7 @@ mod tests {
     use goban::rules::{EndGame, GobanSizes, Move, Player};
     use rand::seq::SliceRandom;
     use std::collections::HashSet;
+    use goban::pieces::uint;
 
     #[test]
     fn goban() {
@@ -407,13 +408,15 @@ mod tests {
         for m in moves_sgf {
             let to_play = match m {
                 Play(x, y) => {
+                    let x = x as usize;
+                    let y = y as usize;
                     println!("({},{})", x, y);
                     println!("({},{})", inv_coord[x], y);
                     println!("({},{})", inv_coord[x] + 1, y + 1);
                     if inv_coord[x] == 6 && y == 14 && g.turn() == Player::White {
                         println!("bug")
                     }
-                    Play(inv_coord[x], y)
+                    Play(inv_coord[x] as uint, y as uint)
                 }
                 m => m,
             };

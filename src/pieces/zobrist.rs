@@ -26,7 +26,7 @@ impl Index<(Point, Color)> for ZobristTable {
     type Output = u64;
 
     fn index(&self, (x, color): (Point, Color)) -> &Self::Output {
-        &self.hashes[x.0 * self.n + x.1][(color as u8 - 1) as usize]
+        &self.hashes[x.0 as usize * self.n + x.1 as usize][(color as u8 - 1) as usize]
     }
 }
 

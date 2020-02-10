@@ -9,6 +9,7 @@ use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
 use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 use hash_hasher::{HashBuildHasher, HashedSet};
+use crate::pieces::uint;
 
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
@@ -57,11 +58,11 @@ impl Game {
         let komi = rule.komi();
         let pass = 0;
         #[cfg(feature = "history")]
-            let plays = Vec::with_capacity(width * height);
+            let plays = Vec::with_capacity((width * height) as usize);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes =
-            HashedSet::with_capacity_and_hasher(width * height, HashBuildHasher::default());
+            HashedSet::with_capacity_and_hasher((width * height) as usize, HashBuildHasher::default());
         let last_hash = 0;
         Game {
             goban,
@@ -190,7 +191,7 @@ impl Game {
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
                     self.plays.push(self.goban.clone());
-                self.goban.push((x, y), self.turn.stone_color());
+                self.goban.push((x as uint, y as uint), self.turn.stone_color());
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
                 self.passes = 0;
@@ -230,7 +231,7 @@ impl Game {
         } else {
             match play {
                 Move::Play(x, y) => {
-                    if let Some(c) = self.check_point((x, y)) {
+                    if let Some(c) = self.check_point((x as uint, y as uint)) {
                         Err(c)
                     } else {
                         Ok(self.play(play))

@@ -3,6 +3,7 @@ use crate::rules::game::Game;
 use crate::rules::game_builder::GameBuilder;
 use crate::rules::{EndGame, Move, Player, Rule};
 use sgf_parser::{Action, Color, Outcome, RuleSet, SgfToken};
+use crate::pieces::uint;
 
 impl Game {
     pub fn from_sgf(sgf_str: &str) -> Result<Self, String> {
@@ -34,7 +35,7 @@ impl Game {
                             color,
                             coordinate: (x, y),
                         } if *color == Color::Black => {
-                            handicap.push((*x as usize - 1, *y as usize - 1));
+                            handicap.push(((*x - 1) as uint, (*y - 1) as uint));
                         }
                         SgfToken::Rule(rule) => {
                             gamebuilder.rule(rule.clone().into());
@@ -93,7 +94,7 @@ impl From<Color> for Player {
 impl From<Action> for Move {
     fn from(a: Action) -> Self {
         match a {
-            Action::Move(col, line) => Move::Play((line - 1) as usize, (col - 1) as usize),
+            Action::Move(col, line) => Move::Play((line - 1) as uint, (col - 1) as uint),
             Action::Pass => Move::Pass,
         }
     }
