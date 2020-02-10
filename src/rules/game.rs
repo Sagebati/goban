@@ -2,7 +2,7 @@ use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use crate::pieces::uint;
-use crate::pieces::util::coord::Point;
+use crate::pieces::util::coord::{Point, corner_points, is_coord_valid};
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::PlayError;
 use crate::rules::Player;
@@ -290,14 +290,49 @@ impl Game {
         };
         if illegal_rules.contains(IllegalRules::KO) && self.check_ko(stone) {
             Some(PlayError::Ko)
-        } else if illegal_rules.contains(IllegalRules::FILLEYE) {
-            Some(PlayError::FillEye)
         } else if illegal_rules.contains(IllegalRules::SUICIDE) && self.check_suicide(stone) {
             Some(PlayError::Suicide)
+        } else if illegal_rules.contains(IllegalRules::FILLEYE) && self.check_eye(stone) {
+            Some(PlayError::FillEye)
         } else if illegal_rules.contains(IllegalRules::SUPERKO) && self.check_superko(stone) {
             Some(PlayError::Ko)
         } else {
             None
+        }
+    }
+
+    /// Detects true eyes.
+    /// Except for this form :
+    /// ```{nothing}
+    ///  ++
+    ///  + ++
+    ///  ++ +
+    ///    ++
+    /// ```
+    /// This function is only used for performance checking in the rules,
+    /// and not for checking is a point is really an eye !
+    pub fn check_eye(&self, Stone { coordinates: point, color }: Stone) -> bool {
+        if self.goban.get_stone(point) != Color::None {
+            return false;
+        }
+        if self.goban.get_neighbors(point).any(|stone| stone.color != color) {
+            return false;
+        }
+        let mut corner_ally = 0;
+        let mut corner_off_board = 0;
+        for point in corner_points(point) {
+            if is_coord_valid(self.goban.size(), point) {
+                if self.goban.get_stone(point) == color {
+                    corner_ally += 1
+                }
+            } else {
+                corner_off_board += 1;
+            }
+        }
+        if corner_off_board > 0 {
+            corner_off_board + corner_ally == 4
+        } else {
+            corner_ally == 4
         }
     }
 

@@ -3,7 +3,6 @@
 use crate::pieces::goban::Goban;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
-use crate::pieces::util::coord::{corner_points, is_coord_valid, Point};
 use crate::pieces::GoStringPtr;
 use std::collections::HashSet;
 
@@ -20,40 +19,7 @@ impl Goban {
             .filter(move |go_str| go_str.is_dead() && go_str.color == color)
     }
 
-    /// Detects true eyes.
-    /// Except for this form :
-    /// ```{nothing}
-    ///  ++
-    ///  + ++
-    ///  ++ +
-    ///    ++
-    /// ```
-    /// This function is only used for performance checking in the rules,
-    /// and not for checking is a point is really an eye !
-    pub fn is_point_an_eye(&self, point: Point, color: Color) -> bool {
-        if self.get_stone(point) != Color::None {
-            return false;
-        }
-        if self.get_neighbors(point).any(|stone| stone.color != color) {
-            return false;
-        }
-        let mut corner_ally = 0;
-        let mut corner_off_board = 0;
-        for point in corner_points(point) {
-            if is_coord_valid(self.size(), point) {
-                if self.get_stone(point) == color {
-                    corner_ally += 1
-                }
-            } else {
-                corner_off_board += 1;
-            }
-        }
-        if corner_off_board > 0 {
-            corner_off_board + corner_ally == 4
-        } else {
-            corner_ally == 4
-        }
-    }
+
 
     ///
     /// Get the chain of stones connected to a stone. with a Breadth First Search,
