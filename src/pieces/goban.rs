@@ -30,6 +30,10 @@ pub struct Goban {
 }
 
 impl Goban {
+    /// Creates a Goban
+    /// # Arguments
+    ///
+    /// * `(height, width)` a tuple with the height and the width of the desired goban.
     pub fn new((height, width): (uint, uint)) -> Self {
         Goban {
             size: (height, width),
@@ -39,9 +43,7 @@ impl Goban {
         }
     }
 
-    ///
-    /// Creates a goban from an array of stones.
-    ///
+    /// Creates a Goban from an array of stones.
     pub fn from_array(stones: &[Color], order: Order) -> Self {
         let size = ((stones.len() as f32).sqrt()) as uint;
         let mut g = Goban::new((size, size));
@@ -57,9 +59,7 @@ impl Goban {
         g
     }
 
-    ///
     /// Returns the underlying goban in a vector with a RowMajor Policy
-    ///
     pub fn raw(&self) -> Vec<Color> {
         self.go_strings
             .iter()
@@ -71,10 +71,8 @@ impl Goban {
             .collect()
     }
 
-    ///
     /// Get number of stones on the goban.
     /// (number of black stones, number of white stones)
-    ///
     pub fn number_of_stones(&self) -> (u32, u32) {
         self.get_stones()
             .fold((0, 0), |(x1, x2), stone| match stone.color {
@@ -84,14 +82,12 @@ impl Goban {
             })
     }
 
-    ///
     /// Put a stones in the goban. The point depends on the order choose.
     /// default (line, column)
     /// the (0,0) point is in the top left.
     ///
     /// # Panics
     /// if the point is out of bounds
-    ///
     pub fn push(&mut self, point: Point, color: Color) -> &mut Self {
         assert_ne!(color, Color::None, "We can't push Empty stones");
         assert!(
@@ -153,14 +149,13 @@ impl Goban {
         self
     }
 
+    /// Helper function to put a stone.
     #[inline]
     pub fn push_stone(&mut self, stone: Stone) -> &mut Goban {
         self.push(stone.coordinates, stone.color)
     }
 
-    ///
     /// Put many stones.
-    ///
     #[inline]
     pub fn push_many(&mut self, points: &[Point], value: Color) {
         points.iter().for_each(|&point| {
@@ -168,9 +163,7 @@ impl Goban {
         })
     }
 
-    ///
-    /// Get all the neighbors to the coordinate inluding empty intersections
-    ///
+    /// Get all the neighbors to the coordinate including empty intersections.
     #[inline]
     pub fn get_neighbors(&self, coord: Point) -> impl Iterator<Item = Stone> + '_ {
         self.neighbor_points(coord).map(move |point| Stone {
@@ -179,26 +172,20 @@ impl Goban {
         })
     }
 
-    ///
-    /// Get all the stones that are neighbor to the coord except empty intersections
-    ///
+    /// Get all the stones that are neighbor to the coord except empty intersections.
     #[inline]
     pub fn get_neighbors_stones(&self, coord: Point) -> impl Iterator<Item = Stone> + '_ {
         self.get_neighbors(coord).filter(|s| s.color != Color::None)
     }
 
-    ///
     /// Get all the neighbors go strings to the point. Only return point with a color.
-    ///
     #[inline]
     pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item = GoStringPtr> + '_ {
         self.neighbor_points(coord)
             .filter_map(move |point| self.go_strings[self.coord_util.to(point)].clone())
     }
 
-    ///
     /// Function for getting the stone in the goban.
-    ///
     #[inline]
     pub fn get_stone(&self, point: Point) -> Color {
         self.go_strings[self.coord_util.to(point)]
@@ -206,9 +193,7 @@ impl Goban {
             .map_or(Color::None, |go_str_ptr| go_str_ptr.color)
     }
 
-    ///
     /// Get all the stones except "Empty stones"
-    ///
     #[inline]
     pub fn get_stones(&self) -> impl Iterator<Item = Stone> + '_ {
         self.go_strings
@@ -221,9 +206,7 @@ impl Goban {
             .map(|(coordinates, color)| Stone { coordinates, color })
     }
 
-    ///
     /// Get stones by their color.
-    ///
     #[inline]
     pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item = Stone> + '_ {
         self.get_points_by_color(color).map(move |c| Stone {
@@ -232,6 +215,7 @@ impl Goban {
         })
     }
 
+    /// Get points by their color.
     #[inline]
     pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item = Point> + '_ {
         self.go_strings
@@ -244,25 +228,19 @@ impl Goban {
             .map(move |(index, _)| self.coord_util.from(index))
     }
 
-    ///
     /// Returns the empty stones connected to the stone
-    ///
     #[inline]
     pub fn get_liberties(&self, point: Point) -> impl Iterator<Item = Stone> + '_ {
         self.get_neighbors(point).filter(|s| s.color == Color::None)
     }
 
-    ///
     /// Returns true if the stone has liberties.
-    ///
     #[inline]
     pub fn has_liberties(&self, point: Point) -> bool {
         self.get_liberties(point).next().is_some()
     }
 
-    ///
     /// Get a string for printing the goban in normal shape (0,0) left bottom
-    ///
     pub fn pretty_string(&self) -> String {
         let mut buff = String::new();
         for i in 0..self.size.0 {
@@ -292,10 +270,8 @@ impl Goban {
         buff
     }
 
-    ///
     /// Remove a string from the game, it add liberties to all
     /// adjacent string of not the same color.
-    ///
     pub fn remove_go_string(&mut self, go_string_to_remove: GoStringPtr) {
         let color_of_the_string = go_string_to_remove.color;
         for &point in go_string_to_remove.stones() {
@@ -317,11 +293,9 @@ impl Goban {
         );
     }
 
-    ///
     /// Removes the dead stones from the goban by specifying a color stone.
     /// If there is only one stone captured, then update self.ko_point.
     /// Returns the number of stones removed from the goban.
-    ///
     pub fn remove_captured_stones_turn(&mut self, color: Color) -> (u32, Option<Point>) {
         let mut number_of_stones_captured = 0;
         let mut ko_point = None;
@@ -332,25 +306,21 @@ impl Goban {
         for ren_without_liberties in go_strings_without_liberties {
             number_of_stones_captured += ren_without_liberties.stones().len() as u32;
             if one_go_str_captured && number_of_stones_captured == 1 {
-                ko_point = Some(*ren_without_liberties.stones().iter().nth(0).unwrap())
+                ko_point = Some(*ren_without_liberties.stones().iter().next().unwrap())
             }
             self.remove_go_string(ren_without_liberties);
         }
         (number_of_stones_captured, ko_point)
     }
 
-    ///
     /// Just create the Rc pointer and add it to the set.
     /// moves out the string.
-    ///
     fn create_string(&mut self, string_to_add: GoString) {
         let new_string: GoStringPtr = Ptr::new(string_to_add).into();
         self.update_vec_indexes(new_string);
     }
 
-    ///
     /// Deletes all the Rc from the go_strings, then merges the two_string
-    ///
     fn merge_two_strings(&mut self, first: GoString, other: GoStringPtr) -> GoString {
         for &point in other.stones() {
             unsafe { *self.go_strings.get_unchecked_mut(self.coord_util.to(point)) = Option::None };
@@ -359,7 +329,7 @@ impl Goban {
         first.merge_with((**other).clone())
     }
 
-    /// updates the indexes to math actual goban. must use after an we put a stone
+    /// Updates the indexes to math actual goban. must use after an we put a stone
     fn update_vec_indexes(&mut self, go_string: GoStringPtr) {
         for &stone in go_string.stones() {
             unsafe {
