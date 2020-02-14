@@ -1,5 +1,22 @@
+//! # GameBuilder Helper
+//! Utility for creating complex games with non standard komi, handicap etc...
+//! # Exemple
+//! ```
+//! use crate::goban::rules::game_builder::GameBuilder;
+//! use crate::goban::rules::Rule;
+//!
+//! let mut builder = GameBuilder::default();
+//! let game = builder
+//!     .rule(Rule::Japanese)
+//!     .size((19,19))
+//!     .handicap(&[(3,3), (4,4)])
+//!     .komi(10.)
+//!     .build();
+//! ```
+
 use crate::pieces::goban::Goban;
 use crate::pieces::stones::Color;
+use crate::pieces::uint;
 use crate::pieces::util::coord::Point;
 use crate::rules::game::Game;
 use crate::rules::Rule::Chinese;
@@ -81,7 +98,7 @@ impl GameBuilder {
     }
 
     pub fn build(&mut self) -> Result<Game, String> {
-        let mut goban: Goban = Goban::new((self.size.0 as usize, self.size.1 as usize));
+        let mut goban: Goban = Goban::new((self.size.0 as uint, self.size.1 as uint));
 
         goban.push_many(&self.handicap_points, Color::Black);
 
@@ -98,6 +115,7 @@ impl GameBuilder {
             plays: vec![],
             hashes: Default::default(),
             last_hash: 0,
+            ko_point: None,
         };
 
         for &m in &self.moves {

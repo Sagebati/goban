@@ -7,6 +7,7 @@ use goban::rules::Rule::{Chinese, Japanese};
 use goban::rules::{GobanSizes, Move, Rule};
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
+use goban::pieces::stones::Stone;
 
 pub fn perft(pos: &Game, depth: u8) -> u64 {
     if depth < 1 {
@@ -32,12 +33,12 @@ pub fn fast_play_random(state: &Game) -> Move {
     let mut v: Vec<_> = state.pseudo_legals().collect();
     v.shuffle(&mut thread_rng());
 
-    for l in v
+    for coordinates in v
         .into_iter()
-        .filter(|&point| state.check_move(point).is_none())
+        .filter(|&point| state.check_point(point).is_none())
     {
-        if !state.goban().is_point_an_eye(l, state.turn().stone_color()) {
-            return l.into();
+        if !state.check_eye(Stone { coordinates, color: state.turn().stone_color() } ){
+            return coordinates.into();
         }
     }
     Move::Pass
@@ -54,7 +55,7 @@ pub fn play_random(state: &Game) -> Move {
     let mut legals = state.legals().collect::<Vec<_>>();
     legals.shuffle(&mut thread_rng());
     for l in legals {
-        if !state.goban().is_point_an_eye(l, state.turn().stone_color()) {
+        if !state.check_eye(Stone{coordinates:l,color:state.turn().stone_color()}) {
             return l.into();
         }
     }

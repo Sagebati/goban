@@ -1,13 +1,14 @@
 use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
-use crate::pieces::util::coord::Point;
+use crate::pieces::uint;
+use crate::pieces::util::coord::{Point, corner_points, is_coord_valid};
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::PlayError;
 use crate::rules::Player;
 use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
-use crate::rules::{EndGame, GobanSizes, Move};
+use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 use hash_hasher::{HashBuildHasher, HashedSet};
 
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
@@ -46,20 +47,25 @@ pub struct Game {
     pub(super) last_hash: u64,
 
     pub(super) hashes: HashedSet<u64>,
+
+    pub(super) ko_point: Option<Point>,
 }
 
 impl Game {
+    /// Crates a new game for playing Go
     pub fn new(size: GobanSizes, rule: Rule) -> Self {
         let (width, height) = size.into();
         let goban = Goban::new(size.into());
         let komi = rule.komi();
         let pass = 0;
         #[cfg(feature = "history")]
-        let plays = Vec::with_capacity(width * height);
+            let plays = Vec::with_capacity((width * height) as usize);
         let prisoners = (0, 0);
         let handicap = 0;
-        let hashes =
-            HashedSet::with_capacity_and_hasher(width * height, HashBuildHasher::default());
+        let hashes = HashedSet::with_capacity_and_hasher(
+            width as usize * height as usize,
+            HashBuildHasher::default(),
+        );
         let last_hash = 0;
         Game {
             goban,
@@ -74,22 +80,19 @@ impl Game {
             handicap,
             hashes,
             last_hash,
+            ko_point: None,
         }
     }
 }
 
 impl Game {
-    ///
     /// Resume the game when to players have passed, and want to continue.
-    ///
     #[inline]
     pub fn resume(&mut self) {
         self.passes = 0;
     }
 
-    ///
     /// True when the game is over (two passes, or no more legals moves, Resign)
-    ///
     #[inline]
     pub fn is_over(&self) -> bool {
         if self.outcome.is_some() {
@@ -99,10 +102,8 @@ impl Game {
         }
     }
 
-    ///
     /// Returns the endgame.
     /// None if the game is not finished
-    ///
     #[inline]
     pub fn outcome(&self) -> Option<EndGame> {
         if !self.is_over() {
@@ -111,7 +112,7 @@ impl Game {
             self.outcome
         } else {
             // two passes
-            let scores = self.rule.count_points(&self);
+            let scores = self.calculate_score();
             if (scores.0 - scores.1).abs() < std::f32::EPSILON {
                 Some(Draw)
             } else if scores.0 > scores.1 {
@@ -122,43 +123,33 @@ impl Game {
         }
     }
 
-    ///
-    /// Generate all moves on all intersections.
-    ///
+    /// Generate all moves on all empty intersections.
     #[inline]
-    pub fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
+    pub fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
-    /// Test if a point is legal or not for the current player,
+
+    /// Returns a list with legals moves. from the rule specified in at the creation.
     #[inline]
-    pub fn check_move(&self, point: Point) -> Option<PlayError> {
-        self.rule.move_validation(
-            &self,
-            Stone {
-                coordinates: point,
-                color: self.turn.stone_color(),
-            },
-        )
+    pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
+        self.legals_by(self.rule.illegal_flag())
     }
 
-    ///
-    /// Returns a list with legals moves, takes
-    ///
+    /// Return a list with the legals moves. doesn't take the rule specified in the game but take
+    /// the one passed on parameter.
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
+    pub fn legals_by(&self, legals_rules: IllegalRules) -> impl Iterator<Item=Point> + '_ {
         self.pseudo_legals()
-            .filter(move |&s| self.check_move(s).is_none())
+            .filter(move |&s| self.check_point_by(s, legals_rules).is_none())
     }
 
-    ///
     /// Method to play on the goban or pass.
     /// (0,0) is in the top left corner of the goban.
     ///
     /// # Panics
     ///
-    /// If the coordinates of the move are outside the goban
-    ///
+    /// If the coordinates of the move are outside the board.
     pub fn play(&mut self, play: Move) -> &mut Self {
         match play {
             Move::Pass => {
@@ -171,8 +162,10 @@ impl Game {
                 self.last_hash = hash;
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
-                self.plays.push(self.goban.clone());
-                self.goban.push((x, y), self.turn.stone_color());
+                    self.plays.push(self.goban.clone());
+                self.goban
+                    .push((x as uint, y as uint), self.turn.stone_color());
+                self.ko_point = None;
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
                 self.passes = 0;
@@ -186,18 +179,17 @@ impl Game {
     }
 
     /// This methods plays a move then return the hash of the goban simulated,
-    /// used in legals for fast move simulation in Ko ans Super Ko situations.
+    /// used in legals for fast move simulation in Super Ko situations.
     pub fn play_for_verification(&self, (x, y): Point) -> u64 {
         let mut test_goban = self.goban.clone();
         test_goban.push((x, y), self.turn.stone_color());
         test_goban.remove_captured_stones_turn((!self.turn).stone_color());
-        if self.rule.is_suicide_valid() {
+        if !self.rule.illegal_flag().contains(IllegalRules::SUICIDE) {
             test_goban.remove_captured_stones_turn(self.turn.stone_color());
         }
         test_goban.zobrist_hash()
     }
 
-    ///
     /// Method to play but it verifies if the play is legal or not.
     ///
     /// # Errors
@@ -205,14 +197,13 @@ impl Game {
     /// If the move is a suicide Move return SuicideMove
     /// If the move is a Ko Move returns Ko
     /// If the game is paused then return GamePaused
-    ///
-    pub fn play_with_verifications(&mut self, play: Move) -> Result<&mut Game, PlayError> {
+    pub fn try_play(&mut self, play: Move) -> Result<&mut Game, PlayError> {
         if self.passes == 2 {
             Err(PlayError::GamePaused)
         } else {
             match play {
                 Move::Play(x, y) => {
-                    if let Some(c) = self.check_move((x, y)) {
+                    if let Some(c) = self.check_point((x as uint, y as uint)) {
                         Err(c)
                     } else {
                         Ok(self.play(play))
@@ -223,10 +214,8 @@ impl Game {
         }
     }
 
-    ///
     /// Put the handicap stones on the goban.
-    /// Does not override previous setting ! .
-    ///
+    /// This put the turn for white but doesn't update the komi.
     pub fn put_handicap(&mut self, points: &[Point]) {
         self.handicap = points.len() as u8;
         points.iter().for_each(|&coord| {
@@ -235,20 +224,126 @@ impl Game {
         self.turn = Player::White;
     }
 
-    ///
     /// Calculates score. with prisoners and komi.
-    /// Dependant of the rule.
-    ///
+    /// Dependant of the rule in the game.
+    #[inline]
     pub fn calculate_score(&self) -> (f32, f32) {
-        self.rule.count_points(self)
+        self.calculate_score_by(self.rule.score_flag())
     }
 
-    ///
+    /// Calculates the score by the rule passed in parameter.
+    pub fn calculate_score_by(&self, rule: ScoreRules) -> (f32, f32) {
+        let (black_score, white_score) = self.goban.calculate_territories();
+        let mut black_score = black_score as f32;
+        let mut white_score = white_score as f32;
+        if rule.contains(ScoreRules::PRISONNERS) {
+            black_score += self.prisoners.0 as f32;
+            white_score += self.prisoners.1 as f32;
+        }
+        if rule.contains(ScoreRules::STONES) {
+            let (black_stones, white_stones) = self.goban.number_of_stones();
+            black_score += black_stones as f32;
+            white_score += white_stones as f32;
+        }
+        if rule.contains(ScoreRules::KOMI) {
+            white_score += self.komi;
+        }
+
+        (black_score , white_score )
+    }
+
+    /// Returns true if the stone played in that point will capture another
+    /// string.
+    pub fn will_capture(&self, point: Point) -> bool {
+        self.goban
+            .get_neighbors_strings(point)
+            .filter(|go_str_ptr| go_str_ptr.color != self.turn.stone_color())
+            // if an enemy string has only liberty it's a capture move
+            .any(|go_str_ptr| go_str_ptr.is_atari())
+    }
+
+    /// Test if a point is legal or not for the current player,
+    #[inline]
+    pub fn check_point(&self, point: Point) -> Option<PlayError> {
+        self.check_point_by(point, self.rule.illegal_flag())
+    }
+
+    /// Test if a point is legal or not by the rule passed in parameter.
+    pub fn check_point_by(&self, point: Point, illegal_rules: IllegalRules) -> Option<PlayError> {
+        let stone = Stone {
+            coordinates: point,
+            color: self.turn.stone_color(),
+        };
+        if illegal_rules.contains(IllegalRules::KO) && self.check_ko(stone) {
+            Some(PlayError::Ko)
+        } else if illegal_rules.contains(IllegalRules::SUICIDE) && self.check_suicide(stone) {
+            Some(PlayError::Suicide)
+        } else if illegal_rules.contains(IllegalRules::FILLEYE) && self.check_eye(stone) {
+            Some(PlayError::FillEye)
+        } else if illegal_rules.contains(IllegalRules::SUPERKO) && self.check_superko(stone) {
+            Some(PlayError::Ko)
+        } else {
+            None
+        }
+    }
+
+    /// Detects true eyes.
+    /// Except for this form :
+    /// ```{nothing}
+    ///  ++
+    ///  + ++
+    ///  ++ +
+    ///    ++
+    /// ```
+    /// This function is only used for performance checking in the rules,
+    /// and not for checking is a point is really an eye !
+    pub fn check_eye(&self, Stone { coordinates: point, color }: Stone) -> bool {
+        if self.goban.get_stone(point) != Color::None {
+            return false;
+        }
+        if self.goban.get_neighbors(point).any(|stone| stone.color != color) {
+            return false;
+        }
+        let mut corner_ally = 0;
+        let mut corner_off_board = 0;
+        for point in corner_points(point) {
+            if is_coord_valid(self.goban.size(), point) {
+                if self.goban.get_stone(point) == color {
+                    corner_ally += 1
+                }
+            } else {
+                corner_off_board += 1;
+            }
+        }
+        if corner_off_board > 0 {
+            corner_off_board + corner_ally == 4
+        } else {
+            corner_ally == 4
+        }
+    }
+
+    /// Test if a play is ko.
+    /// If the goban is in the configuration of two plays ago returns true
+    pub fn check_ko(&self, stone: Stone) -> bool {
+        self.ko_point == Some(stone.coordinates)
+    }
+
+    /// Rule of the super Ko, if any before configuration was already played then return true.
+    pub fn check_superko(&self, stone: Stone) -> bool {
+        if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {
+            false
+        } else {
+            self.check_ko(stone)
+                || self
+                .hashes
+                .contains(&self.play_for_verification(stone.coordinates))
+        }
+    }
+
     /// Add a stone to the board an then test if the stone or stone group is
     /// dead.
     /// Returns true if the move is a suicide
-    ///
-    pub fn is_suicide(&self, stone: Stone) -> bool {
+    pub fn check_suicide(&self, stone: Stone) -> bool {
         if self.goban.has_liberties(stone.coordinates) {
             false
         } else {
@@ -267,69 +362,37 @@ impl Game {
         }
     }
 
-    ///
-    /// Returns true if the stone played in that point will capture another
-    /// string.
-    ///
-    pub fn will_capture(&self, point: Point) -> bool {
-        self.goban
-            .get_neighbors_strings(point)
-            .filter(|go_str_ptr| go_str_ptr.color != self.turn.stone_color())
-            // if an enemy string has only liberty it's a capture move
-            .any(|go_str_ptr| go_str_ptr.is_atari())
-    }
-
-    ///
-    /// Test if a play is ko.
-    /// If the goban is in the configuration of two plays ago returns true
-    ///
-    pub fn ko(&self, stone: Stone) -> bool {
-        if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {
-            false
-        } else {
-            self.play_for_verification(stone.coordinates) == self.last_hash
-        }
-    }
-
-    ///
-    /// Rule of the super Ko, if any before configuration was already played then return true.
-    ///
-    pub fn super_ko(&self, stone: Stone) -> bool {
-        if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {
-            false
-        } else {
-            self.hashes
-                .contains(&self.play_for_verification(stone.coordinates))
-        }
-    }
-
     /// Displays the internal board.
     pub fn display_goban(&self) {
         println!("{}", self.goban)
     }
 
-    ///
     /// Remove captured stones, and add it to the count of prisoners
-    /// returns new captured stones.
-    ///
+    /// returns new captured stones. If there is an Ko point updates it.
     #[inline]
     fn remove_captured_stones(&mut self) -> (u32, u32) {
-        let pris = self
+        let (pris, ko_point_op) = self
             .goban
             .remove_captured_stones_turn((!self.turn).stone_color());
         let new_prisoners = match self.turn {
             Black => (self.prisoners.0 + pris, self.prisoners.1),
             White => (self.prisoners.0, self.prisoners.1 + pris),
         };
-        if self.rule.is_suicide_valid() {
-            let pris = self
+        if !self.rule.illegal_flag().contains(IllegalRules::SUICIDE) {
+            let (pris, _) = self
                 .goban
                 .remove_captured_stones_turn(self.turn.stone_color());
+            if ko_point_op.is_some() && pris == 0 {
+                self.ko_point = ko_point_op;
+            }
             match self.turn {
                 Black => (new_prisoners.0, new_prisoners.1 + pris),
                 White => (new_prisoners.0 + pris, new_prisoners.1 + pris),
             }
         } else {
+            if ko_point_op.is_some() {
+                self.ko_point = ko_point_op;
+            }
             new_prisoners
         }
     }

@@ -19,6 +19,8 @@ impl Goban {
             .filter(move |go_str| go_str.is_dead() && go_str.color == color)
     }
 
+
+
     ///
     /// Get the chain of stones connected to a stone. with a Breadth First Search,
     /// works for Empty stones too.
