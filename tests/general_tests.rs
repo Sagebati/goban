@@ -4,7 +4,6 @@ mod tests {
     use goban::pieces::stones::Color;
     use goban::pieces::stones::Color::Black;
     use goban::pieces::stones::Stone;
-    use goban::pieces::uint;
     use goban::pieces::util::coord::Order;
     use goban::pieces::zobrist::ZOBRIST;
     use goban::rules::game::Game;
@@ -416,7 +415,7 @@ mod tests {
                     if inv_coord[x] == 6 && y == 14 && g.turn() == Player::White {
                         println!("bug")
                     }
-                    Play(inv_coord[x] as uint, y as uint)
+                    Play(inv_coord[x] as u8, y as u8)
                 }
                 m => m,
             };
