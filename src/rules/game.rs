@@ -52,6 +52,7 @@ pub struct Game {
 }
 
 impl Game {
+    /// Crates a new game for playing Go
     pub fn new(size: GobanSizes, rule: Rule) -> Self {
         let (width, height) = size.into();
         let goban = Goban::new(size.into());
@@ -85,17 +86,13 @@ impl Game {
 }
 
 impl Game {
-    ///
     /// Resume the game when to players have passed, and want to continue.
-    ///
     #[inline]
     pub fn resume(&mut self) {
         self.passes = 0;
     }
 
-    ///
     /// True when the game is over (two passes, or no more legals moves, Resign)
-    ///
     #[inline]
     pub fn is_over(&self) -> bool {
         if self.outcome.is_some() {
@@ -105,10 +102,8 @@ impl Game {
         }
     }
 
-    ///
     /// Returns the endgame.
     /// None if the game is not finished
-    ///
     #[inline]
     pub fn outcome(&self) -> Option<EndGame> {
         if !self.is_over() {
@@ -128,9 +123,7 @@ impl Game {
         }
     }
 
-    ///
-    /// Generate all moves on all intersections.
-    ///
+    /// Generate all moves on all empty intersections.
     #[inline]
     pub fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
         self.goban.get_points_by_color(Color::None)
@@ -151,14 +144,12 @@ impl Game {
             .filter(move |&s| self.check_point_by(s, legals_rules).is_none())
     }
 
-    ///
     /// Method to play on the goban or pass.
     /// (0,0) is in the top left corner of the goban.
     ///
     /// # Panics
     ///
-    /// If the coordinates of the move are outside the goban
-    ///
+    /// If the coordinates of the move are outside the board.
     pub fn play(&mut self, play: Move) -> &mut Self {
         match play {
             Move::Pass => {
@@ -188,7 +179,7 @@ impl Game {
     }
 
     /// This methods plays a move then return the hash of the goban simulated,
-    /// used in legals for fast move simulation in Ko ans Super Ko situations.
+    /// used in legals for fast move simulation in Super Ko situations.
     pub fn play_for_verification(&self, (x, y): Point) -> u64 {
         let mut test_goban = self.goban.clone();
         test_goban.push((x, y), self.turn.stone_color());
@@ -199,7 +190,6 @@ impl Game {
         test_goban.zobrist_hash()
     }
 
-    ///
     /// Method to play but it verifies if the play is legal or not.
     ///
     /// # Errors
@@ -207,7 +197,6 @@ impl Game {
     /// If the move is a suicide Move return SuicideMove
     /// If the move is a Ko Move returns Ko
     /// If the game is paused then return GamePaused
-    ///
     pub fn try_play(&mut self, play: Move) -> Result<&mut Game, PlayError> {
         if self.passes == 2 {
             Err(PlayError::GamePaused)
@@ -235,10 +224,8 @@ impl Game {
         self.turn = Player::White;
     }
 
-    ///
     /// Calculates score. with prisoners and komi.
     /// Dependant of the rule in the game.
-    ///
     #[inline]
     pub fn calculate_score(&self) -> (f32, f32) {
         self.calculate_score_by(self.rule.score_flag())
@@ -262,13 +249,11 @@ impl Game {
             white_score += self.komi;
         }
 
-        (black_score as f32, white_score as f32)
+        (black_score , white_score )
     }
 
-    ///
     /// Returns true if the stone played in that point will capture another
     /// string.
-    ///
     pub fn will_capture(&self, point: Point) -> bool {
         self.goban
             .get_neighbors_strings(point)
@@ -283,6 +268,7 @@ impl Game {
         self.check_point_by(point, self.rule.illegal_flag())
     }
 
+    /// Test if a point is legal or not by the rule passed in parameter.
     pub fn check_point_by(&self, point: Point, illegal_rules: IllegalRules) -> Option<PlayError> {
         let stone = Stone {
             coordinates: point,
@@ -336,17 +322,13 @@ impl Game {
         }
     }
 
-    ///
     /// Test if a play is ko.
     /// If the goban is in the configuration of two plays ago returns true
-    ///
     pub fn check_ko(&self, stone: Stone) -> bool {
         self.ko_point == Some(stone.coordinates)
     }
 
-    ///
     /// Rule of the super Ko, if any before configuration was already played then return true.
-    ///
     pub fn check_superko(&self, stone: Stone) -> bool {
         if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
@@ -385,10 +367,8 @@ impl Game {
         println!("{}", self.goban)
     }
 
-    ///
     /// Remove captured stones, and add it to the count of prisoners
-    /// returns new captured stones. If there is an Ko point updtate it.
-    ///
+    /// returns new captured stones. If there is an Ko point updates it.
     #[inline]
     fn remove_captured_stones(&mut self) -> (u32, u32) {
         let (pris, ko_point_op) = self

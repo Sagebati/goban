@@ -1,3 +1,19 @@
+//! # GameBuilder Helper
+//! Utility for creating complex games with non standard komi, handicap etc...
+//! # Exemple
+//! ```
+//! use crate::goban::rules::game_builder::GameBuilder;
+//! use crate::goban::rules::Rule;
+//!
+//! let mut builder = GameBuilder::default();
+//! let game = builder
+//!     .rule(Rule::Japanese)
+//!     .size((19,19))
+//!     .handicap(&[(3,3), (4,4)])
+//!     .komi(10.)
+//!     .build();
+//! ```
+
 use crate::pieces::goban::Goban;
 use crate::pieces::stones::Color;
 use crate::pieces::uint;
