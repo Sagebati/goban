@@ -4,7 +4,7 @@ use crate::pieces::go_string::GoString;
 use crate::pieces::stones::*;
 use crate::pieces::util::coord::{is_coord_valid, neighbor_points, CoordUtil, Order, Point};
 use crate::pieces::zobrist::*;
-use crate::pieces::{uint, GoStringPtr, Ptr, Set};
+use crate::pieces::{Nat, GoStringPtr, Ptr, Set};
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::fmt::Error;
@@ -20,7 +20,7 @@ pub struct Goban {
     pub(super) go_strings: Vec<Option<GoStringPtr>>,
 
     #[get_copy = "pub"]
-    size: (uint, uint),
+    size: (Nat, Nat),
 
     #[get]
     coord_util: CoordUtil,
@@ -34,7 +34,7 @@ impl Goban {
     /// # Arguments
     ///
     /// * `(height, width)` a tuple with the height and the width of the desired goban.
-    pub fn new((height, width): (uint, uint)) -> Self {
+    pub fn new((height, width): (Nat, Nat)) -> Self {
         Goban {
             size: (height, width),
             coord_util: CoordUtil::new(height, width),
@@ -45,7 +45,7 @@ impl Goban {
 
     /// Creates a Goban from an array of stones.
     pub fn from_array(stones: &[Color], order: Order) -> Self {
-        let size = ((stones.len() as f32).sqrt()) as uint;
+        let size = ((stones.len() as f32).sqrt()) as Nat;
         let mut g = Goban::new((size, size));
         let coord_util = CoordUtil::new_order(size, size, order);
         stones

@@ -24,8 +24,7 @@ use std::collections::HashSet;
 type GoStringPtr = ByAddress<Ptr<GoString>>;
 type Set<T> = HashSet<T>;
 
-#[allow(non_camel_case_types)]
-pub(super) type uint = u8;
+pub(super) type Nat = u8;
 
 pub mod go_string;
 pub mod goban;

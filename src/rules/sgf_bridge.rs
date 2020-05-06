@@ -1,4 +1,4 @@
-use crate::pieces::uint;
+use crate::pieces::Nat;
 use crate::pieces::util::coord::Point;
 use crate::rules::game::Game;
 use crate::rules::game_builder::GameBuilder;
@@ -35,7 +35,7 @@ impl Game {
                             color,
                             coordinate: (x, y),
                         } if *color == Color::Black => {
-                            handicap.push(((*x - 1) as uint, (*y - 1) as uint));
+                            handicap.push(((*x - 1) as Nat, (*y - 1) as Nat));
                         }
                         SgfToken::Rule(rule) => {
                             gamebuilder.rule(rule.clone().into());
@@ -94,7 +94,7 @@ impl From<Color> for Player {
 impl From<Action> for Move {
     fn from(a: Action) -> Self {
         match a {
-            Action::Move(col, line) => Move::Play((line - 1) as uint, (col - 1) as uint),
+            Action::Move(col, line) => Move::Play((line - 1) as Nat, (col - 1) as Nat),
             Action::Pass => Move::Pass,
         }
     }

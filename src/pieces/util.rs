@@ -1,15 +1,15 @@
 //! Module with the logic for calculating coordinates.
 
 pub mod coord {
-    use crate::pieces::uint;
+    use crate::pieces::Nat;
     use arrayvec::ArrayVec;
 
     /// Defining the policy for the colums.
-    pub type Point = (uint, uint);
+    pub type Point = (Nat, Nat);
 
     /// Return true if the coord is in the goban.
     #[inline]
-    pub fn is_coord_valid((height, width): (uint, uint), coord: Point) -> bool {
+    pub fn is_coord_valid((height, width): (Nat, Nat), coord: Point) -> bool {
         coord.0 < height && coord.1 < width
     }
 
@@ -22,8 +22,8 @@ pub mod coord {
     /// Waiting for const numeric.
     #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
     pub struct CoordUtil {
-        n_rows: uint,
-        n_cols: uint,
+        n_rows: Nat,
+        n_cols: Nat,
         order: Order,
     }
 
@@ -47,11 +47,11 @@ pub mod coord {
 
     impl CoordUtil {
         #[inline]
-        pub fn new(n_rows: uint, n_cols: uint) -> CoordUtil {
+        pub fn new(n_rows: Nat, n_cols: Nat) -> CoordUtil {
             CoordUtil::new_order(n_rows, n_cols, Order::RowMajor)
         }
         #[inline]
-        pub fn new_order(n_rows: uint, n_cols: uint, order: Order) -> CoordUtil {
+        pub fn new_order(n_rows: Nat, n_cols: Nat, order: Order) -> CoordUtil {
             CoordUtil {
                 n_rows,
                 n_cols,
@@ -72,12 +72,12 @@ pub mod coord {
         pub fn from(self, index: usize) -> Point {
             match self.order {
                 Order::ColumnMajor => (
-                    (index / self.n_cols as usize) as uint,
-                    (index % self.n_rows as usize) as uint,
+                    (index / self.n_cols as usize) as Nat,
+                    (index % self.n_rows as usize) as Nat,
                 ),
                 Order::RowMajor => (
-                    (index / self.n_rows as usize) as uint,
-                    (index % self.n_cols as usize) as uint,
+                    (index / self.n_rows as usize) as Nat,
+                    (index % self.n_cols as usize) as Nat,
                 ),
             }
         }

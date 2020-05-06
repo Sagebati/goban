@@ -1,7 +1,7 @@
 use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
-use crate::pieces::uint;
+use crate::pieces::Nat;
 use crate::pieces::util::coord::{Point, corner_points, is_coord_valid};
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::PlayError;
@@ -164,7 +164,7 @@ impl Game {
                 #[cfg(feature = "history")]
                     self.plays.push(self.goban.clone());
                 self.goban
-                    .push((x as uint, y as uint), self.turn.stone_color());
+                    .push((x as Nat, y as Nat), self.turn.stone_color());
                 self.ko_point = None;
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
@@ -203,7 +203,7 @@ impl Game {
         } else {
             match play {
                 Move::Play(x, y) => {
-                    if let Some(c) = self.check_point((x as uint, y as uint)) {
+                    if let Some(c) = self.check_point((x as Nat, y as Nat)) {
                         Err(c)
                     } else {
                         Ok(self.play(play))
