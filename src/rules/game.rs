@@ -287,7 +287,7 @@ impl Game {
         }
     }
 
-    /// Detects true eyes.
+    /// Detects true eyes. return true is the stone is an eye.
     /// Except for this form :
     /// ```{nothing}
     ///  ++
