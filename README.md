@@ -10,7 +10,7 @@
 **Only contains move generation, and rules there is no IA, neither
 front-end.**
 
-rust cargo features: 
+Features: 
 - **thread-safe** // for using Arc instead of Rc for thread safety. Decrease perfs ! 
 - **history**     // each game will have his all history so you can iterate over it. Decrease perfs !
 
@@ -66,6 +66,9 @@ etc...
 - Japanese Rules
 - Chinese Rules
 - Boards of differents sizes (4x5 , 4x9) Limited  to (19x19)
+
+## Waiting for
+- Const generics
 
 ## What is not in point:
 - Handling dead stones at the end of the game.
