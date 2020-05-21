@@ -2,12 +2,12 @@
 extern crate criterion;
 
 use criterion::Criterion;
-use goban::rules::game::Game;
 use goban::rules::Rule::{Chinese, Japanese};
 use goban::rules::{GobanSizes, Move, Rule};
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use goban::pieces::stones::Stone;
+use goban::rules::game::Game;
 
 pub fn perft(pos: &Game, depth: u8) -> u64 {
     if depth < 1 {

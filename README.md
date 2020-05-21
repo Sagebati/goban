@@ -10,11 +10,12 @@
 **Only contains move generation, and rules there is no IA, neither
 front-end.**
 
-rust cargo features: 
+Features: 
 - **thread-safe** // for using Arc instead of Rc for thread safety. Decrease perfs ! 
 - **history**     // each game will have his all history so you can iterate over it. Decrease perfs !
 
-Thanks to some help in profiling and optimisation we can run a playout randomly of an entire game in 7 ms (i7u 3.0 Ghz) (before it was 600ms ) ! 
+Thanks to some help in profiling and optimisation we can run a playout randomly of an entire game in 3 ms (i7u 3.0 Ghz) (before it was
+ 600ms ) ! 
 
 
 Example :
@@ -67,6 +68,6 @@ etc...
 - Chinese Rules
 - Boards of differents sizes (4x5 , 4x9) Limited  to (19x19)
 
-## What is not in point:
-- Handling dead stones at the end of the game.
+## Waiting for
+- Const generics or maybe not (benchmark with a Goban with backed array is slightly faster)
 

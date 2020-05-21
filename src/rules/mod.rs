@@ -1,7 +1,7 @@
 //! Module for ruling in the game of go.
 
 use crate::pieces::stones::Color;
-use crate::pieces::uint;
+use crate::pieces::Nat;
 use crate::pieces::util::coord::Point;
 use std::fmt::{Display, Error, Formatter};
 use std::ops::Not;
@@ -53,11 +53,11 @@ pub enum GobanSizes {
     Nineteen,
     Nine,
     Thirteen,
-    Custom(uint, uint),
+    Custom(Nat, Nat),
 }
 
-impl Into<(uint, uint)> for GobanSizes {
-    fn into(self) -> (uint, uint) {
+impl Into<(Nat, Nat)> for GobanSizes {
+    fn into(self) -> (Nat, Nat) {
         match self {
             GobanSizes::Nine => (9, 9),
             GobanSizes::Thirteen => (13, 13),
@@ -83,7 +83,7 @@ impl From<usize> for GobanSizes {
 pub enum Move {
     Pass,
     Resign(Player),
-    Play(uint, uint),
+    Play(Nat, Nat),
 }
 
 impl From<Point> for Move {

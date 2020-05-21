@@ -90,9 +90,9 @@ impl Goban {
         let empty_strings = self.get_strings_from_stones(self.get_stones_by_color(Color::None));
         let mut white_territory = Vec::with_capacity(50);
         let mut black_territory = Vec::with_capacity(50);
-        for group in empty_strings {
+        for empty_string in empty_strings {
             let mut neutral = (false, false);
-            for empty_intersection in &group {
+            for empty_intersection in &empty_string {
                 for stone in self.get_neighbors(empty_intersection.coordinates) {
                     if stone.color == Color::White {
                         neutral.1 = true; // found white stone
@@ -103,9 +103,9 @@ impl Goban {
                 }
             }
             if neutral.0 && !neutral.1 {
-                black_territory.extend(group.into_iter())
+                black_territory.extend(empty_string.into_iter())
             } else if !neutral.0 && neutral.1 {
-                white_territory.extend(group.into_iter())
+                white_territory.extend(empty_string.into_iter())
             }
         }
         (black_territory.into_iter(), white_territory.into_iter())
