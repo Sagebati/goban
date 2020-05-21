@@ -11,6 +11,8 @@ use crate::rules::Rule;
 use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 use hash_hasher::{HashBuildHasher, HashedSet};
 
+/// Most important struct of the library, it's the entry point.
+/// It represents a Game of Go.
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
     #[get = "pub"]
@@ -59,7 +61,7 @@ impl Game {
         let komi = rule.komi();
         let pass = 0;
         #[cfg(feature = "history")]
-            let plays = Vec::with_capacity((width * height) as usize);
+            let plays = Vec::with_capacity(width as usize * height as usize);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashedSet::with_capacity_and_hasher(
@@ -67,7 +69,7 @@ impl Game {
             HashBuildHasher::default(),
         );
         let last_hash = 0;
-        Game {
+        Self {
             goban,
             turn: Player::Black,
             komi,
@@ -197,7 +199,7 @@ impl Game {
     /// If the move is a suicide Move return SuicideMove
     /// If the move is a Ko Move returns Ko
     /// If the game is paused then return GamePaused
-    pub fn try_play(&mut self, play: Move) -> Result<&mut Game, PlayError> {
+    pub fn try_play(&mut self, play: Move) -> Result<&mut Self, PlayError> {
         if self.passes == 2 {
             Err(PlayError::GamePaused)
         } else {
@@ -249,7 +251,7 @@ impl Game {
             white_score += self.komi;
         }
 
-        (black_score , white_score )
+        (black_score, white_score)
     }
 
     /// Returns true if the stone played in that point will capture another
@@ -400,6 +402,6 @@ impl Game {
 
 impl Default for Game {
     fn default() -> Self {
-        Game::new(GobanSizes::Nineteen, Rule::Japanese)
+        Game::new(GobanSizes::Nineteen, Rule::Chinese)
     }
 }

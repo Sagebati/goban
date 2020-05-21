@@ -46,7 +46,7 @@ impl Goban {
     /// Creates a Goban from an array of stones.
     pub fn from_array(stones: &[Color], order: Order) -> Self {
         let size = ((stones.len() as f32).sqrt()) as Nat;
-        let mut g = Goban::new((size, size));
+        let mut game = Goban::new((size, size));
         let coord_util = CoordUtil::new_order(size, size, order);
         stones
             .iter()
@@ -54,9 +54,9 @@ impl Goban {
             .map(|(index, color)| (coord_util.from(index), color))
             .filter(|s| *(*s).1 != Color::None)
             .for_each(|coord_color| {
-                g.push(coord_color.0, *coord_color.1);
+                game.push(coord_color.0, *coord_color.1);
             });
-        g
+        game
     }
 
     /// Returns the underlying goban in a vector with a RowMajor Policy
@@ -302,10 +302,11 @@ impl Goban {
         let go_strings_without_liberties = self
             .get_strings_of_stones_without_liberties_by_color(color)
             .collect::<HashSet<_>>();
-        let one_go_str_captured = go_strings_without_liberties.len() == 1;
+        let one_str_captured = go_strings_without_liberties.len() == 1;
         for ren_without_liberties in go_strings_without_liberties {
             number_of_stones_captured += ren_without_liberties.stones().len() as u32;
-            if one_go_str_captured && number_of_stones_captured == 1 {
+            // if only one string of one stone is takes then it's a Ko point.
+            if one_str_captured && number_of_stones_captured == 1 {
                 ko_point = Some(*ren_without_liberties.stones().iter().next().unwrap())
             }
             self.remove_go_string(ren_without_liberties);
