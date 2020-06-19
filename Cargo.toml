@@ -31,6 +31,7 @@ lazy_static = "1.4.0"
 rand_xorshift = "0.2.0"
 rand = "0.7.3"
 sgf-parser = "2.4.0"
+bitvec = "0.17.4"
 
 [dev-dependencies]
 criterion = "0.3.2"

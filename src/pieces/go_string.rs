@@ -1,58 +1,67 @@
 use crate::pieces::stones::Color;
-use crate::pieces::util::coord::Point;
-use crate::pieces::Set;
+use crate::pieces::util::coord::{Point, CoordUtil};
+use crate::pieces::{BitGoban};
 
-type SetPoints = Set<Point>;
 
 #[derive(Clone, Debug, PartialEq, Getters, Eq)]
 pub struct GoString {
     pub color: Color,
+    pub(super) stones: BitGoban,
     #[get = "pub"]
-    pub(super) stones: SetPoints,
-    #[get = "pub"]
-    pub(super) liberties: SetPoints,
+    pub(super) liberties: BitGoban,
 }
 
 impl GoString {
     #[inline]
     pub fn is_dead(&self) -> bool {
-        self.liberties.is_empty()
+        !self.liberties.any()
     }
 
     #[inline]
     pub fn number_of_liberties(&self) -> usize {
-        self.liberties.len()
+        self.liberties.count_ones()
+    }
+
+    #[inline]
+    pub fn number_of_stones(&self) -> usize {
+        self.stones.count_ones()
     }
 
     #[inline]
     pub fn is_atari(&self) -> bool {
-        self.liberties.len() == 1
+        self.number_of_liberties() == 1
     }
 
     #[inline]
-    pub fn contains_stone(&self, point: Point) -> bool {
-        self.stones.contains(&point)
+    pub fn contains_stone(&self, index:usize) -> bool {
+        self.stones[index]
     }
 
     #[inline]
-    pub fn contains_liberty(&self, point: Point) -> bool {
-        self.liberties.contains(&point)
+    pub fn contains_liberty(&self, index: usize) -> bool {
+        self.liberties[index]
     }
 
     #[inline]
-    pub fn without_liberty(&self, point: Point) -> GoString {
-        debug_assert!(self.liberties.contains(&point));
+    pub fn without_liberty(&self, index: usize) -> GoString {
+        debug_assert!(self.contains_liberty(index));
         let mut new = self.clone();
-        new.liberties.remove(&point);
+        new.liberties.set(index, false);
         new
     }
 
     #[inline]
-    pub fn with_liberty(&self, point: Point) -> GoString {
-        debug_assert!(!self.liberties.contains(&point));
+    pub fn with_liberty(&self, index: usize) -> GoString {
+        debug_assert!(!self.contains_liberty(index));
         let mut new = self.clone();
-        new.liberties.insert(point);
+        new.liberties.set(index, true);
         new
+    }
+
+    pub fn stones(&self, coord_util: CoordUtil) -> impl Iterator<Item=Point> + '_ {
+        self.stones.iter().enumerate()
+            .filter(|&(_idx, it)| *it)
+            .map(move |(idx, _)| coord_util.from(idx))
     }
 
     ///
@@ -63,8 +72,8 @@ impl GoString {
         mut self,
         GoString {
             color,
-            mut stones,
-            mut liberties,
+            stones,
+            liberties,
         }: GoString,
     ) -> Self {
         assert_eq!(
@@ -73,27 +82,10 @@ impl GoString {
              same color. Colors found {} and {}",
             self.color, color
         );
-        let new_stones = if stones.len() < self.stones.len() {
-            self.stones.extend(stones);
-            self.stones
-        } else {
-            stones.extend(self.stones);
-            stones
-        };
+        self.stones |= stones;
 
-        let mut new_liberties = if liberties.len() < self.liberties.len() {
-            self.liberties.extend(liberties);
-            self.liberties
-        } else {
-            liberties.extend(self.liberties);
-            liberties
-        };
-        new_liberties = new_liberties.difference(&new_stones).copied().collect();
-
-        GoString {
-            color,
-            stones: new_stones,
-            liberties: new_liberties,
-        }
+        self.liberties |= liberties;
+        self.liberties &= !self.stones.clone();
+        self
     }
 }

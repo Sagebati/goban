@@ -18,11 +18,13 @@ type Ptr<T> = Arc<T>;
 use crate::pieces::go_string::GoString;
 use by_address::ByAddress;
 use std::collections::HashSet;
+use bitvec::prelude::BitVec;
 
 /// The go string pointer.
 /// ByAddress is needed for equality/hash of pointer by address the hashmap.
 type GoStringPtr = ByAddress<Ptr<GoString>>;
 type Set<T> = HashSet<T>;
+type BitGoban = BitVec;
 
 pub(super) type Nat = u8;
 
