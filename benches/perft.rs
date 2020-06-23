@@ -88,7 +88,7 @@ pub fn game_play_bench(_c: &mut Criterion) {
     let criterion: Criterion = Default::default();
     criterion
         .sample_size(100)
-        .bench_function("game_play", |b| b.iter(play_game))
+        //.bench_function("game_play", |b| b.iter(play_game))
         .bench_function("fast_play_game_chinese", |b| {
             b.iter(|| fast_play_game(Chinese))
         })

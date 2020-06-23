@@ -101,9 +101,9 @@ impl Goban {
             point.1
         );
 
-        let mut liberties = Set::with_capacity(4);
-        let mut adjacent_same_color_str_set = Set::with_capacity(4);
-        let mut adjacent_opposite_color_str_set = Set::with_capacity(4);
+        let mut liberties = Set::default();
+        let mut adjacent_same_color_str_set = Set::default();
+        let mut adjacent_opposite_color_str_set = Set::default();
         for p in self.neighbor_points(point) {
             match &self.go_strings[self.coord_util.to(p)] {
                 Some(adj_go_str_ptr) => match adj_go_str_ptr.color {
@@ -120,11 +120,8 @@ impl Goban {
                 }
             }
         }
-        let mut stones = Set::with_capacity(
-            adjacent_same_color_str_set
-                .iter()
-                .fold(0, |sum, go_str_ptr| sum + go_str_ptr.stones().len()),
-        );
+        let mut stones = Set::default( );
+
         stones.insert(point);
         // for every string of same color "connected" merge it into one string
         let new_string = adjacent_same_color_str_set.drain().fold(

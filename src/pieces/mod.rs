@@ -18,11 +18,12 @@ type Ptr<T> = Arc<T>;
 use crate::pieces::go_string::GoString;
 use by_address::ByAddress;
 use std::collections::HashSet;
+use ahash::AHashSet;
 
 /// The go string pointer.
 /// ByAddress is needed for equality/hash of pointer by address the hashmap.
 type GoStringPtr = ByAddress<Ptr<GoString>>;
-type Set<T> = HashSet<T>;
+type Set<T> = AHashSet<T>;
 
 pub(super) type Nat = u8;
 
