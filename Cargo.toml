@@ -14,8 +14,9 @@ gitlab = {repository ="Sabati/goban"}
 maintenance = {status = "actively-developed"}
 
 [profile.release]
-lto = true
+lto = "fat"
 panic = "abort"
+codegen-units=1
 
 [features]
 history = []

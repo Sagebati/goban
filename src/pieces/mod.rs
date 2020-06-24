@@ -17,7 +17,6 @@ type Ptr<T> = Arc<T>;
 
 use crate::pieces::go_string::GoString;
 use by_address::ByAddress;
-use std::collections::HashSet;
 use ahash::AHashSet;
 
 /// The go string pointer.
