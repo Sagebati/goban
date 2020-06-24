@@ -298,7 +298,7 @@ impl Goban {
         let mut ko_point = None;
         let go_strings_without_liberties = self
             .get_strings_of_stones_without_liberties_by_color(color)
-            .collect::<HashSet<_>>();
+            .collect::<Set<_>>();
         let one_str_captured = go_strings_without_liberties.len() == 1;
         for ren_without_liberties in go_strings_without_liberties {
             number_of_stones_captured += ren_without_liberties.stones().len() as u32;
