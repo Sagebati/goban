@@ -7,14 +7,14 @@ rust-latest:
   image: rust:latest
   script:
     - cargo build --verbose
-    - cargo test --verbose
+    - cargo test --all-features --verbose
 
 rust-nightly:
   stage: build
   image: rustlang/rust:nightly
   script:
     - cargo build --verbose
-    - cargo test --verbose
+    - cargo test --all-features --verbose
   allow_failure: true
 
 deploy-cargo:
