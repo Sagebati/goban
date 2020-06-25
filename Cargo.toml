@@ -38,8 +38,8 @@ sgf-parser = "2.4.0"
 criterion = "0.3.2"
 
 [profile.bench]
-lto = true
-debug = true
+lto = "fat"
+codegen-units = 1
 
 [[bench]]
 name = "perft"
