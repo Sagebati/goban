@@ -1,15 +1,16 @@
 //! Module with the goban and his implementations.
 
-use crate::pieces::go_string::GoString;
-use crate::pieces::stones::*;
-use crate::pieces::util::coord::{is_coord_valid, neighbor_points, CoordUtil, Order, Point};
-use crate::pieces::zobrist::*;
-use crate::pieces::{Nat, GoStringPtr, Ptr, Set};
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
+
+use crate::pieces::{GoStringPtr, Nat, Ptr, Set};
+use crate::pieces::go_string::GoString;
+use crate::pieces::stones::*;
+use crate::pieces::util::coord::{CoordUtil, is_coord_valid, neighbor_points, Order, Point};
+use crate::pieces::zobrist::*;
 
 ///
 /// Represents a Goban.
@@ -215,14 +216,17 @@ impl Goban {
     /// Get points by their color.
     #[inline]
     pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item = Point> + '_ {
-        self.go_strings
-            .iter()
-            .enumerate()
-            .filter(move |(_, point)| match point {
-                Some(go_str_ptr) => go_str_ptr.color == color,
-                Option::None => color == Color::None,
-            })
-            .map(move |(index, _)| self.coord_util.from(index))
+        let mut res = Vec::with_capacity(self.size.0 as usize * self.size.1 as usize);
+        for i in 0..self.size.0 {
+            for j in 0..self.size.1 {
+                match &self.go_strings[self.coord_util.to((i, j))] {
+                    Some(go_str_ptr) if go_str_ptr.color == color => res.push((i, j)),
+                    Option::None if color == Color::None => res.push((i, j)),
+                    _ => {}
+                }
+            }
+        }
+        res.into_iter()
     }
 
     /// Returns the empty stones connected to the stone
