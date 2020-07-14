@@ -4,7 +4,7 @@ extern crate criterion;
 use criterion::Criterion;
 use goban::rules::Rule::{Chinese, Japanese};
 use goban::rules::{GobanSizes, Move, Rule};
-use rand::prelude::SliceRandom;
+use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
 use goban::pieces::stones::Stone;
 use goban::rules::game::Game;
@@ -29,9 +29,9 @@ pub fn perft(pos: &Game, depth: u8) -> u64 {
     }
 }
 
-pub fn fast_play_random(state: &Game) -> Move {
+pub fn fast_play_random(state: &Game, thread_rng: &mut ThreadRng) -> Move {
     let mut v: Vec<_> = state.pseudo_legals().collect();
-    v.shuffle(&mut thread_rng());
+    v.shuffle(thread_rng);
 
     for coordinates in v
         .into_iter()
@@ -47,7 +47,7 @@ pub fn fast_play_random(state: &Game) -> Move {
 pub fn fast_play_game(rule: Rule) {
     let mut g = Game::new(GobanSizes::Nineteen, rule);
     while !g.is_over() {
-        g.play(fast_play_random(&g));
+        g.play(fast_play_random(&g, &mut thread_rng()));
     }
 }
 
@@ -88,7 +88,7 @@ pub fn game_play_bench(_c: &mut Criterion) {
     let criterion: Criterion = Default::default();
     criterion
         .sample_size(100)
-        .bench_function("game_play", |b| b.iter(play_game))
+        //.bench_function("game_play", |b| b.iter(play_game))
         .bench_function("fast_play_game_chinese", |b| {
             b.iter(|| fast_play_game(Chinese))
         })

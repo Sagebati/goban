@@ -1,6 +1,6 @@
 [package]
 name = "goban"
-version = "0.12.1"
+version = "0.12.2"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme= "README.md"
 description= "Library for Go move generation and Go ruling."
@@ -14,8 +14,9 @@ gitlab = {repository ="Sabati/goban"}
 maintenance = {status = "actively-developed"}
 
 [profile.release]
-lto = true
+lto = "fat"
 panic = "abort"
+codegen-units=1
 
 [features]
 history = []
@@ -27,6 +28,7 @@ bitflags = "1.2.1"
 by_address = "1.0.4"
 getset = "0.1.1"
 hash_hasher = "2.0.3"
+ahash = "0.3.8"
 lazy_static = "1.4.0"
 rand_xorshift = "0.2.0"
 rand = "0.7.3"
@@ -36,8 +38,8 @@ sgf-parser = "2.4.0"
 criterion = "0.3.2"
 
 [profile.bench]
-lto = true
-debug = false
+lto = "fat"
+codegen-units = 1
 
 [[bench]]
 name = "perft"
