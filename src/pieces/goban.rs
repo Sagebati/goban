@@ -215,7 +215,7 @@ impl Goban {
 
     /// Get points by their color.
     #[inline]
-    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item = Point> + '_ {
+    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Point> {
         let mut res = Vec::with_capacity(self.size.0 as usize * self.size.1 as usize);
         for i in 0..self.size.0 {
             for j in 0..self.size.1 {

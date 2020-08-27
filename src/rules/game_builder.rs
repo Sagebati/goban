@@ -4,8 +4,11 @@
 //! ```
 //! use crate::goban::rules::game_builder::GameBuilder;
 //! use crate::goban::rules::Rule;
+//! use goban::rules::game::Game;
 //!
 //! let mut builder = GameBuilder::default();
+//! // or
+//! let mut builder = Game::builder();
 //! let game = builder
 //!     .rule(Rule::Japanese)
 //!     .size((19,19))
@@ -15,12 +18,12 @@
 //! ```
 
 use crate::pieces::goban::Goban;
-use crate::pieces::stones::Color;
 use crate::pieces::Nat;
+use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
+use crate::rules::{EndGame, Move, Player, Rule};
 use crate::rules::game::Game;
 use crate::rules::Rule::Chinese;
-use crate::rules::{EndGame, Move, Player, Rule};
 
 pub struct GameBuilder {
     size: (u32, u32),
@@ -129,5 +132,11 @@ impl GameBuilder {
 impl Default for GameBuilder {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Game {
+    pub fn builder() -> GameBuilder {
+        GameBuilder::default()
     }
 }
