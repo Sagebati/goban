@@ -1,17 +1,18 @@
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
+    use rand::seq::SliceRandom;
+
     use goban::pieces::goban::Goban;
     use goban::pieces::stones::Color;
     use goban::pieces::stones::Color::Black;
     use goban::pieces::stones::Stone;
-    use goban::pieces::util::coord::Order;
     use goban::pieces::zobrist::ZOBRIST;
+    use goban::rules::{EndGame, GobanSizes, Move, Player};
     use goban::rules::game::Game;
     use goban::rules::Move::Play;
     use goban::rules::Rule;
-    use goban::rules::{EndGame, GobanSizes, Move, Player};
-    use rand::seq::SliceRandom;
-    use std::collections::HashSet;
 
     #[test]
     fn goban() {
@@ -27,7 +28,7 @@ mod tests {
         g.push((1, 2), Color::White);
         g.push((1, 3), Color::Black);
         let tab = g.raw();
-        let g2 = Goban::from_array(&tab, Order::RowMajor);
+        let g2 = Goban::from_array(&tab);
         assert_eq!(g, g2)
     }
 
@@ -564,7 +565,7 @@ mod tests {
         for i in 0..19 {
             for j in 0..19 {
                 for c in vec![Color::Black, Color::White] {
-                    let x = ZOBRIST[((i, j), c)];
+                    let x = ZOBRIST[((i * 19 + j), c)];
                     assert!(!set.contains(&x));
                     set.insert(x);
                 }

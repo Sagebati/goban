@@ -2,12 +2,13 @@
 extern crate criterion;
 
 use criterion::Criterion;
-use goban::rules::Rule::{Chinese, Japanese};
-use goban::rules::{GobanSizes, Move, Rule};
 use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
+
 use goban::pieces::stones::Stone;
+use goban::rules::{GobanSizes, Move, Rule};
 use goban::rules::game::Game;
+use goban::rules::Rule::{Chinese, Japanese};
 
 pub fn perft(pos: &Game, depth: u8) -> u64 {
     if depth < 1 {
@@ -37,7 +38,10 @@ pub fn fast_play_random(state: &Game, thread_rng: &mut ThreadRng) -> Move {
         .into_iter()
         .filter(|&point| state.check_point(point).is_none())
     {
-        if !state.check_eye(Stone { coordinates, color: state.turn().stone_color() } ){
+        if !state.check_eye(Stone {
+            coordinates,
+            color: state.turn().stone_color(),
+        }) {
             return coordinates.into();
         }
     }
@@ -55,7 +59,10 @@ pub fn play_random(state: &Game) -> Move {
     let mut legals = state.legals().collect::<Vec<_>>();
     legals.shuffle(&mut thread_rng());
     for l in legals {
-        if !state.check_eye(Stone{coordinates:l,color:state.turn().stone_color()}) {
+        if !state.check_eye(Stone {
+            coordinates: l,
+            color: state.turn().stone_color(),
+        }) {
             return l.into();
         }
     }

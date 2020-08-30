@@ -1,11 +1,12 @@
 //! Module for ruling in the game of go.
 
-use crate::pieces::stones::Color;
-use crate::pieces::Nat;
-use crate::pieces::util::coord::Point;
 use std::fmt::{Display, Error, Formatter};
 use std::ops::Not;
 use std::str::FromStr;
+
+use crate::pieces::Nat;
+use crate::pieces::stones::Color;
+use crate::pieces::util::coord::Point;
 
 pub mod game;
 pub mod game_builder;
@@ -120,7 +121,7 @@ pub enum PlayError {
     Ko,
     Suicide,
     GamePaused,
-    FillEye
+    FillEye,
 }
 
 type FlagUInt = u32;
