@@ -1,13 +1,5 @@
 //! Module for ruling in the game of go.
-//! ```
-//! use goban::rules::game::Game;
-//! use goban::rules::{Move, Rule};
-//! let mut game = Game::builder()
-//! .rule(Rule::Japanese)
-//! .build().unwrap();
-//! game.play(Move::Play(0,1));
-//! game.display_goban();
-//! ```
+
 
 use std::fmt::{Display, Error, Formatter};
 use std::ops::Not;
