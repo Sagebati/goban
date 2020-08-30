@@ -26,9 +26,9 @@
 //!        i -= 1;
 //!        g.display_goban();
 //!        // None if the game is not finished
-//!        println!("{}", g.outcome());
+//!        println!("{:?}", g.outcome());
 //!        // Inner array using row policy
-//!        println!("{}", g.goban().raw());
+//!        println!("{:?}", g.goban().raw());
 //!}
 //!
 //! ```
