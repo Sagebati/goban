@@ -13,8 +13,7 @@ use crate::pieces::util::coord::{CoordUtil, is_coord_valid, neighbor_points, Ord
 use crate::pieces::zobrist::*;
 
 ///
-/// Represents a Goban.
-///
+/// Represents a Goban. the stones are stored in ROW MAJOR (row, colum)
 #[derive(Getters, Setters, CopyGetters, Debug, Clone)]
 pub struct Goban {
     #[get = "pub"]

@@ -66,8 +66,9 @@ etc...
 - Generate legals moves (Handling Ko detection, Suicide moves, Super ko)
 - Japanese Rules
 - Chinese Rules
-- Boards of differents sizes (4x5 , 4x9) Limited  to (19x19)
+- Boards of different sizes (4x5 , 4x9) Limited  to (19x19) (Due to Zobrist hashing)
 
 ## Waiting for
 - Const generics or maybe not (benchmark with a Goban with backed array is slightly faster)
+- Into-Iter for arrays for removing arrayvec dep
 

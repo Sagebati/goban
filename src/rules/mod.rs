@@ -1,11 +1,21 @@
 //! Module for ruling in the game of go.
+//! ```
+//! use goban::rules::game::Game;
+//! use goban::rules::{Move, Rule};
+//! let mut game = Game::builder()
+//! .rule(Rule::Japanese)
+//! .build().unwrap();
+//! game.play(Move::Play(0,1));
+//! game.display_goban();
+//! ```
 
-use crate::pieces::stones::Color;
-use crate::pieces::Nat;
-use crate::pieces::util::coord::Point;
 use std::fmt::{Display, Error, Formatter};
 use std::ops::Not;
 use std::str::FromStr;
+
+use crate::pieces::Nat;
+use crate::pieces::stones::Color;
+use crate::pieces::util::coord::Point;
 
 pub mod game;
 pub mod game_builder;
@@ -120,7 +130,7 @@ pub enum PlayError {
     Ko,
     Suicide,
     GamePaused,
-    FillEye
+    FillEye,
 }
 
 type FlagUInt = u32;
