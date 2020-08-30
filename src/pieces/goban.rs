@@ -9,7 +9,7 @@ use std::hash::{Hash, Hasher};
 use crate::pieces::{GoStringPtr, Nat, Ptr, Set};
 use crate::pieces::go_string::GoString;
 use crate::pieces::stones::*;
-use crate::pieces::util::coord::{CoordUtil, is_coord_valid, neighbor_points, one_to_2dim, Order, Point, two_to_1dim};
+use crate::pieces::util::coord::{is_coord_valid, neighbor_points, neighbor_points_index, one_to_2dim, Point, two_to_1dim};
 use crate::pieces::zobrist::*;
 
 ///
@@ -40,14 +40,13 @@ impl Goban {
     }
 
     /// Creates a Goban from an array of stones.
-    pub fn from_array(stones: &[Color], order: Order) -> Self {
+    pub fn from_array(stones: &[Color]) -> Self {
         let size = ((stones.len() as f32).sqrt()) as Nat;
         let mut game = Goban::new((size, size));
-        let coord_util = CoordUtil::new_order(size, size, order);
         stones
             .iter()
             .enumerate()
-            .map(|(index, color)| (coord_util.from(index), color))
+            .map(|(index, color)| (one_to_2dim((size as usize, size as usize), index), color))
             .filter(|s| *(*s).1 != Color::None)
             .for_each(|coord_color| {
                 game.push(coord_color.0, *coord_color.1);
@@ -348,6 +347,13 @@ impl Goban {
         neighbor_points(point)
             .into_iter()
             .filter(move |&p| is_coord_valid(size, p))
+    }
+
+    fn neighbors_point_index(&self, index: usize) -> impl Iterator<Item=usize> {
+        let len_board = self.go_strings.len();
+        neighbor_points_index(self.size, index)
+            .into_iter()
+            .filter(move |&index| index < len_board)
     }
 }
 
