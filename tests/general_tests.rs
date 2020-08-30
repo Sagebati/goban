@@ -565,7 +565,7 @@ mod tests {
         for i in 0..19 {
             for j in 0..19 {
                 for c in vec![Color::Black, Color::White] {
-                    let x = ZOBRIST[((i, j), c)];
+                    let x = ZOBRIST[((i * 19 + j), c)];
                     assert!(!set.contains(&x));
                     set.insert(x);
                 }

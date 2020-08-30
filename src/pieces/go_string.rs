@@ -1,8 +1,7 @@
-use crate::pieces::stones::Color;
-use crate::pieces::util::coord::Point;
 use crate::pieces::Set;
+use crate::pieces::stones::Color;
 
-type SetPoints = Set<Point>;
+type SetPoints = Set<usize>;
 
 #[derive(Clone, Debug, PartialEq, Getters, Eq)]
 pub struct GoString {
@@ -30,17 +29,17 @@ impl GoString {
     }
 
     #[inline]
-    pub fn contains_stone(&self, point: Point) -> bool {
+    pub fn contains_stone(&self, point: usize) -> bool {
         self.stones.contains(&point)
     }
 
     #[inline]
-    pub fn contains_liberty(&self, point: Point) -> bool {
+    pub fn contains_liberty(&self, point: usize) -> bool {
         self.liberties.contains(&point)
     }
 
     #[inline]
-    pub fn without_liberty(&self, point: Point) -> GoString {
+    pub fn without_liberty(&self, point: usize) -> GoString {
         debug_assert!(self.liberties.contains(&point));
         let mut new = self.clone();
         new.liberties.remove(&point);
@@ -48,7 +47,7 @@ impl GoString {
     }
 
     #[inline]
-    pub fn with_liberty(&self, point: Point) -> GoString {
+    pub fn with_liberty(&self, point: usize) -> GoString {
         debug_assert!(!self.liberties.contains(&point));
         let mut new = self.clone();
         new.liberties.insert(point);

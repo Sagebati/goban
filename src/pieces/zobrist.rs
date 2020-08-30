@@ -1,8 +1,9 @@
-use crate::pieces::stones::Color;
-use crate::pieces::util::coord::Point;
+use std::ops::Index;
+
 use rand::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
-use std::ops::Index;
+
+use crate::pieces::stones::Color;
 
 const SEED: u64 = 172_147_124;
 
@@ -22,11 +23,11 @@ impl ZobristTable {
     }
 }
 
-impl Index<(Point, Color)> for ZobristTable {
+impl Index<(usize, Color)> for ZobristTable {
     type Output = u64;
 
-    fn index(&self, (x, color): (Point, Color)) -> &Self::Output {
-        &self.hashes[x.0 as usize * self.n + x.1 as usize][(color as u8 - 1) as usize]
+    fn index(&self, (x, color): (usize, Color)) -> &Self::Output {
+        &self.hashes[x][(color as u8 - 1) as usize]
     }
 }
 

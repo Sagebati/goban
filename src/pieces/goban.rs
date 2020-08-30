@@ -9,7 +9,7 @@ use std::hash::{Hash, Hasher};
 use crate::pieces::{GoStringPtr, Nat, Ptr, Set};
 use crate::pieces::go_string::GoString;
 use crate::pieces::stones::*;
-use crate::pieces::util::coord::{is_coord_valid, neighbor_points, neighbor_points_index, one_to_2dim, Point, two_to_1dim};
+use crate::pieces::util::coord::{is_coord_valid, neighbor_points, one_to_2dim, Point, two_to_1dim};
 use crate::pieces::zobrist::*;
 
 ///
@@ -96,11 +96,12 @@ impl Goban {
             point.1
         );
 
+        let index = two_to_1dim(self.size, point);
         let mut liberties = Set::default();
         let mut adjacent_same_color_str_set = Set::default();
         let mut adjacent_opposite_color_str_set = Set::default();
-        for p in self.neighbor_points(point) {
-            match &self.go_strings[two_to_1dim(self.size, p)] {
+        for i in self.neighbor_points_index(index) {
+            match &self.go_strings[i] {
                 Some(adj_go_str_ptr) => match adj_go_str_ptr.color {
                     go_str_color if go_str_color == color => {
                         adjacent_same_color_str_set.insert(adj_go_str_ptr.to_owned());
@@ -111,13 +112,13 @@ impl Goban {
                     }
                 },
                 Option::None => {
-                    liberties.insert(p);
+                    liberties.insert(i);
                 }
             }
         }
         let mut stones = Set::default();
 
-        stones.insert(point);
+        stones.insert(index);
         // for every string of same color "connected" merge it into one string
         let new_string = adjacent_same_color_str_set.drain().fold(
             GoString {
@@ -128,13 +129,13 @@ impl Goban {
             |init, same_color_string| self.merge_two_strings(init, same_color_string),
         );
 
-        self.zobrist_hash ^= ZOBRIST[(point, color)];
+        self.zobrist_hash ^= ZOBRIST[(index, color)];
 
         self.create_string(new_string);
         // for every string of opposite color remove a liberty and the create another string.
         for other_color_string in adjacent_opposite_color_str_set
             .drain()
-            .map(|go_str_ptr| go_str_ptr.without_liberty(point))
+            .map(|go_str_ptr| go_str_ptr.without_liberty(index))
         {
             self.create_string(other_color_string);
         }
@@ -176,6 +177,13 @@ impl Goban {
         self.neighbor_points(coord)
             .map(move |point| two_to_1dim(self.size, point))
             .filter_map(move |point| self.go_strings[point].clone())
+    }
+
+    #[inline]
+    pub fn get_neighbors_strings_index(&self, index: usize) -> impl Iterator<Item=GoStringPtr> +
+    '_ {
+        self.neighbor_points_index(index)
+            .filter_map(move |idx| self.go_strings[idx].clone())
     }
 
     /// Function for getting the stone in the goban.
@@ -271,16 +279,17 @@ impl Goban {
     /// adjacent string of not the same color.
     pub fn remove_go_string(&mut self, go_string_to_remove: GoStringPtr) {
         let color_of_the_string = go_string_to_remove.color;
-        for &point in go_string_to_remove.stones() {
-            for neighbor_str_ptr in self.get_neighbors_strings(point).collect::<HashSet<_>>() {
+        for &stone_idx in go_string_to_remove.stones() {
+            for neighbor_str_ptr in self.get_neighbors_strings_index(stone_idx).collect::<HashSet<_>>
+            () {
                 if go_string_to_remove != neighbor_str_ptr {
-                    self.create_string(neighbor_str_ptr.with_liberty(point));
+                    self.create_string(neighbor_str_ptr.with_liberty(stone_idx));
                 }
             }
-            self.zobrist_hash ^= ZOBRIST[(point, color_of_the_string)];
+            self.zobrist_hash ^= ZOBRIST[(stone_idx, color_of_the_string)];
 
             // Remove each point from the map. The Rc will be dropped "normally".
-            self.go_strings[two_to_1dim(self.size, point)] = Option::None;
+            self.go_strings[stone_idx] = Option::None;
         }
 
         debug_assert!(
@@ -308,7 +317,8 @@ impl Goban {
             }
             self.remove_go_string(ren_without_liberties);
         }
-        (number_of_stones_captured, ko_point)
+        let size = self.size();
+        (number_of_stones_captured, ko_point.map(move |v| one_to_2dim(size, v)))
     }
 
     /// Just create the Rc pointer and add it to the set.
@@ -322,7 +332,7 @@ impl Goban {
     fn merge_two_strings(&mut self, first: GoString, other: GoStringPtr) -> GoString {
         for &point in other.stones() {
             unsafe {
-                *self.go_strings.get_unchecked_mut(two_to_1dim(self.size, point)) =
+                *self.go_strings.get_unchecked_mut(point) =
                     Option::None
             };
         }
@@ -334,7 +344,7 @@ impl Goban {
     fn update_vec_indexes(&mut self, go_string: GoStringPtr) {
         for &point in go_string.stones() {
             unsafe {
-                *self.go_strings.get_unchecked_mut(two_to_1dim(self.size, point)) =
+                *self.go_strings.get_unchecked_mut(point) =
                     Some(go_string.clone());
             }
         }
@@ -349,11 +359,10 @@ impl Goban {
             .filter(move |&p| is_coord_valid(size, p))
     }
 
-    fn neighbors_point_index(&self, index: usize) -> impl Iterator<Item=usize> {
-        let len_board = self.go_strings.len();
-        neighbor_points_index(self.size, index)
-            .into_iter()
-            .filter(move |&index| index < len_board)
+    fn neighbor_points_index(&self, index: usize) -> impl Iterator<Item=usize> {
+        let size = self.size;
+        self.neighbor_points(one_to_2dim(self.size, index))
+            .map(move |x| two_to_1dim(size, x))
     }
 }
 

@@ -20,8 +20,13 @@ pub mod coord {
     }
 
     #[inline(always)]
-    pub fn one_to_2dim(size: (usize, usize), point: usize) -> (Nat, Nat) {
-        ((point / size.0) as u8, (point % size.1) as u8)
+    fn two_to_1dim_isize(size: (usize, usize), point: (isize, isize)) -> isize {
+        point.0 * size.0 as isize + point.1
+    }
+
+    #[inline(always)]
+    pub fn one_to_2dim(size: (usize, usize), index: usize) -> (Nat, Nat) {
+        ((index / size.0) as u8, (index % size.1) as u8)
     }
 
     #[inline]
@@ -31,17 +36,6 @@ pub mod coord {
             (x1.wrapping_sub(1), x2),
             (x1, x2 + 1),
             (x1, x2.wrapping_sub(1)),
-        ])
-    }
-
-    #[inline]
-    pub fn neighbor_points_index(size: (usize, usize), index: usize) -> ArrayVec<[usize; 4]> {
-        let (x1, x2) = one_to_2dim(size, index);
-        ArrayVec::from([
-            two_to_1dim(size, (x1 + 1, x2)),
-            two_to_1dim(size, (x1.wrapping_sub(1), x2)),
-            two_to_1dim(size, (x1, x2 + 1)),
-            two_to_1dim(size, (x1, x2.wrapping_sub(1)))
         ])
     }
 
