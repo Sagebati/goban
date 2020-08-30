@@ -9,7 +9,9 @@ use std::hash::{Hash, Hasher};
 use crate::pieces::{GoStringPtr, Nat, Ptr, Set};
 use crate::pieces::go_string::GoString;
 use crate::pieces::stones::*;
-use crate::pieces::util::coord::{is_coord_valid, neighbor_points, one_to_2dim, Point, two_to_1dim};
+use crate::pieces::util::coord::{
+    is_coord_valid, neighbor_points, one_to_2dim, Point, two_to_1dim,
+};
 use crate::pieces::zobrist::*;
 
 ///
@@ -180,8 +182,10 @@ impl Goban {
     }
 
     #[inline]
-    pub fn get_neighbors_strings_index(&self, index: usize) -> impl Iterator<Item=GoStringPtr> +
-    '_ {
+    pub fn get_neighbors_strings_index(
+        &self,
+        index: usize,
+    ) -> impl Iterator<Item=GoStringPtr> + '_ {
         self.neighbor_points_index(index)
             .filter_map(move |idx| self.go_strings[idx].clone())
     }
@@ -253,8 +257,12 @@ impl Goban {
                     Color::White => '●',
                     Color::Black => '○',
                     Color::None => {
-                        match (i == 0, i == self.size.0 as u8 - 1, j == 0, j == self.size.1 as u8 -
-                            1) {
+                        match (
+                            i == 0,
+                            i == self.size.0 as u8 - 1,
+                            j == 0,
+                            j == self.size.1 as u8 - 1,
+                        ) {
                             (true, _, true, _) => '┏',
                             (true, _, _, true) => '┓',
 
@@ -280,8 +288,10 @@ impl Goban {
     pub fn remove_go_string(&mut self, go_string_to_remove: GoStringPtr) {
         let color_of_the_string = go_string_to_remove.color;
         for &stone_idx in go_string_to_remove.stones() {
-            for neighbor_str_ptr in self.get_neighbors_strings_index(stone_idx).collect::<HashSet<_>>
-            () {
+            for neighbor_str_ptr in self
+                .get_neighbors_strings_index(stone_idx)
+                .collect::<HashSet<_>>()
+            {
                 if go_string_to_remove != neighbor_str_ptr {
                     self.create_string(neighbor_str_ptr.with_liberty(stone_idx));
                 }
@@ -318,7 +328,10 @@ impl Goban {
             self.remove_go_string(ren_without_liberties);
         }
         let size = self.size();
-        (number_of_stones_captured, ko_point.map(move |v| one_to_2dim(size, v)))
+        (
+            number_of_stones_captured,
+            ko_point.map(move |v| one_to_2dim(size, v)),
+        )
     }
 
     /// Just create the Rc pointer and add it to the set.
@@ -331,10 +344,7 @@ impl Goban {
     /// Deletes all the Rc from the go_strings, then merges the two_string
     fn merge_two_strings(&mut self, first: GoString, other: GoStringPtr) -> GoString {
         for &point in other.stones() {
-            unsafe {
-                *self.go_strings.get_unchecked_mut(point) =
-                    Option::None
-            };
+            unsafe { *self.go_strings.get_unchecked_mut(point) = Option::None };
         }
 
         first.merge_with((**other).clone())
@@ -344,8 +354,7 @@ impl Goban {
     fn update_vec_indexes(&mut self, go_string: GoStringPtr) {
         for &point in go_string.stones() {
             unsafe {
-                *self.go_strings.get_unchecked_mut(point) =
-                    Some(go_string.clone());
+                *self.go_strings.get_unchecked_mut(point) = Some(go_string.clone());
             }
         }
     }

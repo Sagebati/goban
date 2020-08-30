@@ -20,11 +20,6 @@ pub mod coord {
     }
 
     #[inline(always)]
-    fn two_to_1dim_isize(size: (usize, usize), point: (isize, isize)) -> isize {
-        point.0 * size.0 as isize + point.1
-    }
-
-    #[inline(always)]
     pub fn one_to_2dim(size: (usize, usize), index: usize) -> (Nat, Nat) {
         ((index / size.0) as u8, (index % size.1) as u8)
     }

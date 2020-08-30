@@ -1,15 +1,16 @@
+use hash_hasher::{HashBuildHasher, HashedSet};
+
 use crate::pieces::goban::*;
+use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
-use crate::pieces::Nat;
-use crate::pieces::util::coord::{Point, corner_points, is_coord_valid};
+use crate::pieces::util::coord::{corner_points, is_coord_valid, Point};
+use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 use crate::rules::EndGame::{Draw, WinnerByScore};
-use crate::rules::PlayError;
 use crate::rules::Player;
 use crate::rules::Player::{Black, White};
+use crate::rules::PlayError;
 use crate::rules::Rule;
-use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
-use hash_hasher::{HashBuildHasher, HashedSet};
 
 /// Most important struct of the library, it's the entry point.
 /// It represents a Game of Go.
@@ -130,7 +131,6 @@ impl Game {
     pub fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
-
 
     /// Returns a list with legals moves. from the rule specified in at the creation.
     #[inline]
@@ -299,11 +299,21 @@ impl Game {
     /// ```
     /// This function is only used for performance checking in the rules,
     /// and not for checking is a point is really an eye !
-    pub fn check_eye(&self, Stone { coordinates: point, color }: Stone) -> bool {
+    pub fn check_eye(
+        &self,
+        Stone {
+            coordinates: point,
+            color,
+        }: Stone,
+    ) -> bool {
         if self.goban.get_stone(point) != Color::None {
             return false;
         }
-        if self.goban.get_neighbors(point).any(|stone| stone.color != color) {
+        if self
+            .goban
+            .get_neighbors(point)
+            .any(|stone| stone.color != color)
+        {
             return false;
         }
         let mut corner_ally = 0;

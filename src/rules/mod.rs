@@ -1,6 +1,5 @@
 //! Module for ruling in the game of go.
 
-
 use std::fmt::{Display, Error, Formatter};
 use std::ops::Not;
 use std::str::FromStr;
