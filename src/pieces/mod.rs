@@ -32,3 +32,4 @@ pub mod stones;
 pub mod territory;
 pub mod util;
 pub mod zobrist;
+pub mod neighbor;
