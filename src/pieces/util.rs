@@ -1,22 +1,33 @@
 //! Module with the logic for calculating coordinates.
 
 pub mod coord {
-    use crate::pieces::Nat;
     use arrayvec::ArrayVec;
+
+    use crate::pieces::Nat;
 
     /// Defining the policy for the colums.
     pub type Point = (Nat, Nat);
 
     /// Return true if the coord is in the goban.
     #[inline]
-    pub fn is_coord_valid((height, width): (Nat, Nat), coord: Point) -> bool {
-        coord.0 < height && coord.1 < width
+    pub fn is_coord_valid((height, width): (usize, usize), coord: Point) -> bool {
+        coord.0 < height as u8 && coord.1 < width as u8
     }
 
     #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
     pub enum Order {
         RowMajor,
         ColumnMajor,
+    }
+
+    #[inline(always)]
+    pub fn two_to_1dim(size: (usize, usize), point: Point) -> usize {
+        point.0 as usize * size.0 as usize + point.1 as usize
+    }
+
+    #[inline(always)]
+    pub fn one_to_2dim(size: (usize, usize), point: usize) -> (Nat, Nat) {
+        ((point / size.0) as u8, (point % size.1) as u8)
     }
 
     /// Waiting for const numeric.
