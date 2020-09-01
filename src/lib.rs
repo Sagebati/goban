@@ -29,6 +29,14 @@
 //!        println!("{:?}", g.outcome());
 //!        // Inner array using row policy
 //!        println!("{:?}", g.goban().raw());
+//!
+//!
+//!}
+//!#[cfg(feature = "history")]
+//!{
+//!            let mut iter_history = g.history().iter();
+//!            println!("{:?}", iter_history.next().unwrap());
+//!            println!("{:?}", iter_history.next_back().unwrap())
 //!}
 //!
 //! ```
