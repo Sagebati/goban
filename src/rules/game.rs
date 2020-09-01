@@ -198,6 +198,7 @@ impl Game {
     ///
     /// If the move is a suicide Move return SuicideMove
     /// If the move is a Ko Move returns Ko
+    /// if point is already filled then return PointNotEmpty
     /// If the game is paused then return GamePaused
     pub fn try_play(&mut self, play: Move) -> Result<&mut Self, PlayError> {
         if self.passes == 2 {
@@ -205,7 +206,9 @@ impl Game {
         } else {
             match play {
                 Move::Play(x, y) => {
-                    if let Some(c) = self.check_point((x as Nat, y as Nat)) {
+                    if self.goban.get_stone((x,y)) != Color::None {
+                        Err(PlayError::PointNotEmpty)
+                    }else if let Some(c) = self.check_point((x as Nat, y as Nat)) {
                         Err(c)
                     } else {
                         Ok(self.play(play))
