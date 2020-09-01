@@ -122,6 +122,7 @@ pub enum PlayError {
     Suicide,
     GamePaused,
     FillEye,
+    PointNotEmpty
 }
 
 type FlagUInt = u32;
