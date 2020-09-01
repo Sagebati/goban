@@ -32,6 +32,9 @@ pub struct Game {
     pub(super) turn: Player,
 
     #[get_copy = "pub"]
+    pub(super) move_num: usize, // move number (1 is the first move of the game)
+
+    #[get_copy = "pub"]
     #[set = "pub"]
     pub(super) komi: f32,
 
@@ -45,6 +48,10 @@ pub struct Game {
     #[cfg(feature = "history")]
     #[get = "pub"]
     pub(super) history: Vec<Goban>,
+
+    #[cfg(feature = "history")]
+    #[get = "pub"]
+    pub(super) moves_history: Vec<Move>,
 
     #[get = "pub"]
     pub(super) last_hash: u64,
@@ -63,6 +70,8 @@ impl Game {
         let pass = 0;
         #[cfg(feature = "history")]
             let plays = Vec::with_capacity(width as usize * height as usize);
+        #[cfg(feature = "history")]
+            let moves = Vec::with_capacity(width as usize * height as usize);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashedSet::with_capacity_and_hasher(
@@ -72,12 +81,16 @@ impl Game {
         let last_hash = 0;
         Self {
             goban,
+            #[cfg(feature = "history")]
+            move_num: 0,
             turn: Player::Black,
             komi,
             prisoners,
             passes: pass,
             #[cfg(feature = "history")]
             history: plays,
+            #[cfg(feature = "history")]
+            moves_history: moves,
             outcome: None,
             rule,
             handicap,
@@ -153,11 +166,17 @@ impl Game {
     ///
     /// If the coordinates of the move are outside the board.
     pub fn play(&mut self, play: Move) -> &mut Self {
+        self.__play__(play);
+        self.update_moves_history(play);
+        self
+    }
+
+    /// Method to play without logging moves_history.
+    fn __play__(&mut self, play: Move) {
         match play {
             Move::Pass => {
                 self.turn = !self.turn;
                 self.passes += 1;
-                self
             }
             Move::Play(x, y) => {
                 let hash = self.goban.zobrist_hash();
@@ -171,14 +190,20 @@ impl Game {
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
                 self.passes = 0;
-                self
             }
             Move::Resign(player) => {
                 self.outcome = Some(EndGame::WinnerByResign(player));
-                self
             }
         }
     }
+
+    /// Method to log move to self.moves_history
+    #[cfg(feature = "history")]
+    fn update_moves_history(&mut self, play: Move){
+        self.moves_history = self.moves_history[0..self.move_num].to_vec();
+        self.moves_history.push(play);
+        self.move_num += 1;
+    }    
 
     /// This methods plays a move then return the hash of the goban simulated,
     /// used in legals for fast move simulation in Super Ko situations.
@@ -411,6 +436,58 @@ impl Game {
             new_prisoners
         }
     }
+
+    /// Reload initail state of the game.
+    /// self.goban will be initialized.
+    /// self.moves_history and self.history will not be initialized. 
+    #[cfg(feature = "history")]
+    pub fn initialize(&mut self) {
+        self.goban = Goban::new((self.goban.size().0 as u8, self.goban.size().1 as u8));
+        self.move_num = 0;
+        self.turn = Player::Black;
+        self.prisoners = (0, 0);
+        self.passes = 0;
+        self.outcome = None;
+        self.hashes = HashedSet::with_capacity_and_hasher(
+            self.goban.size().0 as usize * self.goban.size().1 as usize,
+            HashBuildHasher::default(),
+        );
+        self.last_hash = 0;
+        self.ko_point = None;
+    }
+   
+    /// Load the game from moves_history by desgnating move number (0 is the first move).
+    /// self.goban will be updated.
+    /// self.moves_history and self.history will not be updated. 
+    #[cfg(feature = "history")]
+    pub fn load_by_movenum(&mut self, move_num: usize) {
+        self.initialize();
+        if move_num > 0 {
+            for mv in self.moves_history[0..move_num].to_vec() {
+                self.play(mv);
+            }
+        }
+    }
+  
+    /// Method to move backward in the current game.
+    #[cfg(feature = "history")]
+    pub fn move_backward(&mut self) {
+        if self.move_num > 0 {
+            let move_num = self.move_num - 1;
+            self.initialize();
+            self.load_by_movenum(move_num) ;
+        }
+    } 
+      
+    /// Method to move forward in the current game.
+    #[cfg(feature = "history")]
+    pub fn move_forward(&mut self) {
+        if self.move_num < self.moves_history.len() {
+            let move_num = self.move_num + 1;
+            self.initialize();
+            self.load_by_movenum(move_num) ;
+        }
+    }  
 }
 
 impl Default for Game {
