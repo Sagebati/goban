@@ -10,17 +10,17 @@ pub mod coord {
 
     /// Return true if the coord is in the goban.
     #[inline]
-    pub fn is_coord_valid((height, width): (usize, usize), coord: Point) -> bool {
+    pub const fn is_coord_valid((height, width): (usize, usize), coord: Point) -> bool {
         coord.0 < height as u8 && coord.1 < width as u8
     }
 
     #[inline(always)]
-    pub fn two_to_1dim(size: (usize, usize), point: Point) -> usize {
+    pub const fn two_to_1dim(size: (usize, usize), point: Point) -> usize {
         point.0 as usize * size.0 as usize + point.1 as usize
     }
 
     #[inline(always)]
-    pub fn one_to_2dim(size: (usize, usize), index: usize) -> (Nat, Nat) {
+    pub const fn one_to_2dim(size: (usize, usize), index: usize) -> (Nat, Nat) {
         ((index / size.0) as u8, (index % size.1) as u8)
     }
 

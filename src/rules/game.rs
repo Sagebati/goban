@@ -44,7 +44,7 @@ pub struct Game {
 
     #[cfg(feature = "history")]
     #[get = "pub"]
-    pub(super) plays: Vec<Goban>,
+    pub(super) history: Vec<Goban>,
 
     #[get = "pub"]
     pub(super) last_hash: u64,
@@ -77,7 +77,7 @@ impl Game {
             prisoners,
             passes: pass,
             #[cfg(feature = "history")]
-            plays,
+            history: plays,
             outcome: None,
             rule,
             handicap,
@@ -164,7 +164,7 @@ impl Game {
                 self.last_hash = hash;
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
-                    self.plays.push(self.goban.clone());
+                    self.history.push(self.goban.clone());
                 self.goban
                     .push((x as Nat, y as Nat), self.turn.stone_color());
                 self.ko_point = None;
