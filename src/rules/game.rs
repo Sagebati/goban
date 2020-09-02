@@ -456,7 +456,7 @@ impl Game {
         self.ko_point = None;
     }
    
-    /// Load the game from moves_history by desgnating move number (0 is the first move).
+    /// Load the game from moves_history by desgnating move number (1 is the first move).
     /// self.goban will be updated.
     /// self.moves_history and self.history will not be updated. 
     #[cfg(feature = "history")]
@@ -464,7 +464,7 @@ impl Game {
         self.initialize();
         if move_num > 0 {
             for mv in self.moves_history[0..move_num].to_vec() {
-                self.play(mv);
+                self.__play__(mv);
             }
         }
     }
