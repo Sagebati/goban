@@ -549,7 +549,7 @@ mod tests {
             Some(endgame) => Ok(endgame),
             _ => Err("Game not finished"),
         }
-        .expect("Game finished");
+            .expect("Game finished");
         let (black, white) = g.calculate_score();
         assert_eq!(black, 81.);
         assert_eq!(white, g.komi());
@@ -663,5 +663,16 @@ mod tests {
             EndGame::WinnerByResign(Player::White),
             game.outcome().unwrap()
         )
+    }
+
+    #[test]
+    fn dead_stones() {
+        let game = Game::from_sgf(include_str!("sgf_1.sgf")).unwrap();
+        let dead_stones = dbg!(game.get_dead_stones());
+        let mut goban: Goban = game.goban().clone();
+        for string in dead_stones {
+            goban.remove_go_string(string);
+        }
+        println!("{}", goban);
     }
 }

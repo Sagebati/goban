@@ -21,7 +21,7 @@ type Ptr<T> = Arc<T>;
 
 /// The go string pointer.
 /// ByAddress is needed for equality/hash of pointer by address the hashmap.
-type GoStringPtr = ByAddress<Ptr<GoString>>;
+pub(crate) type GoStringPtr = ByAddress<Ptr<GoString>>;
 type Set<T> = AHashSet<T>;
 
 pub(super) type Nat = u8;

@@ -7,7 +7,7 @@ type SetPoints = Set<usize>;
 pub struct GoString {
     pub color: Color,
     #[get = "pub"]
-    pub(super) stones: SetPoints,
+    pub(crate) stones: SetPoints,
     #[get = "pub"]
     pub(super) liberties: SetPoints,
 }

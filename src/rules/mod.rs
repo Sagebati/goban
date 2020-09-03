@@ -10,6 +10,7 @@ use crate::pieces::util::coord::Point;
 
 pub mod game;
 pub mod game_builder;
+mod deadstones;
 mod sgf_bridge;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
