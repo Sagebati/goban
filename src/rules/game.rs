@@ -206,9 +206,9 @@ impl Game {
         } else {
             match play {
                 Move::Play(x, y) => {
-                    if self.goban.get_stone((x,y)) != Color::None {
+                    if self.goban.get_stone((x, y)) != Color::None {
                         Err(PlayError::PointNotEmpty)
-                    }else if let Some(c) = self.check_point((x as Nat, y as Nat)) {
+                    } else if let Some(c) = self.check_point((x as Nat, y as Nat)) {
                         Err(c)
                     } else {
                         Ok(self.play(play))
@@ -292,6 +292,23 @@ impl Game {
         }
     }
 
+    // Return the number of allied corner and off board corners.
+    fn helper_check_eye(&self, point: (Nat, Nat), color: Color) -> (Nat, Nat) {
+        let mut corner_ally = 0;
+        let mut corner_off_board = 0;
+        for p in corner_points(point) {
+            if is_coord_valid(self.goban.size(), p) {
+                if self.goban.get_stone(p) == color {
+                    corner_ally += 1
+                }
+            } else {
+                corner_off_board += 1;
+            }
+        }
+
+        (corner_ally, corner_off_board)
+    }
+
     /// Detects true eyes. return true is the stone is an eye.
     /// Except for this form :
     /// ```{nothing}
@@ -312,28 +329,38 @@ impl Game {
         if self.goban.get_stone(point) != Color::None {
             return false;
         }
-        if self
-            .goban
-            .get_neighbors(point)
-            .any(|stone| stone.color != color)
-        {
+        if self.goban.get_neighbors(point).any(|s| s.color != color) {
             return false;
         }
-        let mut corner_ally = 0;
-        let mut corner_off_board = 0;
-        for point in corner_points(point) {
-            if is_coord_valid(self.goban.size(), point) {
-                if self.goban.get_stone(point) == color {
-                    corner_ally += 1
+
+        let (corner_ally, corner_off_board) = self.helper_check_eye(point, color);
+        let corners = corner_ally + corner_off_board;
+        if corners == 4 {
+            true
+        } else if corners == 3 || corners == 2 {
+            for s in corner_points(point)
+                .into_iter()
+                .filter(move |p| is_coord_valid(self.goban.size(), *p))
+                .filter_map(move |p| {
+                    let s = Stone { coordinates: p, color: self.goban.get_stone(p) };
+                    if s.color == Color::None {
+                        Some(s)
+                    } else {
+                        None
+                    }
+                }) {
+                if self.goban.get_neighbors(s.coordinates).any(|s| s.color != color) {
+                    return false;
                 }
-            } else {
-                corner_off_board += 1;
+                let (ca, cof) = self.helper_check_eye(s.coordinates, color);
+                let c = ca + cof;
+                if c == 3 || c == 2 {
+                    return true;
+                }
             }
-        }
-        if corner_off_board > 0 {
-            corner_off_board + corner_ally == 4
+            false
         } else {
-            corner_ally == 4
+            false
         }
     }
 

@@ -143,7 +143,7 @@ impl Game {
     /// the "dead" stones are only potentially dead.
     pub fn get_dead_stones(&self) -> AHashSet<GoStringPtr> {
         let mut game = self.clone();
-        let playouts = 500;
+        let playouts = 700;
         self.display_goban();
         let floating_stones = self.get_floating_stones();
         game.passes = 0;
@@ -156,7 +156,6 @@ impl Game {
                 mcts.best_move(&2.0_f64.sqrt())
             };
             game.play(m);
-            game.display_goban();
         }
         let final_state_raw = game.goban().raw();
         game.display_goban();

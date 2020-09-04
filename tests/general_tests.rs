@@ -80,6 +80,16 @@ mod tests {
     }
 
     #[test]
+    fn test_eye() {
+        let g = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
+        assert!(g.check_eye(Stone { coordinates: (0, 14), color: Color::White }));
+        assert!(g.check_eye(Stone { coordinates: (0, 12), color: Color::White }));
+        assert!(g.check_eye(Stone { coordinates: (1, 11), color: Color::White }));
+        assert!(!g.check_eye(Stone { coordinates: (1, 8), color: Color::Black }));
+        assert!(!g.check_eye(Stone { coordinates: (17, 18), color: Color::Black }));
+    }
+
+    #[test]
     fn some_plays_from_sgf() {
         let moves_sgf = vec![
             Move::Play(16, 13),
