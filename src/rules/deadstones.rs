@@ -179,7 +179,7 @@ impl Game {
     /// Return an array of dead stones, works better if the game if ended.
     /// the "dead" stones are only potentially dead.
     pub fn dead_stones(&self) -> AHashSet<GoStringPtr> {
-        let mut game = self.new_game_from_here();
+        let mut game = self.branch();
         let playouts = 500;
         let floating_stones = self.get_floating_stones();
         while game.passes < 2 {

@@ -126,9 +126,10 @@ impl Game {
         }
     }
 
-    pub fn new_game_from_here(&self) -> Self {
+    /// Crates a new game, from the actual configuration. removing an potential outcome, and
+    /// resuming the game after passing.
+    pub fn branch(&self) -> Self {
         let mut g = self.clone();
-        g.ko_point = None;
         g.outcome = None;
         g.passes = 0;
         g
