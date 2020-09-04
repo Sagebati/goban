@@ -69,7 +69,6 @@ pub fn play_random(state: &Game) -> Move {
     Move::Pass
 }
 
-
 pub fn play_game() {
     let mut g = Game::new(GobanSizes::Nineteen, Chinese);
     while !g.is_over() {
@@ -103,10 +102,6 @@ pub fn game_play_bench(_c: &mut Criterion) {
             b.iter(|| fast_play_game(Japanese))
         });
 }
-
-
-
-
 
 criterion_group!(benches, game_play_bench);
 criterion_main!(benches);

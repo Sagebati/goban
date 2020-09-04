@@ -1,7 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use ahash::AHashSet;
-use oxymcts::{DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts, LazyMctsNode, Num, Playout, uct_value};
+use oxymcts::{
+    DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts, LazyMctsNode,
+    Num, Playout, uct_value,
+};
 use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
 
@@ -16,7 +19,8 @@ impl GameTrait for Game {
     type Move = Move;
 
     fn legals_moves(&self) -> Vec<Self::Move> {
-        let moves = self.legals_by(self.rule.illegal_flag() | IllegalRules::FILLEYE)
+        let moves = self
+            .legals_by(self.rule.illegal_flag() | IllegalRules::FILLEYE)
             .map(Move::from)
             .collect::<Vec<_>>();
         if moves.is_empty() {
@@ -35,7 +39,7 @@ impl GameTrait for Game {
     }
 
     fn is_final(&self) -> bool {
-        self.passes >= 2
+        self.is_over()
     }
 
     fn do_move(&mut self, m: &Self::Move) {
@@ -43,7 +47,10 @@ impl GameTrait for Game {
     }
 
     fn get_winner(&self) -> Self::Player {
-        self.outcome().unwrap().get_winner().expect("Exquo in Go is very rare")
+        self.outcome()
+            .unwrap()
+            .get_winner()
+            .expect("Exquo in Go is very rare")
     }
 }
 
@@ -61,8 +68,12 @@ impl Evaluator<Game, Reward, ()> for Eval {
     type Args = f64;
     type EvalResult = Reward;
 
-    fn eval_child(child: &LazyMctsNode<Game, Reward, ()>, _turn: &<Game as
-    GameTrait>::Player, parent_visits: u32, args: &Self::Args) -> Num {
+    fn eval_child(
+        child: &LazyMctsNode<Game, Reward, ()>,
+        _turn: &<Game as GameTrait>::Player,
+        parent_visits: u32,
+        args: &Self::Args,
+    ) -> Num {
         uct_value(
             parent_visits,
             child.sum_rewards as f64,
@@ -73,7 +84,11 @@ impl Evaluator<Game, Reward, ()> for Eval {
 
     fn evaluate_leaf(child: Game, turn: &<Game as GameTrait>::Player) -> Self::EvalResult {
         let winner = child.get_winner();
-        if winner == *turn { 1 } else { 0 }
+        if winner == *turn {
+            1
+        } else {
+            0
+        }
     }
 }
 
@@ -90,7 +105,10 @@ impl Playout<Game> for PL {
                 .into_iter()
                 .filter(|&point| state.check_point(point).is_none())
             {
-                if !state.check_eye(Stone { coordinates, color: state.turn().stone_color() }) {
+                if !state.check_eye(Stone {
+                    coordinates,
+                    color: state.turn().stone_color(),
+                }) {
                     return coordinates.into();
                 }
             }
@@ -112,41 +130,59 @@ type Mcts<'a> = LazyMcts<
     DefaultBackProp,
     Eval,
     (),
-    u64>;
+    u64,
+>;
 
 impl Game {
     fn get_floating_stones(&self) -> Vec<GoStringPtr> {
         let eyes = self.pseudo_legals().filter(|&p| {
-            self.check_eye(Stone { coordinates: p, color: Color::Black })
-                || self.check_eye(Stone { coordinates: p, color: Color::White })
+            self.check_eye(Stone {
+                coordinates: p,
+                color: Color::Black,
+            }) || self.check_eye(Stone {
+                coordinates: p,
+                color: Color::White,
+            })
         });
         let mut strings_wth_eye = HashMap::new();
         for eye in eyes {
-            let string_connected_eye = self.goban.get_neighbors_strings(eye)
+            let string_connected_eye = self
+                .goban
+                .get_neighbors_strings(eye)
                 .collect::<HashSet<_>>();
-            debug_assert!(string_connected_eye.len() == 1); // Because we can only have one string.
             for x in string_connected_eye {
-                strings_wth_eye.entry(x).and_modify(|v| *v += 1).or_insert(0);
+                strings_wth_eye
+                    .entry(x)
+                    .and_modify(|v| *v += 1)
+                    .or_insert(0);
             }
         }
-        let all_strings = self.goban.go_strings().iter().cloned().filter_map(|x| x)
+        let all_strings = self
+            .goban
+            .go_strings()
+            .iter()
+            .cloned()
+            .filter_map(|x| x)
             .collect::<HashSet<_>>();
         let string_with_2eyes = strings_wth_eye
             .into_iter()
-            .filter(|(_, v)| *v >= 2).map(|x| x.0)
+            .filter(|(_, v)| *v >= 2)
+            .map(|x| x.0)
             .collect::<HashSet<_>>();
 
-        all_strings.difference(&string_with_2eyes).cloned().collect()
+        all_strings
+            .difference(&string_with_2eyes)
+            .cloned()
+            .collect()
     }
 
     /// Return an array of dead stones, works better if the game if ended.
     /// the "dead" stones are only potentially dead.
     pub fn get_dead_stones(&self) -> AHashSet<GoStringPtr> {
-        let mut game = self.clone();
-        let playouts = 700;
+        let mut game = self.new_game_from_here();
+        let playouts = 500;
         self.display_goban();
         let floating_stones = self.get_floating_stones();
-        game.passes = 0;
         while game.passes < 2 {
             let m = {
                 let mut mcts = Mcts::with_capacity(&game, playouts);

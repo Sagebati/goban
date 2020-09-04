@@ -69,16 +69,12 @@ impl Goban {
     }
 
     pub fn raw_matrix(&self) -> Vec<Vec<Color>> {
-        let mut matrix = vec![];
-        for _ in 0..self.size.0 {
-            let line = self.go_strings
-                .iter()
-                .take(self.size.1)
-                .map(|ptr| ptr.as_ref().map_or(Color::None, |ptr| ptr.color))
-                .collect();
-            matrix.push(line);
+        let mut mat = vec![vec![]];
+        for line in self.go_strings.chunks_exact(self.size.1) {
+            let v = line.iter().map(|o| o.as_ref().map_or(Color::None, |r| r.color)).collect();
+            mat.push(v);
         }
-        matrix
+        mat
     }
 
     /// Get number of stones on the goban.

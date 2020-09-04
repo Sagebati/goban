@@ -15,9 +15,7 @@ pub fn deadstones() {
 pub fn deadbench(_c: &mut Criterion) {
     let c = Criterion::default();
     c.sample_size(50)
-        .bench_function("dead_stones_mcts", |b| {
-            b.iter(|| deadstones())
-        });
+        .bench_function("dead_stones_mcts", |b| b.iter(|| deadstones()));
 }
 
 criterion_group!(benches, deadbench);

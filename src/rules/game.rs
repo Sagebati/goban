@@ -126,6 +126,14 @@ impl Game {
         }
     }
 
+    pub fn new_game_from_here(&self) -> Self {
+        let mut g = self.clone();
+        g.ko_point = None;
+        g.outcome = None;
+        g.passes = 0;
+        g
+    }
+
     /// Generate all moves on all empty intersections.
     #[inline]
     pub fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
@@ -165,8 +173,7 @@ impl Game {
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
                     self.history.push(self.goban.clone());
-                self.goban
-                    .push((x, y), self.turn.stone_color());
+                self.goban.push((x, y), self.turn.stone_color());
                 self.ko_point = None;
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
@@ -342,14 +349,22 @@ impl Game {
                 .into_iter()
                 .filter(move |p| is_coord_valid(self.goban.size(), *p))
                 .filter_map(move |p| {
-                    let s = Stone { coordinates: p, color: self.goban.get_stone(p) };
+                    let s = Stone {
+                        coordinates: p,
+                        color: self.goban.get_stone(p),
+                    };
                     if s.color == Color::None {
                         Some(s)
                     } else {
                         None
                     }
-                }) {
-                if self.goban.get_neighbors(s.coordinates).any(|s| s.color != color) {
+                })
+            {
+                if self
+                    .goban
+                    .get_neighbors(s.coordinates)
+                    .any(|s| s.color != color)
+                {
                     return false;
                 }
                 let (ca, cof) = self.helper_check_eye(s.coordinates, color);

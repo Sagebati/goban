@@ -8,9 +8,9 @@ use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
 
+mod deadstones;
 pub mod game;
 pub mod game_builder;
-mod deadstones;
 mod sgf_bridge;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
@@ -123,7 +123,7 @@ pub enum PlayError {
     Suicide,
     GamePaused,
     FillEye,
-    PointNotEmpty
+    PointNotEmpty,
 }
 
 type FlagUInt = u32;
