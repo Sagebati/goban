@@ -4,7 +4,7 @@
 **Library to play with a rusty "Goban" (name of the board where we play Go ! )** 
 
 **Use the version > 0.5.0 because in a bug detecting dead stones and in Ko detection**
-**Before 0.13.1 bug in the importation of SGF, player color was inverted**
+**Before 0.15.1 bug in the importation of SGF, player color was inverted**
 
 *Channel : stable*
 
