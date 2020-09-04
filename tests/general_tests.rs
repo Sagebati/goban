@@ -695,7 +695,7 @@ mod tests {
         let game = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         game.display_goban();
         let mut goban: Goban = game.goban().clone();
-        for string in dead_stones.into_iter().collect::<HashSet<_>>() {
+        for string in game.dead_stones() {
             goban.remove_go_string(string);
         }
         println!("{}", goban);
