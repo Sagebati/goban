@@ -44,7 +44,7 @@ pub struct Game {
 
     #[cfg(feature = "history")]
     #[get = "pub"]
-    pub(super) plays: Vec<Goban>,
+    pub(super) history: Vec<Goban>,
 
     #[get = "pub"]
     pub(super) last_hash: u64,
@@ -62,7 +62,7 @@ impl Game {
         let komi = rule.komi();
         let pass = 0;
         #[cfg(feature = "history")]
-            let plays = Vec::with_capacity(width as usize * height as usize);
+            let history = Vec::with_capacity(width as usize * height as usize);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashedSet::with_capacity_and_hasher(
@@ -77,7 +77,7 @@ impl Game {
             prisoners,
             passes: pass,
             #[cfg(feature = "history")]
-            plays,
+            history,
             outcome: None,
             rule,
             handicap,
@@ -164,8 +164,9 @@ impl Game {
                 self.last_hash = hash;
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
-                    self.plays.push(self.goban.clone());
-                self.goban.push((x, y), self.turn.stone_color());
+                    self.history.push(self.goban.clone());
+                self.goban
+                    .push((x, y), self.turn.stone_color());
                 self.ko_point = None;
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
@@ -197,6 +198,7 @@ impl Game {
     ///
     /// If the move is a suicide Move return SuicideMove
     /// If the move is a Ko Move returns Ko
+    /// if point is already filled then return PointNotEmpty
     /// If the game is paused then return GamePaused
     pub fn try_play(&mut self, play: Move) -> Result<&mut Self, PlayError> {
         if self.passes == 2 {
@@ -204,7 +206,9 @@ impl Game {
         } else {
             match play {
                 Move::Play(x, y) => {
-                    if let Some(c) = self.check_point((x as Nat, y as Nat)) {
+                    if self.goban.get_stone((x,y)) != Color::None {
+                        Err(PlayError::PointNotEmpty)
+                    }else if let Some(c) = self.check_point((x as Nat, y as Nat)) {
                         Err(c)
                     } else {
                         Ok(self.play(play))

@@ -125,7 +125,7 @@ impl GameBuilder {
             rule: self.rule,
             handicap: self.handicap_points.len() as u8,
             #[cfg(feature = "history")]
-            plays: vec![],
+            history: vec![],
             hashes: Default::default(),
             last_hash: 0,
             ko_point: None,
