@@ -1,12 +1,12 @@
 [package]
 name = "goban"
-version = "0.13.0"
+version = "0.13.1"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme = "README.md"
 description = "Library for Go move generation and Go ruling."
 edition = "2018"
 license = "MIT"
-repository = "https://gitlab.com/Sabati/goban"
+repository = "https://github.com/Sagebati/goban"
 keywords = ["go", "goban", "baduk", "board_game", "move_generation"]
 
 [badges]
@@ -33,7 +33,7 @@ lazy_static = "1.4.0"
 rand_xorshift = "0.2.0"
 rand = "0.7.3"
 sgf-parser = "2.4.0"
-oxymcts = { git = "https://github.com/Sagebati/OxyMcts.git" }
+oxymcts = "0.1.0"
 
 [dev-dependencies]
 criterion = "0.3.3"
