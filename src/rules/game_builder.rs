@@ -110,12 +110,15 @@ impl GameBuilder {
             passes: 0,
             prisoners: (0, 0),
             outcome: self.outcome,
+            move_num: 0,
             turn: self.turn,
             komi: self.komi,
             rule: self.rule,
             handicap: self.handicap_points.len() as u8,
             #[cfg(feature = "history")]
             history: vec![],
+            #[cfg(feature = "history")]
+            moves_history: vec![],
             hashes: Default::default(),
             last_hash: 0,
             ko_point: None,
