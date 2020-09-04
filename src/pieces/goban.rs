@@ -315,11 +315,11 @@ impl Goban {
             self.go_strings[stone_idx] = Option::None;
         }
 
-        debug_assert!(
+        /*debug_assert!(
             Ptr::strong_count(&go_string_to_remove) == 1,
             "strong count: {}",
             Ptr::strong_count(&go_string_to_remove)
-        );
+        );*/
     }
 
     /// Removes the dead stones from the goban by specifying a color stone.

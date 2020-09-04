@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use oxymcts::{BackPropPolicy, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts, LazyMctsNode, MctsNode, NodeId, Num, Playout, Tree, uct_value};
+use ahash::AHashSet;
+use oxymcts::{DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts, LazyMctsNode, Num, Playout, uct_value};
 use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
 
@@ -58,7 +59,7 @@ type Reward = u64;
 
 impl Evaluator<Game, Reward, ()> for Eval {
     type Args = f64;
-    type EvalResult = EvalR;
+    type EvalResult = Reward;
 
     fn eval_child(child: &LazyMctsNode<Game, Reward, ()>, _turn: &<Game as
     GameTrait>::Player, parent_visits: u32, args: &Self::Args) -> Num {
@@ -72,32 +73,7 @@ impl Evaluator<Game, Reward, ()> for Eval {
 
     fn evaluate_leaf(child: Game, turn: &<Game as GameTrait>::Player) -> Self::EvalResult {
         let winner = child.get_winner();
-        let Game { goban: g, .. } = child;
-        EvalR {
-            reward: if winner == *turn { 1 } else { 0 },
-            last_board: g,
-        }
-    }
-}
-
-struct BP;
-
-impl BackPropPolicy<Vec<Move>, Move, u64, (), EvalR> for BP {
-    fn backprop(tree: &mut Tree<MctsNode<Vec<Move>, Move, u64, ()>>, leaf: NodeId,
-                playout_result: EvalR) {
-        let root_id = tree.root().id();
-        let mut current_node_id = leaf;
-        // Update the branch
-        while current_node_id != root_id {
-            let mut node_to_update = tree.get_mut(current_node_id).unwrap();
-            node_to_update.value().n_visits += 1;
-            node_to_update.value().sum_rewards += playout_result.reward as u64;
-            current_node_id = node_to_update.parent().unwrap().id();
-        }
-        // Update root
-        let mut node_to_update = tree.get_mut(current_node_id).unwrap();
-        node_to_update.value().n_visits += 1;
-        node_to_update.value().sum_rewards += playout_result.reward as u64;
+        if winner == *turn { 1 } else { 0 }
     }
 }
 
@@ -133,7 +109,7 @@ type Mcts<'a> = LazyMcts<
     Game,
     DefaultLazyTreePolicy<Game, Eval, (), u64>,
     PL,
-    BP,
+    DefaultBackProp,
     Eval,
     (),
     u64>;
@@ -165,15 +141,16 @@ impl Game {
 
     /// Return an array of dead stones, works better if the game if ended.
     /// the "dead" stones are only potentially dead.
-    pub fn get_dead_stones(&self) -> Vec<GoStringPtr> {
+    pub fn get_dead_stones(&self) -> AHashSet<GoStringPtr> {
         let mut game = self.clone();
+        let playouts = 500;
         self.display_goban();
         let floating_stones = self.get_floating_stones();
         game.passes = 0;
         while game.passes < 2 {
             let m = {
-                let mut mcts = Mcts::new(&game);
-                for _ in 0..20 {
+                let mut mcts = Mcts::with_capacity(&game, playouts);
+                for _ in 0..playouts {
                     mcts.execute(&2.0_f64.sqrt(), ());
                 }
                 mcts.best_move(&2.0_f64.sqrt())
@@ -183,11 +160,11 @@ impl Game {
         }
         let final_state_raw = game.goban().raw();
         game.display_goban();
-        let mut dead_ren = vec![];
+        let mut dead_ren = AHashSet::new();
         for chain in floating_stones {
             for &stone in chain.stones() {
                 if final_state_raw[stone] != chain.color {
-                    dead_ren.push(chain);
+                    dead_ren.insert(chain);
                     break;
                 }
             }

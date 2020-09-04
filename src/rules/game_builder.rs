@@ -33,7 +33,7 @@ pub struct GameBuilder {
     white_player: String,
     rule: Rule,
     handicap_points: Vec<Point>,
-    turn: Player,
+    turn: Option<Player>,
     moves: Vec<Move>,
     outcome: Option<EndGame>,
 }
@@ -48,7 +48,7 @@ impl GameBuilder {
             white_player: "".to_string(),
             handicap_points: vec![],
             rule: Chinese,
-            turn: Player::Black,
+            turn: None,
             moves: vec![],
             outcome: None,
         }
@@ -67,7 +67,6 @@ impl GameBuilder {
     /// Overrides the turn because it's a game with handicap. So White begins.
     pub fn handicap(&mut self, points: &[Point]) -> &mut Self {
         self.handicap_points = points.to_vec();
-        self.turn = Player::White;
         self
     }
 
@@ -79,6 +78,11 @@ impl GameBuilder {
     pub fn komi(&mut self, komi: f32) -> &mut Self {
         self.komi = komi;
         self.manual_komi = true;
+        self
+    }
+
+    pub fn turn(&mut self, turn: Player) -> &mut Self {
+        self.turn = Some(turn);
         self
     }
 
@@ -105,12 +109,18 @@ impl GameBuilder {
 
         goban.push_many(&self.handicap_points, Color::Black);
 
+        if self.handicap_points.is_empty() && self.turn.is_none() {
+            self.turn = Some(Player::Black)
+        } else {
+            self.turn = Some(Player::White)
+        }
+
         let mut g = Game {
             goban,
             passes: 0,
             prisoners: (0, 0),
             outcome: self.outcome,
-            turn: self.turn,
+            turn: self.turn.unwrap_or(Player::Black),
             komi: self.komi,
             rule: self.rule,
             handicap: self.handicap_points.len() as u8,
@@ -122,7 +132,7 @@ impl GameBuilder {
         };
 
         for &m in &self.moves {
-            g.play(m); // without verifications of Ko
+            g.play(m);
         }
 
         Ok(g)

@@ -639,7 +639,7 @@ mod tests {
             EndGame::WinnerByScore(Player::Black, 2.0),
             game.outcome().unwrap()
         );
-        assert_eq!(game.prisoners(), (29, 31));
+        assert_eq!(game.prisoners(), (31, 29));
     }
 
     #[test]
@@ -658,7 +658,7 @@ mod tests {
         let game = Game::from_sgf(include_str!("sgf_1.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
         println!("prisoners : {:?}", game.prisoners());
-        assert_eq!(game.prisoners(), (9, 2));
+        assert_eq!(game.prisoners(), (2, 9));
         assert_eq!(
             EndGame::WinnerByResign(Player::White),
             game.outcome().unwrap()
@@ -667,10 +667,10 @@ mod tests {
 
     #[test]
     fn dead_stones() {
-        let game = Game::from_sgf(include_str!("sgf_1.sgf")).unwrap();
+        let game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
         let dead_stones = dbg!(game.get_dead_stones());
         let mut goban: Goban = game.goban().clone();
-        for string in dead_stones {
+        for string in dead_stones.into_iter().collect::<HashSet<_>>() {
             goban.remove_go_string(string);
         }
         println!("{}", goban);

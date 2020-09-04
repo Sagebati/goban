@@ -165,8 +165,7 @@ impl Game {
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
                     self.plays.push(self.goban.clone());
-                self.goban
-                    .push((x as Nat, y as Nat), self.turn.stone_color());
+                self.goban.push((x, y), self.turn.stone_color());
                 self.ko_point = None;
                 self.prisoners = self.remove_captured_stones();
                 self.turn = !self.turn;
