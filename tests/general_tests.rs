@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_eye() {
-        let g = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
+        let g = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         assert!(g.check_eye(Stone {
             coordinates: (0, 14),
             color: Color::White,
@@ -658,7 +658,7 @@ mod tests {
 
     #[test]
     fn sgf_test() {
-        let game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
+        let game = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
         assert_eq!(
             EndGame::WinnerByScore(Player::Black, 2.0),
@@ -669,7 +669,7 @@ mod tests {
 
     #[test]
     fn sgf_test_2_2ha() {
-        let game = Game::from_sgf(include_str!("sgf_2_2ha.sgf")).unwrap();
+        let game = Game::from_sgf(include_str!("../sgf/sgf_2_2ha.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
         assert_eq!(game.prisoners(), (25, 26));
         assert_eq!(
@@ -680,7 +680,7 @@ mod tests {
 
     #[test]
     fn sgf_test_1() {
-        let game = Game::from_sgf(include_str!("sgf_1.sgf")).unwrap();
+        let game = Game::from_sgf(include_str!("../sgf/sgf_1.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
         println!("prisoners : {:?}", game.prisoners());
         assert_eq!(game.prisoners(), (2, 9));
@@ -692,8 +692,8 @@ mod tests {
 
     #[test]
     fn dead_stones() {
-        let game = Game::from_sgf(include_str!("ShusakuvsInseki.sgf")).unwrap();
-        let dead_stones = dbg!(game.get_dead_stones());
+        let game = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
+        game.display_goban();
         let mut goban: Goban = game.goban().clone();
         for string in dead_stones.into_iter().collect::<HashSet<_>>() {
             goban.remove_go_string(string);

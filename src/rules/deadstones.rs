@@ -178,10 +178,9 @@ impl Game {
 
     /// Return an array of dead stones, works better if the game if ended.
     /// the "dead" stones are only potentially dead.
-    pub fn get_dead_stones(&self) -> AHashSet<GoStringPtr> {
+    pub fn dead_stones(&self) -> AHashSet<GoStringPtr> {
         let mut game = self.new_game_from_here();
         let playouts = 500;
-        self.display_goban();
         let floating_stones = self.get_floating_stones();
         while game.passes < 2 {
             let m = {
@@ -194,7 +193,6 @@ impl Game {
             game.play(m);
         }
         let final_state_raw = game.goban().raw();
-        game.display_goban();
         let mut dead_ren = AHashSet::new();
         for chain in floating_stones {
             for &stone in chain.stones() {
