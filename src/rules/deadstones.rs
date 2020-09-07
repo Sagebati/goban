@@ -24,7 +24,11 @@ impl GameTrait for Game {
             .map(Move::from)
             .collect::<Vec<_>>();
         if moves.is_empty() {
-            vec![Move::Pass]
+            if self.is_over() {
+                vec![]
+            } else {
+                vec![Move::Pass]
+            }
         } else {
             moves
         }
@@ -92,7 +96,7 @@ impl Evaluator<Game, Reward, ()> for Eval {
     }
 }
 
-pub struct PL;
+struct PL;
 
 impl Playout<Game> for PL {
     type Args = ();
@@ -176,16 +180,14 @@ impl Game {
             .collect()
     }
 
-    /// Return an array of dead stones, works better if the game if ended.
-    /// the "dead" stones are only potentially dead.
-    pub fn dead_stones(&self) -> AHashSet<GoStringPtr> {
+    pub fn dead_stones_wth_simulations(&self, nb_simulations: usize) ->
+    AHashSet<GoStringPtr> {
         let mut game = self.branch();
-        let playouts = 500;
         let floating_stones = self.get_floating_stones();
-        while game.passes < 2 {
+        while !game.is_over() {
             let m = {
-                let mut mcts = Mcts::with_capacity(&game, playouts);
-                for _ in 0..playouts {
+                let mut mcts = Mcts::with_capacity(&game, nb_simulations);
+                for _ in 0..nb_simulations {
                     mcts.execute(&2.0_f64.sqrt(), ());
                 }
                 mcts.best_move(&2.0_f64.sqrt())
@@ -203,5 +205,11 @@ impl Game {
             }
         }
         dead_ren
+    }
+
+    /// Return an array of dead stones, works better if the game if ended.
+    /// the "dead" stones are only potentially dead.
+    pub fn dead_stones(&self) -> AHashSet<GoStringPtr> {
+        self.dead_stones_wth_simulations(100)
     }
 }

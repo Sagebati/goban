@@ -164,6 +164,7 @@ impl Game {
     pub fn play(&mut self, play: Move) -> &mut Self {
         match play {
             Move::Pass => {
+                assert!(self.passes < 2, "This game is already paused");
                 self.turn = !self.turn;
                 self.passes += 1;
                 self
