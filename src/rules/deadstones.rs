@@ -210,6 +210,6 @@ impl Game {
     /// Return an array of dead stones, works better if the game if ended.
     /// the "dead" stones are only potentially dead.
     pub fn dead_stones(&self) -> AHashSet<GoStringPtr> {
-        self.dead_stones_wth_simulations(100)
+        self.dead_stones_wth_simulations(600)
     }
 }
