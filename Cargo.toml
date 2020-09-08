@@ -1,22 +1,22 @@
 [package]
 name = "goban"
-version = "0.15.0"
+version = "0.15.1"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
-readme= "README.md"
-description= "Library for Go move generation and Go ruling."
+readme = "README.md"
+description = "Library for Go move generation and Go ruling."
 edition = "2018"
 license = "MIT"
-repository = "https://gitlab.com/Sabati/goban"
-keywords=["go","goban","baduk", "board_game", "move_generation"]
+repository = "https://github.com/Sagebati/goban"
+keywords = ["go", "goban", "baduk", "board_game", "move_generation"]
 
 [badges]
-gitlab = {repository ="Sabati/goban"}
-maintenance = {status = "actively-developed"}
+gitlab = { repository = "Sabati/goban" }
+maintenance = { status = "actively-developed" }
 
 [profile.release]
 lto = "fat"
 panic = "abort"
-codegen-units=1
+codegen-units = 1
 
 [features]
 history = []
@@ -33,6 +33,7 @@ lazy_static = "1.4.0"
 rand_xorshift = "0.2.0"
 rand = "0.7.3"
 sgf-parser = "2.4.0"
+oxymcts = "0.1.0"
 
 [dev-dependencies]
 criterion = "0.3.3"
@@ -43,4 +44,8 @@ codegen-units = 1
 
 [[bench]]
 name = "perft"
+harness = false
+
+[[bench]]
+name = "deadstones"
 harness = false

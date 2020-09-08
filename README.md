@@ -3,7 +3,8 @@
 
 **Library to play with a rusty "Goban" (name of the board where we play Go ! )** 
 
-**Use the version > 5.0 because in a bug detecting dead stones and in Ko detection**
+**Use the version > 0.5.0 because in a bug detecting dead stones and in Ko detection**
+**Before 0.15.1 bug in the importation of SGF, player color was inverted**
 
 *Channel : stable*
 
@@ -66,7 +67,8 @@ etc...
 - Generate legals moves (Handling Ko detection, Suicide moves, Super ko)
 - Japanese Rules
 - Chinese Rules
-- Boards of different sizes (4x5 , 4x9) Limited  to (19x19) (Due to Zobrist hashing)
+- Boards of different sizes (4x5 , 4x9) Limited  to (19x19) (Due to Zobrist hashing) cas be easy increased in a fork. 
+- *Experimental* dead stones detection with MCTS rollouts.
 
 ## Waiting for
 - Const generics or maybe not (benchmark with a Goban with backed array is slightly faster)

@@ -68,6 +68,15 @@ impl Goban {
             .collect()
     }
 
+    pub fn raw_matrix(&self) -> Vec<Vec<Color>> {
+        let mut mat = vec![vec![]];
+        for line in self.go_strings.chunks_exact(self.size.1) {
+            let v = line.iter().map(|o| o.as_ref().map_or(Color::None, |r| r.color)).collect();
+            mat.push(v);
+        }
+        mat
+    }
+
     /// Get number of stones on the goban.
     /// (number of black stones, number of white stones)
     pub fn number_of_stones(&self) -> (u32, u32) {
@@ -302,11 +311,11 @@ impl Goban {
             self.go_strings[stone_idx] = Option::None;
         }
 
-        debug_assert!(
+        /*debug_assert!(
             Ptr::strong_count(&go_string_to_remove) == 1,
             "strong count: {}",
             Ptr::strong_count(&go_string_to_remove)
-        );
+        );*/
     }
 
     /// Removes the dead stones from the goban by specifying a color stone.
