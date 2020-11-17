@@ -14,7 +14,6 @@ use crate::pieces::util::coord::{
 use crate::pieces::zobrist::*;
 use crate::pieces::{GoStringPtr, Nat, Ptr, Set};
 
-///
 /// Represents a Goban. the stones are stored in ROW MAJOR (row, colum)
 #[derive(Getters, Setters, CopyGetters, Debug, Clone)]
 pub struct Goban {
