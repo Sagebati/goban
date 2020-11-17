@@ -690,6 +690,7 @@ mod tests {
 
     #[test]
     #[ignore]
+    #[cfg(deadstones)]
     fn dead_stones() {
         let game = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         game.display_goban();
