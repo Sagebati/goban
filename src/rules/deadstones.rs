@@ -2,17 +2,17 @@ use std::collections::{HashMap, HashSet};
 
 use ahash::AHashSet;
 use oxymcts::{
-    DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts, LazyMctsNode,
-    Num, Playout, uct_value,
+    uct_value, DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts,
+    LazyMctsNode, Num, Playout,
 };
 use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
 
 use crate::pieces::goban::Goban;
-use crate::pieces::GoStringPtr;
 use crate::pieces::stones::{Color, Stone};
-use crate::rules::{IllegalRules, Move, Player};
+use crate::pieces::GoStringPtr;
 use crate::rules::game::Game;
+use crate::rules::{IllegalRules, Move, Player};
 
 impl GameTrait for Game {
     type Player = Player;
@@ -180,8 +180,7 @@ impl Game {
             .collect()
     }
 
-    pub fn dead_stones_wth_simulations(&self, nb_simulations: usize) ->
-    AHashSet<GoStringPtr> {
+    pub fn dead_stones_wth_simulations(&self, nb_simulations: usize) -> AHashSet<GoStringPtr> {
         let mut game = self.branch();
         let floating_stones = self.get_floating_stones();
         while !game.is_over() {

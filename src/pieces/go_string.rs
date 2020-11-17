@@ -1,5 +1,5 @@
-use crate::pieces::Set;
 use crate::pieces::stones::Color;
+use crate::pieces::Set;
 
 type SetPoints = Set<usize>;
 

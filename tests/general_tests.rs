@@ -8,11 +8,11 @@ mod tests {
     use goban::pieces::stones::Color;
     use goban::pieces::stones::Color::Black;
     use goban::pieces::stones::Stone;
-    use goban::pieces::zobrist::{index_zobrist};
-    use goban::rules::{EndGame, GobanSizes, Move, Player};
+    use goban::pieces::zobrist::index_zobrist;
     use goban::rules::game::Game;
     use goban::rules::Move::Play;
     use goban::rules::Rule;
+    use goban::rules::{EndGame, GobanSizes, Move, Player};
 
     #[test]
     fn goban() {
@@ -574,7 +574,7 @@ mod tests {
             Some(endgame) => Ok(endgame),
             _ => Err("Game not finished"),
         }
-            .expect("Game finished");
+        .expect("Game finished");
         let (black, white) = g.calculate_score();
         assert_eq!(black, 81.);
         assert_eq!(white, g.komi());

@@ -18,12 +18,12 @@
 //! ```
 
 use crate::pieces::goban::Goban;
-use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
-use crate::rules::{EndGame, Move, Player, Rule};
+use crate::pieces::Nat;
 use crate::rules::game::Game;
 use crate::rules::Rule::Chinese;
+use crate::rules::{EndGame, Move, Player, Rule};
 
 pub struct GameBuilder {
     size: (u32, u32),
