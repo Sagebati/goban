@@ -8,7 +8,7 @@ mod tests {
     use goban::pieces::stones::Color;
     use goban::pieces::stones::Color::Black;
     use goban::pieces::stones::Stone;
-    use goban::pieces::zobrist::ZOBRIST;
+    use goban::pieces::zobrist::{index_zobrist};
     use goban::rules::{EndGame, GobanSizes, Move, Player};
     use goban::rules::game::Game;
     use goban::rules::Move::Play;
@@ -587,13 +587,11 @@ mod tests {
     #[test]
     fn zobrist_test() {
         let mut set = HashSet::new();
-        for i in 0..19 {
-            for j in 0..19 {
-                for c in vec![Color::Black, Color::White] {
-                    let x = ZOBRIST[((i * 19 + j), c)];
-                    assert!(!set.contains(&x));
-                    set.insert(x);
-                }
+        for i in 0..(19 * 19) {
+            for c in vec![Color::Black, Color::White] {
+                let x = index_zobrist(i, c);
+                assert!(!set.contains(&x));
+                set.insert(x);
             }
         }
     }
@@ -691,6 +689,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn dead_stones() {
         let game = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         game.display_goban();

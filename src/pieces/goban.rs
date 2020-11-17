@@ -140,7 +140,7 @@ impl Goban {
             |init, same_color_string| self.merge_two_strings(init, same_color_string),
         );
 
-        self.zobrist_hash ^= ZOBRIST[(index, color)];
+        self.zobrist_hash ^= index_zobrist(index, color);
 
         self.create_string(new_string);
         // for every string of opposite color remove a liberty and the create another string.
@@ -305,7 +305,7 @@ impl Goban {
                     self.create_string(neighbor_str_ptr.with_liberty(stone_idx));
                 }
             }
-            self.zobrist_hash ^= ZOBRIST[(stone_idx, color_of_the_string)];
+            self.zobrist_hash ^= index_zobrist(stone_idx, color_of_the_string);
 
             // Remove each point from the map. The Rc will be dropped "normally".
             self.go_strings[stone_idx] = Option::None;

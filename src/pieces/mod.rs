@@ -28,7 +28,6 @@ pub(super) type Nat = u8;
 
 pub mod go_string;
 pub mod goban;
-pub mod neighbor;
 pub mod stones;
 pub mod territory;
 pub mod util;
