@@ -271,7 +271,7 @@ impl Game {
     pub fn will_capture(&self, point: Point) -> bool {
         self.goban
             .get_neighbors_strings(point)
-            .filter(|go_str_ptr| go_str_ptr.color != self.turn.stone_color())
+            .filter(|go_str_ptr| go_str_ptr.color() != self.turn.stone_color())
             // if an enemy string has only liberty it's a capture move
             .any(|go_str_ptr| go_str_ptr.is_atari())
     }
@@ -410,7 +410,7 @@ impl Game {
                 .goban
                 .get_neighbors_strings(stone.coordinates)
                 .any(|neighbor_go_string| {
-                    if neighbor_go_string.color == stone.color {
+                    if neighbor_go_string.color() == stone.color {
                         // Connecting with an other string which is not in danger
                         !neighbor_go_string.is_atari()
                     } else {

@@ -17,7 +17,7 @@ impl Goban {
             .iter()
             .cloned()
             .filter_map(|x| x)
-            .filter(move |go_str| go_str.is_dead() && go_str.color == color)
+            .filter(move |go_str| go_str.is_dead() && go_str.color() == color)
     }
 
     ///

@@ -49,3 +49,4 @@ harness = false
 [[bench]]
 name = "deadstones"
 harness = false
+required-features = ["deadstones"]
