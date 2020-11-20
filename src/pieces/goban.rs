@@ -56,7 +56,7 @@ impl Goban {
         game
     }
 
-    /// Returns the underlying goban in a vector with a RowMajor Policy
+    /// Returns the underlying goban in a vector with a RowMajor Policy, calculated on the fly.
     pub fn raw(&self) -> Vec<Color> {
         self.go_strings
             .iter()
@@ -125,9 +125,10 @@ impl Goban {
                         adjacent_same_color_str_set.insert(adj_go_str_ptr.to_owned());
                     }
                     Color::None => unreachable!("A string cannot be of color none"),
-                    _ => {
+                    go_str_color if go_str_color != color => {
                         adjacent_opposite_color_str_set.insert(adj_go_str_ptr.to_owned());
                     }
+                    _ => unreachable!()
                 },
                 Option::None => {
                     new_string.add_liberty(neighbor_idx);
@@ -136,9 +137,9 @@ impl Goban {
         }
         new_string.reserve_stone(num_stones_connected);
 
-        // for every string of same color "connected" merge it into one string
+        // for every string of same color "connected" merge it into big string
         let mut new_string = adjacent_same_color_str_set
-            .drain()
+            .into_iter()
             .fold(new_string, |init, same_color_string| {
                 init.merge_with(&same_color_string)
             });
@@ -148,11 +149,11 @@ impl Goban {
         }
 
         self.zobrist_hash ^= index_zobrist(pushed_stone_idx, color);
-
         self.place_string(new_string);
-        // for every string of opposite color remove a liberty and the create another string.
+
+        // for every string of opposite color remove a liberty and update the string.
         for other_color_string in adjacent_opposite_color_str_set
-            .drain()
+            .into_iter()
             .map(|go_str_ptr| go_str_ptr.without_liberty(pushed_stone_idx))
         {
             self.place_string(other_color_string);

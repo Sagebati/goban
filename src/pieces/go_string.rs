@@ -30,6 +30,7 @@ impl GoString {
         r
     }
 
+    /// Reserve space in the stones set for perforamnces.
     #[inline]
     pub fn reserve_stone(&mut self, number_of_stones: usize) -> &mut Self {
         self.stones.reserve(number_of_stones);
@@ -47,6 +48,7 @@ impl GoString {
         self.stones.insert(stone_idx);
     }
 
+    /// Returns true if the set of liberties is empty
     #[inline]
     pub fn is_dead(&self) -> bool {
         self.liberties.is_empty()
@@ -57,6 +59,7 @@ impl GoString {
         self.liberties.len()
     }
 
+    /// A go string is atari if it only has one liberty
     #[inline]
     pub fn is_atari(&self) -> bool {
         self.liberties.len() == 1
@@ -112,9 +115,9 @@ impl GoString {
         new
     }
 
-    ///
-    /// Takes ownership of self and the other string then merge into one string
-    ///
+    /// Merges the string passed in param to self, indeed adding their stones to our struct, and adding
+    /// their liberties to our struct.
+    /// The method cas produce some bugs, there can be some liberties in excess after the merge.
     #[inline]
     pub fn merge_with(
         mut self,
