@@ -4,10 +4,11 @@ use std::fmt::{Display, Error, Formatter};
 use std::ops::Not;
 use std::str::FromStr;
 
-use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
+use crate::pieces::Nat;
 
+#[cfg(deadstones)]
 mod deadstones;
 pub mod game;
 pub mod game_builder;

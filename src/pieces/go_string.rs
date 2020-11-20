@@ -1,18 +1,54 @@
-use crate::pieces::Set;
 use crate::pieces::stones::Color;
+use crate::pieces::Set;
 
-type SetPoints = Set<usize>;
+type SetIdx = Set<usize>;
 
-#[derive(Clone, Debug, PartialEq, Getters, Eq)]
+#[derive(Clone, Debug, PartialEq, Getters, CopyGetters, Eq)]
 pub struct GoString {
-    pub color: Color,
-    #[get = "pub"]
-    pub(crate) stones: SetPoints,
-    #[get = "pub"]
-    pub(super) liberties: SetPoints,
+    #[getset(get_copy = "pub")]
+    color: Color,
+    #[getset(get = "pub")]
+    stones: SetIdx,
+    #[getset(get = "pub")]
+    liberties: SetIdx,
 }
 
 impl GoString {
+    #[inline]
+    pub fn new_with_color(color: Color) -> Self {
+        Self {
+            color,
+            stones: Default::default(),
+            liberties: Default::default(),
+        }
+    }
+
+    #[inline]
+    pub fn new_with_color_and_stone_idx(color: Color, stone: usize) -> Self {
+        let mut r = GoString::new_with_color(color);
+        r.stones.insert(stone);
+        r
+    }
+
+    /// Reserve space in the stones set for perforamnces.
+    #[inline]
+    pub fn reserve_stone(&mut self, number_of_stones: usize) -> &mut Self {
+        self.stones.reserve(number_of_stones);
+        self
+    }
+
+    #[inline]
+    pub fn reserve_liberties(&mut self, number_of_lib: usize) -> &mut Self {
+        self.liberties.reserve(number_of_lib);
+        self
+    }
+
+    #[inline]
+    pub fn add_stone(&mut self, stone_idx: usize) {
+        self.stones.insert(stone_idx);
+    }
+
+    /// Returns true if the set of liberties is empty
     #[inline]
     pub fn is_dead(&self) -> bool {
         self.liberties.is_empty()
@@ -23,6 +59,7 @@ impl GoString {
         self.liberties.len()
     }
 
+    /// A go string is atari if it only has one liberty
     #[inline]
     pub fn is_atari(&self) -> bool {
         self.liberties.len() == 1
@@ -39,60 +76,66 @@ impl GoString {
     }
 
     #[inline]
+    pub fn remove_liberty(&mut self, stone_idx: usize) {
+        debug_assert!(self.liberties.contains(&stone_idx));
+        self.liberties.remove(&stone_idx);
+    }
+
+    #[inline]
     pub fn without_liberty(&self, point: usize) -> GoString {
-        debug_assert!(self.liberties.contains(&point));
         let mut new = self.clone();
-        new.liberties.remove(&point);
+        new.remove_liberty(point);
         new
     }
 
     #[inline]
-    pub fn with_liberty(&self, point: usize) -> GoString {
-        debug_assert!(!self.liberties.contains(&point));
+    pub fn add_liberty(&mut self, stone_idx: usize) {
+        debug_assert!(!self.liberties.contains(&stone_idx));
+        self.liberties.insert(stone_idx);
+    }
+
+    #[inline]
+    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item = usize>) {
+        for idx in stones_idx {
+            self.add_liberty(idx);
+        }
+    }
+
+    #[inline]
+    pub fn with_liberty(&self, stone_idx: usize) -> GoString {
         let mut new = self.clone();
-        new.liberties.insert(point);
+        new.add_liberty(stone_idx);
         new
     }
 
-    ///
-    /// Takes ownership of self and the other string then merge into one string
-    ///
+    #[inline]
+    pub fn with_liberties(&self, stones_idx: impl Iterator<Item = usize>) -> GoString {
+        let mut new = self.clone();
+        new.add_liberties(stones_idx);
+        new
+    }
+
+    /// Merges the string passed in param to self, indeed adding their stones to our struct, and adding
+    /// their liberties to our struct.
+    /// The method cas produce some bugs, there can be some liberties in excess after the merge.
     #[inline]
     pub fn merge_with(
         mut self,
         GoString {
             color,
-            mut stones,
-            mut liberties,
-        }: GoString,
+            stones,
+            liberties,
+        }: &GoString,
     ) -> Self {
         assert_eq!(
-            self.color, color,
+            self.color, *color,
             "When merging two strings, the 2  go strings need to be of \
              same color. Colors found {} and {}",
-            self.color, color
+            self.color, *color
         );
-        let new_stones = if stones.len() < self.stones.len() {
-            self.stones.extend(stones);
-            self.stones
-        } else {
-            stones.extend(self.stones);
-            stones
-        };
+        self.stones.extend(stones);
+        self.liberties.extend(liberties);
 
-        let mut new_liberties = if liberties.len() < self.liberties.len() {
-            self.liberties.extend(liberties);
-            self.liberties
-        } else {
-            liberties.extend(self.liberties);
-            liberties
-        };
-        new_liberties = new_liberties.difference(&new_stones).copied().collect();
-
-        GoString {
-            color,
-            stones: new_stones,
-            liberties: new_liberties,
-        }
+        self
     }
 }
