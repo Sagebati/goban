@@ -111,8 +111,7 @@ impl Goban {
         );
 
         let pushed_stone_idx = two_to_1dim(self.size, point);
-        let mut new_string =
-            GoString::new_with_color_and_stone_idx(color, pushed_stone_idx);
+        let mut new_string = GoString::new_with_color_and_stone_idx(color, pushed_stone_idx);
         let mut num_stones_connected = 0;
 
         let mut adjacent_same_color_str_set = Set::default();
@@ -138,10 +137,11 @@ impl Goban {
         new_string.reserve_stone(num_stones_connected);
 
         // for every string of same color "connected" merge it into one string
-        let mut new_string = adjacent_same_color_str_set.drain().fold(
-            new_string,
-            |init, same_color_string| init.merge_with(&same_color_string),
-        );
+        let mut new_string = adjacent_same_color_str_set
+            .drain()
+            .fold(new_string, |init, same_color_string| {
+                init.merge_with(&same_color_string)
+            });
 
         if new_string.contains_liberty(pushed_stone_idx) {
             new_string.remove_liberty(pushed_stone_idx);
@@ -311,9 +311,10 @@ impl Goban {
                 .collect::<HashSet<_>>()
             {
                 if go_string_to_remove != neighbor_str_ptr {
-                    updates.entry(neighbor_str_ptr)
+                    updates
+                        .entry(neighbor_str_ptr)
                         .and_modify(|v| v.push(stone_idx))
-                        .or_insert(vec![stone_idx]);
+                        .or_insert_with(|| vec![stone_idx]);
                 }
             }
 

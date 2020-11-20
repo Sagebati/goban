@@ -92,7 +92,7 @@ impl GoString {
     }
 
     #[inline]
-    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item=usize>) {
+    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item = usize>) {
         for idx in stones_idx {
             self.add_liberty(idx);
         }
@@ -106,7 +106,7 @@ impl GoString {
     }
 
     #[inline]
-    pub fn with_liberties(&self, stones_idx: impl Iterator<Item=usize>) -> GoString {
+    pub fn with_liberties(&self, stones_idx: impl Iterator<Item = usize>) -> GoString {
         let mut new = self.clone();
         new.add_liberties(stones_idx);
         new
