@@ -196,7 +196,7 @@ impl Game {
         let final_state_raw = game.goban().raw();
         let mut dead_ren = AHashSet::new();
         for chain in floating_stones {
-            for &stone in chain.stones() {
+            for &stone in chain.iter_stones() {
                 if final_state_raw[stone] != chain.color {
                     dead_ren.insert(chain);
                     break;

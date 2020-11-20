@@ -32,6 +32,7 @@ hash_hasher = "2.0.3"
 ahash = "0.5.8"
 sgf-parser = "2.4.0"
 oxymcts = { version = "0.1.0", optional = true }
+bitvec = "0.19.4"
 
 
 [dev-dependencies]
@@ -49,3 +50,4 @@ harness = false
 [[bench]]
 name = "deadstones"
 harness = false
+required-features = ["deadstones"]

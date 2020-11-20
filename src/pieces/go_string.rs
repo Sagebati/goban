@@ -1,69 +1,101 @@
-use crate::pieces::stones::Color;
-use crate::pieces::Set;
-
-type SetPoints = Set<usize>;
+use crate::pieces::stones::{Color};
+use bitvec::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Getters, Eq)]
 pub struct GoString {
     pub color: Color,
-    #[get = "pub"]
-    pub(crate) stones: SetPoints,
-    #[get = "pub"]
-    pub(super) liberties: SetPoints,
+    pub stones: bitarr!(for 361, in Lsb0, u64),
+    pub liberties: bitarr!(for 361, in Lsb0, u64),
 }
 
 impl GoString {
     #[inline]
-    pub fn is_dead(&self) -> bool {
-        self.liberties.is_empty()
+    pub fn new_with_color(color: Color) -> Self {
+        Self {
+            color,
+            stones: Default::default(),
+            liberties: Default::default(),
+        }
     }
 
     #[inline]
-    pub fn number_of_liberties(&self) -> usize {
-        self.liberties.len()
+    pub fn iter_stones(&self) -> impl Iterator<Item=usize> + '_ {
+        self.stones.iter()
+            .enumerate()
+            .filter(|(_, b)| **b)
+            .map(|(i, _)| i)
+    }
+
+    #[inline]
+    pub fn is_dead(&self) -> bool {
+        self.liberties.not_any()
+    }
+
+    #[inline]
+    pub fn count_stones(&self) -> usize {
+        self.stones.count_ones()
+    }
+
+    #[inline]
+    pub fn count_liberties(&self) -> usize {
+        self.liberties.count_ones()
     }
 
     #[inline]
     pub fn is_atari(&self) -> bool {
-        self.liberties.len() == 1
+        self.liberties.count_ones() == 1
     }
 
     #[inline]
     pub fn contains_stone(&self, point: usize) -> bool {
-        self.stones.contains(&point)
+        self.stones[point]
     }
 
     #[inline]
     pub fn contains_liberty(&self, point: usize) -> bool {
-        self.liberties.contains(&point)
+        self.liberties[point]
+    }
+
+    #[inline]
+    pub fn add_stone(&mut self, stone: usize) {
+        debug_assert!(!self.stones[stone]);
+        self.stones.set(stone, true);
+    }
+
+    #[inline]
+    pub fn add_liberty(&mut self, point: usize) {
+        debug_assert!(!self.liberties[point]);
+        self.liberties.set(point, true);
+    }
+
+    #[inline]
+    pub fn remove_liberty(&mut self, point: usize) {
+        debug_assert!(self.liberties[point]);
+        self.liberties.set(point, false);
     }
 
     #[inline]
     pub fn without_liberty(&self, point: usize) -> GoString {
-        debug_assert!(self.liberties.contains(&point));
         let mut new = self.clone();
-        new.liberties.remove(&point);
+        new.remove_liberty(point);
         new
     }
 
     #[inline]
     pub fn with_liberty(&self, point: usize) -> GoString {
-        debug_assert!(!self.liberties.contains(&point));
         let mut new = self.clone();
-        new.liberties.insert(point);
+        new.add_liberty(point);
         new
     }
 
-    ///
     /// Takes ownership of self and the other string then merge into one string
-    ///
     #[inline]
     pub fn merge_with(
         mut self,
         GoString {
             color,
-            mut stones,
-            mut liberties,
+            stones,
+            liberties,
         }: GoString,
     ) -> Self {
         assert_eq!(
@@ -72,27 +104,15 @@ impl GoString {
              same color. Colors found {} and {}",
             self.color, color
         );
-        let new_stones = if stones.len() < self.stones.len() {
-            self.stones.extend(stones);
-            self.stones
-        } else {
-            stones.extend(self.stones);
-            stones
-        };
 
-        let mut new_liberties = if liberties.len() < self.liberties.len() {
-            self.liberties.extend(liberties);
-            self.liberties
-        } else {
-            liberties.extend(self.liberties);
-            liberties
-        };
-        new_liberties = new_liberties.difference(&new_stones).copied().collect();
+        self.stones |= stones.into_iter().copied();
+        self.liberties |= liberties.iter().copied();
+        self.liberties &= (!self.stones).iter().copied();
 
-        GoString {
-            color,
-            stones: new_stones,
-            liberties: new_liberties,
-        }
+        self
     }
 }
+
+
+
+
