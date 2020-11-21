@@ -5,12 +5,13 @@
 //! use crate::goban::rules::game_builder::GameBuilder;
 //! use crate::goban::rules::Rule;
 //! use goban::rules::game::Game;
+//! use goban::rules::JAPANESE;
 //!
 //! let mut builder = GameBuilder::default();
 //! // or
 //! let mut builder = Game::builder();
 //! let game = builder
-//!     .rule(Rule::Japanese)
+//!     .rule(JAPANESE)
 //!     .size((19,19))
 //!     .handicap(&[(3,3), (4,4)])
 //!     .komi(10.)
@@ -22,13 +23,11 @@ use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
 use crate::pieces::Nat;
 use crate::rules::game::Game;
-use crate::rules::Rule::Chinese;
-use crate::rules::{EndGame, Move, Player, Rule};
+use crate::rules::{EndGame, Move, Player, Rule, CHINESE};
 
 pub struct GameBuilder {
     size: (u32, u32),
-    komi: f32,
-    manual_komi: bool,
+    komi: Option<f32>,
     black_player: String,
     white_player: String,
     rule: Rule,
@@ -42,12 +41,11 @@ impl GameBuilder {
     fn new() -> GameBuilder {
         GameBuilder {
             size: (19, 19),
-            komi: Chinese.komi(),
-            manual_komi: false,
+            komi: None,
             black_player: "".to_string(),
             white_player: "".to_string(),
             handicap_points: vec![],
-            rule: Chinese,
+            rule: CHINESE,
             turn: None,
             moves: vec![],
             outcome: None,
@@ -76,8 +74,7 @@ impl GameBuilder {
     }
 
     pub fn komi(&mut self, komi: f32) -> &mut Self {
-        self.komi = komi;
-        self.manual_komi = true;
+        self.komi = Some(komi);
         self
     }
 
@@ -93,9 +90,6 @@ impl GameBuilder {
 
     pub fn rule(&mut self, rule: Rule) -> &mut Self {
         self.rule = rule;
-        if !self.manual_komi {
-            self.komi = rule.komi();
-        }
         self
     }
 
@@ -121,7 +115,7 @@ impl GameBuilder {
             prisoners: (0, 0),
             outcome: self.outcome,
             turn: self.turn.unwrap_or(Player::Black),
-            komi: self.komi,
+            komi: self.komi.unwrap_or(self.rule.komi),
             rule: self.rule,
             handicap: self.handicap_points.len() as u8,
             #[cfg(feature = "history")]

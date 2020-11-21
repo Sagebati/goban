@@ -7,8 +7,7 @@ use rand::thread_rng;
 
 use goban::pieces::stones::Stone;
 use goban::rules::game::Game;
-use goban::rules::Rule::{Chinese, Japanese};
-use goban::rules::{GobanSizes, Move, Rule};
+use goban::rules::{GobanSizes, Move, Rule, CHINESE, JAPANESE};
 
 pub fn perft(pos: &Game, depth: u8) -> u64 {
     if depth < 1 {
@@ -70,14 +69,14 @@ pub fn play_random(state: &Game) -> Move {
 }
 
 pub fn play_game() {
-    let mut g = Game::new(GobanSizes::Nineteen, Chinese);
+    let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
     while !g.is_over() {
         g.play(play_random(&g));
     }
 }
 
 pub fn perft_bench(_c: &mut Criterion) {
-    let g = Game::new(GobanSizes::Nineteen, Japanese);
+    let g = Game::new(GobanSizes::Nineteen, JAPANESE);
     let deep = 2;
     let criterion: Criterion = Default::default();
     criterion.sample_size(10).bench_function_over_inputs(
@@ -96,10 +95,10 @@ pub fn game_play_bench(_c: &mut Criterion) {
     c.sample_size(100)
         //.bench_function("game_play", |b| b.iter(play_game))
         .bench_function("fast_play_game_chinese", |b| {
-            b.iter(|| fast_play_game(Chinese))
+            b.iter(|| fast_play_game(CHINESE))
         })
         .bench_function("fast_play_game_jap", |b| {
-            b.iter(|| fast_play_game(Japanese))
+            b.iter(|| fast_play_game(JAPANESE))
         });
 }
 

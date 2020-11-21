@@ -1,7 +1,7 @@
 //! Module for ruling in the game of go.
 
 use std::fmt::{Display, Error, Formatter};
-use std::ops::Not;
+use std::ops::{Not};
 use std::str::FromStr;
 
 use crate::pieces::stones::Color;
@@ -153,50 +153,33 @@ bitflags! {
     }
 }
 
-///
-/// This enum describes the rules for the game.
-/// for example in chinese rules we don't count prisoners.
-///
-#[derive(Clone, Eq, PartialEq, Debug, Copy)]
-pub enum Rule {
-    Japanese,
-    Chinese, // Transparent to Taylor-Davis
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Rule {
+    pub komi: f32,
+    pub f_illegal: IllegalRules,
+    pub f_score: ScoreRules,
 }
 
-impl Rule {
-    /// Gets the komi defined in the rule
-    #[inline(always)]
-    pub fn komi(self) -> f32 {
-        match self {
-            Self::Japanese => 6.5,
-            Self::Chinese => 7.5,
-        }
-    }
+pub const JAPANESE: Rule = Rule {
+    komi: 6.5,
+    f_illegal: IllegalRules::from_bits_truncate(IllegalRules::KO.bits() | IllegalRules::SUICIDE.bits()),
+    f_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::PRISONNERS.bits()),
+};
 
-    #[inline(always)]
-    pub fn illegal_flag(self) -> IllegalRules {
-        match self {
-            Self::Japanese => IllegalRules::KO | IllegalRules::SUICIDE,
-            Self::Chinese => IllegalRules::SUPERKO | IllegalRules::KO | IllegalRules::SUICIDE,
-        }
-    }
-
-    #[inline(always)]
-    pub fn score_flag(self) -> ScoreRules {
-        match self {
-            Self::Japanese => ScoreRules::KOMI | ScoreRules::PRISONNERS,
-            Self::Chinese => ScoreRules::KOMI | ScoreRules::STONES,
-        }
-    }
-}
+pub const CHINESE: Rule = Rule {
+    komi: 7.5,
+    f_illegal: IllegalRules::from_bits_truncate(IllegalRules::KO.bits() | IllegalRules::SUPERKO.bits() | IllegalRules::SUICIDE.bits()),
+    f_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::STONES.bits()),
+};
 
 impl FromStr for Rule {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "JAP" => Ok(Rule::Japanese),
-            "CHI" => Ok(Rule::Chinese),
+            "JAP" => Ok(JAPANESE),
+            "CHI" => Ok(CHINESE),
             _ => Err(format!("The rule {} is not implemented yet.", s)),
         }
     }

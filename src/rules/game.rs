@@ -6,7 +6,7 @@ use crate::pieces::stones::Stone;
 use crate::pieces::util::coord::{corner_points, is_coord_valid, Point};
 use crate::pieces::Nat;
 use crate::rules::EndGame::{Draw, WinnerByScore};
-use crate::rules::PlayError;
+use crate::rules::{PlayError, CHINESE};
 use crate::rules::Player;
 use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
@@ -59,10 +59,10 @@ impl Game {
     pub fn new(size: GobanSizes, rule: Rule) -> Self {
         let (width, height) = size.into();
         let goban = Goban::new(size.into());
-        let komi = rule.komi();
+        let komi = rule.komi;
         let pass = 0;
         #[cfg(feature = "history")]
-        let history = Vec::with_capacity(width as usize * height as usize);
+            let history = Vec::with_capacity(width as usize * height as usize);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashedSet::with_capacity_and_hasher(
@@ -126,31 +126,22 @@ impl Game {
         }
     }
 
-    /// Crates a new game, from the actual configuration. removing an potential outcome, and
-    /// resuming the game after passing.
-    pub fn branch(&self) -> Self {
-        let mut g = self.clone();
-        g.outcome = None;
-        g.passes = 0;
-        g
-    }
-
     /// Generate all moves on all empty intersections.
     #[inline]
-    pub fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
+    pub fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
     /// Returns a list with legals moves. from the rule specified in at the creation.
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
-        self.legals_by(self.rule.illegal_flag())
+    pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
+        self.legals_by(self.rule.f_illegal)
     }
 
     /// Return a list with the legals moves. doesn't take the rule specified in the game but take
     /// the one passed on parameter.
     #[inline]
-    pub fn legals_by(&self, legals_rules: IllegalRules) -> impl Iterator<Item = Point> + '_ {
+    pub fn legals_by(&self, legals_rules: IllegalRules) -> impl Iterator<Item=Point> + '_ {
         self.pseudo_legals()
             .filter(move |&s| self.check_point_by(s, legals_rules).is_none())
     }
@@ -174,7 +165,7 @@ impl Game {
                 self.last_hash = hash;
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
-                self.history.push(self.goban.clone());
+                    self.history.push(self.goban.clone());
                 self.goban.push((x, y), self.turn.stone_color());
                 self.ko_point = None;
                 self.prisoners = self.remove_captured_stones();
@@ -195,7 +186,7 @@ impl Game {
         let mut test_goban = self.goban.clone();
         test_goban.push((x, y), self.turn.stone_color());
         test_goban.remove_captured_stones_turn((!self.turn).stone_color());
-        if !self.rule.illegal_flag().contains(IllegalRules::SUICIDE) {
+        if !self.rule.f_illegal.contains(IllegalRules::SUICIDE) {
             test_goban.remove_captured_stones_turn(self.turn.stone_color());
         }
         test_goban.zobrist_hash()
@@ -242,7 +233,7 @@ impl Game {
     /// Dependant of the rule in the game.
     #[inline]
     pub fn calculate_score(&self) -> (f32, f32) {
-        self.calculate_score_by(self.rule.score_flag())
+        self.calculate_score_by(self.rule.f_score)
     }
 
     /// Calculates the score by the rule passed in parameter.
@@ -279,7 +270,7 @@ impl Game {
     /// Test if a point is legal or not for the current player,
     #[inline]
     pub fn check_point(&self, point: Point) -> Option<PlayError> {
-        self.check_point_by(point, self.rule.illegal_flag())
+        self.check_point_by(point, self.rule.f_illegal)
     }
 
     /// Test if a point is legal or not by the rule passed in parameter.
@@ -394,8 +385,8 @@ impl Game {
         } else {
             self.check_ko(stone)
                 || self
-                    .hashes
-                    .contains(&self.play_for_verification(stone.coordinates))
+                .hashes
+                .contains(&self.play_for_verification(stone.coordinates))
         }
     }
 
@@ -437,7 +428,7 @@ impl Game {
             Black => (self.prisoners.0 + pris, self.prisoners.1),
             White => (self.prisoners.0, self.prisoners.1 + pris),
         };
-        if !self.rule.illegal_flag().contains(IllegalRules::SUICIDE) {
+        if !self.rule.f_illegal.contains(IllegalRules::SUICIDE) {
             let (pris, _) = self
                 .goban
                 .remove_captured_stones_turn(self.turn.stone_color());
@@ -459,6 +450,6 @@ impl Game {
 
 impl Default for Game {
     fn default() -> Self {
-        Game::new(GobanSizes::Nineteen, Rule::Chinese)
+        Game::new(GobanSizes::Nineteen, CHINESE)
     }
 }
