@@ -161,13 +161,13 @@ pub struct Rule {
     pub f_score: ScoreRules,
 }
 
-pub const JAPANESE: Rule = Rule {
+pub static JAPANESE: Rule = Rule {
     komi: 6.5,
     f_illegal: IllegalRules::from_bits_truncate(IllegalRules::KO.bits() | IllegalRules::SUICIDE.bits()),
     f_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::PRISONNERS.bits()),
 };
 
-pub const CHINESE: Rule = Rule {
+pub static CHINESE: Rule = Rule {
     komi: 7.5,
     f_illegal: IllegalRules::from_bits_truncate(IllegalRules::KO.bits() | IllegalRules::SUPERKO.bits() | IllegalRules::SUICIDE.bits()),
     f_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::STONES.bits()),
