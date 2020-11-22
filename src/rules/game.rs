@@ -33,10 +33,6 @@ pub struct Game {
 
     #[get_copy = "pub"]
     #[set = "pub"]
-    pub(super) komi: f32,
-
-    #[get_copy = "pub"]
-    #[set = "pub"]
     pub(super) rule: Rule,
 
     #[get_copy = "pub"]
@@ -59,7 +55,6 @@ impl Game {
     pub fn new(size: GobanSizes, rule: Rule) -> Self {
         let (width, height) = size.into();
         let goban = Goban::new(size.into());
-        let komi = rule.komi;
         let pass = 0;
         #[cfg(feature = "history")]
             let history = Vec::with_capacity(width as usize * height as usize);
@@ -73,7 +68,6 @@ impl Game {
         Self {
             goban,
             turn: Player::Black,
-            komi,
             prisoners,
             passes: pass,
             #[cfg(feature = "history")]
@@ -93,6 +87,17 @@ impl Game {
     #[inline]
     pub fn resume(&mut self) {
         self.passes = 0;
+    }
+
+
+    #[inline]
+    pub fn set_komi(&mut self, komi: f32) {
+        self.rule.komi = komi;
+    }
+
+    #[inline]
+    pub fn komi(&self) -> f32 {
+        self.rule.komi
     }
 
     /// True when the game is over (two passes, or no more legals moves, Resign)
@@ -251,7 +256,7 @@ impl Game {
             white_score += white_stones as f32;
         }
         if rule.contains(ScoreRules::KOMI) {
-            white_score += self.komi;
+            white_score += self.komi();
         }
 
         (black_score, white_score)

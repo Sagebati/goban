@@ -24,13 +24,14 @@ use crate::pieces::util::coord::Point;
 use crate::pieces::Nat;
 use crate::rules::game::Game;
 use crate::rules::{EndGame, Move, Player, Rule, CHINESE};
+use crate::rules::Player::White;
 
 pub struct GameBuilder {
     size: (u32, u32),
-    komi: Option<f32>,
     black_player: String,
     white_player: String,
     rule: Rule,
+    komi: Option<f32>,
     handicap_points: Vec<Point>,
     turn: Option<Player>,
     moves: Vec<Move>,
@@ -41,11 +42,11 @@ impl GameBuilder {
     fn new() -> GameBuilder {
         GameBuilder {
             size: (19, 19),
-            komi: None,
             black_player: "".to_string(),
             white_player: "".to_string(),
             handicap_points: vec![],
             rule: CHINESE,
+            komi: None,
             turn: None,
             moves: vec![],
             outcome: None,
@@ -103,10 +104,12 @@ impl GameBuilder {
 
         goban.push_many(&self.handicap_points, Color::Black);
 
-        if self.handicap_points.is_empty() && self.turn.is_none() {
-            self.turn = Some(Player::Black)
-        } else {
-            self.turn = Some(Player::White)
+        if !self.handicap_points.is_empty() && self.turn.is_none() {
+            self.turn = Some(White)
+        }
+
+        if let Some(komi) = self.komi {
+            self.rule.komi = komi;
         }
 
         let mut g = Game {
@@ -115,7 +118,6 @@ impl GameBuilder {
             prisoners: (0, 0),
             outcome: self.outcome,
             turn: self.turn.unwrap_or(Player::Black),
-            komi: self.komi.unwrap_or(self.rule.komi),
             rule: self.rule,
             handicap: self.handicap_points.len() as u8,
             #[cfg(feature = "history")]
