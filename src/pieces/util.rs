@@ -34,6 +34,7 @@ pub mod coord {
         ])
     }
 
+    #[inline]
     pub fn corner_points((x1, x2): Point) -> ArrayVec<[Point; 4]> {
         ArrayVec::from([
             (x1 + 1, x2 + 1),
