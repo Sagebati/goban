@@ -14,6 +14,7 @@ use crate::pieces::util::coord::{
 use crate::pieces::zobrist::*;
 use crate::pieces::{GoStringPtr, Nat, Ptr, Set};
 use ahash::AHashMap;
+use crate::pieces::neighbors::{get_neighbors, get_neighbors_point};
 
 /// Represents a Goban. the stones are stored in ROW MAJOR (row, colum)
 #[derive(Getters, Setters, CopyGetters, Debug, Clone)]
@@ -372,16 +373,15 @@ impl Goban {
     /// Get the neighbors points filtered by limits of the board.
     #[inline]
     fn neighbor_points(&self, point: Point) -> impl Iterator<Item=Point> {
-        let size = self.size;
-        neighbor_points(point)
-            .into_iter()
-            .filter(move |&p| is_coord_valid(size, p))
+        get_neighbors_point(two_to_1dim(self.size, point))
+            .iter()
+            .copied()
     }
 
     fn neighbor_points_index(&self, index: usize) -> impl Iterator<Item=usize> {
-        let size = self.size;
-        self.neighbor_points(one_to_2dim(self.size, index))
-            .map(move |x| two_to_1dim(size, x))
+        get_neighbors(index)
+            .iter()
+            .copied()
     }
 }
 
