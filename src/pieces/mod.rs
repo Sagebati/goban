@@ -26,6 +26,9 @@ type Set<T> = AHashSet<T>;
 
 pub(super) type Nat = u8;
 
+pub const GOBAN_SIZE: (usize, usize) = (19, 19);
+pub const N_POINTS: usize = GOBAN_SIZE.0 * GOBAN_SIZE.1;
+
 pub mod go_string;
 pub mod goban;
 pub mod stones;

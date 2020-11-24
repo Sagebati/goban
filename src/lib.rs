@@ -40,8 +40,9 @@
 //!}
 //!
 //! ```
-#![feature(const_generics)]
+#![feature(min_const_generics)]
 #![feature(const_panic)]
+#![feature(const_in_array_repeat_expressions)]
 
 #[macro_use]
 extern crate bitflags;

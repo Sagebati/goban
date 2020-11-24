@@ -4,13 +4,13 @@ use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use crate::pieces::util::coord::{corner_points, is_coord_valid, Point};
-use crate::pieces::Nat;
+use crate::pieces::{Nat, N_POINTS, GOBAN_SIZE};
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::{PlayError, CHINESE};
 use crate::rules::Player;
 use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
-use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
+use crate::rules::{EndGame, IllegalRules, Move, ScoreRules};
 
 /// Most important struct of the library, it's the entry point.
 /// It represents a Game of Go.
@@ -52,17 +52,16 @@ pub struct Game {
 
 impl Game {
     /// Crates a new game for playing Go
-    pub fn new(size: GobanSizes, rule: Rule) -> Self {
-        let (width, height) = size.into();
-        let goban = Goban::new(size.into());
+    pub fn new(rule: Rule) -> Self {
+        let goban = Goban::new();
         let pass = 0;
         #[cfg(feature = "history")]
             let history = Vec::with_capacity(width as usize * height as usize);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashedSet::with_capacity_and_hasher(
-            width as usize * height as usize,
-            HashBuildHasher::default(),
+            N_POINTS,
+        HashBuildHasher::default(),
         );
         let last_hash = 0;
         Self {
@@ -302,7 +301,7 @@ impl Game {
         let mut corner_ally = 0;
         let mut corner_off_board = 0;
         for p in corner_points(point) {
-            if is_coord_valid(self.goban.size(), p) {
+            if is_coord_valid(GOBAN_SIZE, p) {
                 if self.goban.get_stone(p) == color {
                     corner_ally += 1
                 }
@@ -345,7 +344,7 @@ impl Game {
         } else if corners == 3 || corners == 2 {
             for s in corner_points(point)
                 .into_iter()
-                .filter(move |p| is_coord_valid(self.goban.size(), *p))
+                .filter(move |p| is_coord_valid(GOBAN_SIZE, *p))
                 .filter_map(move |p| {
                     let s = Stone {
                         coordinates: p,
@@ -455,6 +454,6 @@ impl Game {
 
 impl Default for Game {
     fn default() -> Self {
-        Game::new(GobanSizes::Nineteen, CHINESE)
+        Game::new(CHINESE)
     }
 }

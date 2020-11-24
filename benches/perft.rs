@@ -7,7 +7,7 @@ use rand::thread_rng;
 
 use goban::pieces::stones::Stone;
 use goban::rules::game::Game;
-use goban::rules::{GobanSizes, Move, Rule, CHINESE, JAPANESE};
+use goban::rules::{Move, Rule, CHINESE, JAPANESE};
 
 pub fn perft(pos: &Game, depth: u8) -> u64 {
     if depth < 1 {
@@ -48,7 +48,7 @@ pub fn fast_play_random(state: &Game, thread_rng: &mut ThreadRng) -> Move {
 }
 
 pub fn fast_play_game(rule: Rule) {
-    let mut g = Game::new(GobanSizes::Nineteen, rule);
+    let mut g = Game::new(rule);
     while !g.is_over() {
         g.play(fast_play_random(&g, &mut thread_rng()));
     }
@@ -69,14 +69,14 @@ pub fn play_random(state: &Game) -> Move {
 }
 
 pub fn play_game() {
-    let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
+    let mut g = Game::new(CHINESE);
     while !g.is_over() {
         g.play(play_random(&g));
     }
 }
 
 pub fn perft_bench(_c: &mut Criterion) {
-    let g = Game::new(GobanSizes::Nineteen, JAPANESE);
+    let g = Game::new(JAPANESE);
     let deep = 2;
     let criterion: Criterion = Default::default();
     criterion.sample_size(10).bench_function_over_inputs(

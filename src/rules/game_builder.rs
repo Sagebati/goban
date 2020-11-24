@@ -21,7 +21,6 @@
 use crate::pieces::goban::Goban;
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
-use crate::pieces::Nat;
 use crate::rules::game::Game;
 use crate::rules::{EndGame, Move, Player, Rule, CHINESE};
 use crate::rules::Player::White;
@@ -100,7 +99,7 @@ impl GameBuilder {
     }
 
     pub fn build(&mut self) -> Result<Game, String> {
-        let mut goban: Goban = Goban::new((self.size.0 as Nat, self.size.1 as Nat));
+        let mut goban: Goban = Goban::new();
 
         goban.push_many(&self.handicap_points, Color::Black);
 

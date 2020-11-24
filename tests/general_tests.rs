@@ -12,11 +12,11 @@ mod tests {
     use goban::rules::game::Game;
     use goban::rules::Move::Play;
     use goban::rules::{CHINESE, JAPANESE};
-    use goban::rules::{EndGame, GobanSizes, Move, Player};
+    use goban::rules::{EndGame, Move, Player};
 
     #[test]
     fn goban() {
-        let mut g = Goban::new(GobanSizes::Nineteen.into());
+        let mut g = Goban::new();
         g.push((1, 2), Color::White);
         println!("{}", g.pretty_string());
         assert!(true)
@@ -24,7 +24,7 @@ mod tests {
 
     #[test]
     fn goban_new_array() {
-        let mut g = Goban::new(GobanSizes::Nineteen.into());
+        let mut g = Goban::new();
         g.push((1, 2), Color::White);
         g.push((1, 3), Color::Black);
         let tab = g.raw();
@@ -34,7 +34,7 @@ mod tests {
 
     #[test]
     fn passes() {
-        let mut g = Game::new(GobanSizes::Nine, CHINESE);
+        let mut g = Game::new(CHINESE);
         g.play(Move::Play(3, 3));
         g.play(Move::Pass);
         g.play(Move::Play(4, 3));
@@ -44,7 +44,7 @@ mod tests {
 
     #[test]
     fn get_all_stones() {
-        let mut g = Goban::new(GobanSizes::Nineteen.into());
+        let mut g = Goban::new();
         g.push((1, 2), Color::White);
         g.push((0, 0), Color::Black);
 
@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn some_plays() {
-        let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
+        let mut g = Game::new(CHINESE);
         let mut i = 300;
         while !g.is_over() && i != 0 {
             g.play(
@@ -427,7 +427,7 @@ mod tests {
             Move::Pass,
         ];
         let handicap = vec![(3, 3), (3, 15), (9, 3), (9, 15), (15, 3), (15, 15)];
-        let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
+        let mut g = Game::new(CHINESE);
         let inv_coord: Vec<usize> = (0..19).rev().collect();
         g.put_handicap(&handicap);
         for m in moves_sgf {
@@ -460,7 +460,7 @@ mod tests {
 
     #[test]
     fn atari() {
-        let mut goban = Goban::new((9, 9));
+        let mut goban = Goban::new();
         let s = Stone {
             coordinates: (4, 4),
             color: Color::Black,
@@ -485,7 +485,7 @@ mod tests {
 
     #[test]
     fn atari_2() {
-        let mut g = Game::new(GobanSizes::Nine, CHINESE);
+        let mut g = Game::new(CHINESE);
         g.play(Move::Play(1, 0)); // B
         println!("{}", g.goban().pretty_string());
         g.play(Move::Play(0, 0)); // W
@@ -498,7 +498,7 @@ mod tests {
 
     #[test]
     fn game_finished() {
-        let mut g = Game::new(GobanSizes::Nine, CHINESE);
+        let mut g = Game::new(CHINESE);
         g.play(Move::Pass);
         g.play(Move::Pass);
 
@@ -507,18 +507,18 @@ mod tests {
 
     #[test]
     fn score_calcul() {
-        let mut g = Game::new(GobanSizes::Nine, JAPANESE);
+        let mut g = Game::new(JAPANESE);
         g.play(Move::Play(4, 4));
         g.play(Move::Pass);
         g.play(Move::Pass);
         let score = g.calculate_score();
-        assert_eq!(score.0, 80.); //Black
+        assert_eq!(score.0, 360.); //Black
         assert_eq!(score.1, JAPANESE.komi); //White
     }
 
     #[test]
     fn score_calcul2() {
-        let mut g = Game::new(GobanSizes::Nineteen,CHINESE);
+        let mut g = Game::new(CHINESE);
         g.set_komi(0.);
         (0..38).for_each(|x| {
             g.try_play(Play(if x % 2 == 0 { 9 } else { 8 }, x / 2))
@@ -566,7 +566,7 @@ mod tests {
 
     #[test]
     fn score_calcul_chinese() {
-        let mut g = Game::new(GobanSizes::Nine, CHINESE);
+        let mut g = Game::new(CHINESE);
         g.play(Move::Play(4, 4));
         g.play(Move::Pass);
         g.play(Move::Pass);
@@ -576,7 +576,7 @@ mod tests {
         }
         .expect("Game finished");
         let (black, white) = g.calculate_score();
-        assert_eq!(black, 81.);
+        assert_eq!(black, 361.);
         assert_eq!(white, g.komi());
         assert_eq!(
             outcome,
