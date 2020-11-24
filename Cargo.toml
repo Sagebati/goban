@@ -23,6 +23,7 @@ deadstones = ["rand", "oxymcts"]
 thread-safe = []
 
 [dependencies]
+bittyset = "0.1.0"
 arrayvec = "0.5.2"
 bitflags = "1.2.1"
 by_address = "1.0.4"

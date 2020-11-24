@@ -1,5 +1,5 @@
 use crate::pieces::stones::Color;
-use crate::pieces::Set;
+use crate::pieces::{Set};
 
 type SetIdx = Set<usize>;
 
@@ -78,7 +78,7 @@ impl GoString {
     #[inline]
     pub fn remove_liberty(&mut self, stone_idx: usize) {
         debug_assert!(self.liberties.contains(&stone_idx));
-        self.liberties.remove(&stone_idx);
+        self.liberties.insert(stone_idx);
     }
 
     #[inline]
@@ -95,7 +95,7 @@ impl GoString {
     }
 
     #[inline]
-    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item = usize>) {
+    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item=usize>) {
         for idx in stones_idx {
             self.add_liberty(idx);
         }
@@ -109,7 +109,7 @@ impl GoString {
     }
 
     #[inline]
-    pub fn with_liberties(&self, stones_idx: impl Iterator<Item = usize>) -> GoString {
+    pub fn with_liberties(&self, stones_idx: impl Iterator<Item=usize>) -> GoString {
         let mut new = self.clone();
         new.add_liberties(stones_idx);
         new
@@ -133,8 +133,8 @@ impl GoString {
              same color. Colors found {} and {}",
             self.color, *color
         );
-        self.stones.extend(stones);
-        self.liberties.extend(liberties);
+        self.stones = self.stones.union(stones).copied().collect();
+        self.liberties = self.liberties.union(liberties).copied().collect();
 
         self
     }
