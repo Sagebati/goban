@@ -16,7 +16,6 @@ maintenance = { status = "actively-developed" }
 [profile.release]
 lto = true
 codegen-units = 1
-debug = true
 
 [features]
 history = []
@@ -42,7 +41,6 @@ rand = "0.7.3"
 [profile.bench]
 lto = "fat"
 codegen-units = 1
-debug = true
 
 [[bench]]
 name = "perft"
