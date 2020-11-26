@@ -12,20 +12,23 @@ use crate::pieces::util::coord::{
     is_coord_valid, neighbor_points, one_to_2dim, two_to_1dim, Point,
 };
 use crate::pieces::zobrist::*;
-use crate::pieces::{GoStringPtr, Nat, Ptr, Set};
+use crate::pieces::{Nat, Set};
 use ahash::AHashMap;
 
+type GoStringIndex = usize;
+
 /// Represents a Goban. the stones are stored in ROW MAJOR (row, colum)
-#[derive(Getters, Setters, CopyGetters, Debug, Clone)]
+#[derive(Getters, Setters, CopyGetters, Debug, Clone, Eq)]
 pub struct Goban {
     #[get = "pub"]
-    pub(super) go_strings: Vec<Option<GoStringPtr>>,
-
+    pub(super) go_strings: AHashMap<usize, GoString>,
+    board: Vec<Option<GoStringIndex>>,
     #[get_copy = "pub"]
     size: (usize, usize),
 
     #[get_copy = "pub"]
     zobrist_hash: u64,
+    n_ren: usize,
 }
 
 impl Goban {
@@ -37,11 +40,13 @@ impl Goban {
         Goban {
             size: (height as usize, width as usize),
             zobrist_hash: 0,
-            go_strings: vec![Option::None; height as usize * width as usize],
+            board: vec![None; height as usize * width as usize],
+            go_strings: Default::default(),
+            n_ren: 0,
         }
     }
 
-    /// Creates a Goban from an array of stones.
+    /// Creates a Goban from an array of stones;
     pub fn from_array(stones: &[Color]) -> Self {
         let size = ((stones.len() as f32).sqrt()) as Nat;
         let mut game = Goban::new((size, size));
@@ -58,22 +63,21 @@ impl Goban {
 
     /// Returns the underlying goban in a vector with a RowMajor Policy, calculated on the fly.
     pub fn raw(&self) -> Vec<Color> {
-        self.go_strings
+        self.board
             .iter()
             .map(|point| {
                 point
-                    .as_ref()
-                    .map_or(Color::None, |go_str_ptr| go_str_ptr.color())
+                    .map_or(Color::None, |go_str_idx| self.go_strings[&go_str_idx].color())
             })
             .collect()
     }
 
     pub fn raw_matrix(&self) -> Vec<Vec<Color>> {
         let mut mat = vec![vec![]];
-        for line in self.go_strings.chunks_exact(self.size.1) {
+        for line in self.board.chunks_exact(self.size.1) {
             let v = line
                 .iter()
-                .map(|o| o.as_ref().map_or(Color::None, |r| r.color()))
+                .map(|o| o.map_or(Color::None, |idx| self.go_strings[&idx].color()))
                 .collect();
             mat.push(v);
         }
@@ -117,47 +121,58 @@ impl Goban {
         let mut adjacent_same_color_str_set = Set::default();
         let mut adjacent_opposite_color_str_set = Set::default();
 
-        for neighbor_idx in self.neighbor_points_index(pushed_stone_idx) {
-            match &self.go_strings[neighbor_idx] {
-                Some(adj_go_str_ptr) => match adj_go_str_ptr.color() {
-                    go_str_color if go_str_color == color => {
-                        num_stones_connected += adj_go_str_ptr.stones().len();
-                        adjacent_same_color_str_set.insert(adj_go_str_ptr.to_owned());
-                    }
-                    Color::None => unreachable!("A string cannot be of color none"),
-                    go_str_color if go_str_color != color => {
-                        adjacent_opposite_color_str_set.insert(adj_go_str_ptr.to_owned());
-                    }
-                    _ => unreachable!()
-                },
+        for neighbor_idx in self.neighbor_points_indexes(pushed_stone_idx) {
+            match self.board[neighbor_idx] {
+                Some(adj_ren_index) =>
+                    match self.go_strings[&adj_ren_index].color() {
+                        go_str_color if go_str_color == color => {
+                            num_stones_connected += self.go_strings[&adj_ren_index].stones().len();
+                            adjacent_same_color_str_set.insert(adj_ren_index);
+                        }
+                        Color::None => unreachable!("A string cannot be of color none"),
+                        go_str_color if go_str_color != color => {
+                            adjacent_opposite_color_str_set.insert(adj_ren_index);
+                        }
+                        _ => unreachable!()
+                    },
                 Option::None => {
                     new_string.add_liberty(neighbor_idx);
                 }
             }
         }
-        new_string.reserve_stone(num_stones_connected);
-
-        // for every string of same color "connected" merge it into big string
-        let mut new_string = adjacent_same_color_str_set
-            .into_iter()
-            .fold(new_string, |init, same_color_string| {
-                init.merge_with(&same_color_string)
-            });
-
-        if new_string.contains_liberty(pushed_stone_idx) {
-            new_string.remove_liberty(pushed_stone_idx);
-        }
-
-        self.zobrist_hash ^= index_zobrist(pushed_stone_idx, color);
-        self.place_string(new_string);
 
         // for every string of opposite color remove a liberty and update the string.
-        for other_color_string in adjacent_opposite_color_str_set
+        adjacent_opposite_color_str_set
             .into_iter()
-            .map(|go_str_ptr| go_str_ptr.without_liberty(pushed_stone_idx))
-        {
-            self.place_string(other_color_string);
+            .for_each(|go_str_idx| {
+                self.go_strings.get_mut(&go_str_idx).unwrap().remove_liberty(pushed_stone_idx);
+            });
+
+        let number_of_neighbors_strings = adjacent_same_color_str_set.len();
+        match number_of_neighbors_strings {
+            0 => {
+                self.place_string(new_string);
+            }
+            1 => {
+                let &only_ren_idx = adjacent_same_color_str_set.iter().next().unwrap();
+                self.go_strings.get_mut(&only_ren_idx)
+                    .unwrap()
+                    .merge(&new_string)
+                    .remove_liberty(pushed_stone_idx);
+                self.board[pushed_stone_idx] = Some(only_ren_idx);
+            }
+            _ => {
+                new_string.reserve_stone(num_stones_connected);
+                adjacent_same_color_str_set.iter()
+                    .for_each(|ren_idx| {
+                        let go_string = self.go_strings.remove(ren_idx).unwrap();
+                        new_string.merge(&go_string);
+                    });
+                new_string.remove_liberty(pushed_stone_idx);
+                self.place_string(new_string);
+            }
         }
+        self.zobrist_hash ^= index_zobrist(pushed_stone_idx, color);
         self
     }
 
@@ -192,40 +207,49 @@ impl Goban {
 
     /// Get all the neighbors go strings to the point. Only return point with a color.
     #[inline]
-    pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item=GoStringPtr> + '_ {
+    pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item=&GoString> + '_ {
         self.neighbor_points(coord)
             .map(move |point| two_to_1dim(self.size, point))
-            .filter_map(move |point| self.go_strings[point].clone())
+            .filter_map(move |point| self.board[point].map(|ren_idx| &self.go_strings[&ren_idx]))
+    }
+
+    /// Get all the neighbors go strings indexes to the point. Only return point with a color.
+    #[inline]
+    pub fn get_neighbors_strings_idx(&self, coord: Point) -> impl Iterator<Item=GoStringIndex> + '_ {
+        self.neighbor_points(coord)
+            .map(move |point| two_to_1dim(self.size, point))
+            .filter_map(move |point| self.board[point])
     }
 
     #[inline]
-    pub fn get_neighbors_strings_index(
+    pub fn get_neighbors_strings_indices_by_idx(
         &self,
         index: usize,
-    ) -> impl Iterator<Item=GoStringPtr> + '_ {
-        self.neighbor_points_index(index)
-            .filter_map(move |idx| self.go_strings[idx].clone())
+    ) -> impl Iterator<Item=GoStringIndex> + '_ {
+        self.neighbor_points_indexes(index)
+            .filter_map(move |idx| self.board[idx])
     }
 
     /// Function for getting the stone in the goban.
     #[inline]
     pub fn get_stone(&self, point: Point) -> Color {
-        self.go_strings[two_to_1dim(self.size, point)]
-            .as_ref()
-            .map_or(Color::None, |go_str_ptr| go_str_ptr.color())
+        self.board[two_to_1dim(self.size, point)]
+            .map_or(Color::None, |go_str_index| self.go_strings[&go_str_index].color())
     }
 
     /// Get all the stones except "Empty stones"
     #[inline]
     pub fn get_stones(&self) -> impl Iterator<Item=Stone> + '_ {
-        self.go_strings
+        self.board
             .iter()
             .enumerate()
-            .filter_map(move |(index, o)| match o {
-                Some(x) => Some((one_to_2dim(self.size, index), x.color())),
-                Option::None => Option::None,
-            })
-            .map(|(coordinates, color)| Stone { coordinates, color })
+            .filter_map(move |(index, o)|
+                o.map(move |ren_index|
+                    Stone {
+                        coordinates: one_to_2dim(self.size, index),
+                        color: self.go_strings[&ren_index].color(),
+                    })
+            )
     }
 
     /// Get stones by their color.
@@ -243,8 +267,8 @@ impl Goban {
         let mut res = Vec::with_capacity(self.size.0 as usize * self.size.1 as usize);
         for i in 0..self.size.0 as u8 {
             for j in 0..self.size.1 as u8 {
-                match &self.go_strings[two_to_1dim(self.size, (i, j))] {
-                    Some(go_str_ptr) if go_str_ptr.color() == color => res.push((i, j)),
+                match self.board[two_to_1dim(self.size, (i, j))] {
+                    Some(go_str_index) if self.go_strings[&go_str_index].color() == color => res.push((i, j)),
                     Option::None if color == Color::None => res.push((i, j)),
                     _ => {}
                 }
@@ -302,30 +326,29 @@ impl Goban {
 
     /// Remove a string from the game, it add liberties to all
     /// adjacent string of not the same color.
-    pub fn remove_go_string(&mut self, go_string_to_remove: GoStringPtr) {
-        let color_of_the_string = go_string_to_remove.color();
-
-        let mut updates: AHashMap<GoStringPtr, Vec<usize>> = AHashMap::new();
-        for &stone_idx in go_string_to_remove.stones() {
-            for neighbor_str_ptr in self
-                .get_neighbors_strings_index(stone_idx)
-                .collect::<HashSet<_>>()
-            {
-                if go_string_to_remove != neighbor_str_ptr {
-                    updates
-                        .entry(neighbor_str_ptr)
-                        .and_modify(|v| v.push(stone_idx))
-                        .or_insert_with(|| vec![stone_idx]);
+    pub fn remove_go_string(&mut self, ren_to_remove_idx: GoStringIndex) {
+        let ren_to_rem = &self.go_strings[&ren_to_remove_idx];
+        let color_of_the_string = ren_to_rem.color();
+        let mut updates: AHashMap<usize, Vec<usize>> = AHashMap::new();
+        for &point_idx in ren_to_rem.stones() {
+            for neighbor_str_idx in self
+                .get_neighbors_strings_indices_by_idx(point_idx)
+                .collect::<HashSet<_>>() {
+                if ren_to_remove_idx != neighbor_str_idx {
+                    updates.entry(neighbor_str_idx)
+                        .and_modify(|v| v.push(point_idx))
+                        .or_insert_with(|| vec![point_idx]);
                 }
             }
-
-            self.zobrist_hash ^= index_zobrist(stone_idx, color_of_the_string);
-            self.go_strings[stone_idx] = Option::None;
+            self.zobrist_hash ^= index_zobrist(point_idx, color_of_the_string);
+            self.board[point_idx] = Option::None;
         }
 
-        for (k, v) in updates {
-            self.place_string(k.with_liberties(v.into_iter()))
+        for (ren_idx, new_liberties) in updates {
+            self.go_strings.get_mut(&ren_idx).unwrap().add_liberties(new_liberties.into_iter());
         }
+
+        self.go_strings.remove(&ren_to_remove_idx);
     }
 
     /// Removes the dead stones from the goban by specifying a color stone.
@@ -334,17 +357,21 @@ impl Goban {
     pub fn remove_captured_stones_turn(&mut self, color: Color) -> (u32, Option<Point>) {
         let mut number_of_stones_captured = 0;
         let mut ko_point = None;
+
         let go_strings_without_liberties = self
-            .get_strings_of_stones_without_liberties_by_color(color)
-            .collect::<Set<_>>();
+            .get_go_strings_without_liberties_by_color(color)
+            .collect::<Vec<_>>();
+
         let one_str_captured = go_strings_without_liberties.len() == 1;
-        for ren_without_liberties in go_strings_without_liberties {
+
+        for index_ren in go_strings_without_liberties {
+            let ren_without_liberties = &self.go_strings[&index_ren];
             number_of_stones_captured += ren_without_liberties.stones().len() as u32;
             // if only one string of one stone is takes then it's a Ko point.
             if one_str_captured && number_of_stones_captured == 1 {
                 ko_point = Some(*ren_without_liberties.stones().iter().next().unwrap())
             }
-            self.remove_go_string(ren_without_liberties);
+            self.remove_go_string(index_ren);
         }
         let size = self.size;
         (
@@ -353,18 +380,18 @@ impl Goban {
         )
     }
 
-    /// Just create the Rc pointer and add it to the set.
-    /// moves out the string.
+    /// Add the string to the vec then updates the indexes;
     fn place_string(&mut self, string_to_add: GoString) {
-        let new_string: GoStringPtr = Ptr::new(string_to_add).into();
-        self.update_vec_indexes(new_string);
+        self.go_strings.insert(self.n_ren, string_to_add);
+        self.update_vec_indexes(self.n_ren);
+        self.n_ren += 1;
     }
 
     /// Updates the indexes to math actual goban. must use after an we put a stone
-    fn update_vec_indexes(&mut self, go_string: GoStringPtr) {
-        for &point in go_string.stones() {
+    fn update_vec_indexes(&mut self, ren_idx: GoStringIndex) {
+        for &point in self.go_strings[&ren_idx].stones() {
             unsafe {
-                *self.go_strings.get_unchecked_mut(point) = Some(go_string.clone());
+                *self.board.get_unchecked_mut(point) = Some(ren_idx);
             }
         }
     }
@@ -378,7 +405,8 @@ impl Goban {
             .filter(move |&p| is_coord_valid(size, p))
     }
 
-    fn neighbor_points_index(&self, index: usize) -> impl Iterator<Item=usize> {
+    #[inline]
+    fn neighbor_points_indexes(&self, index: usize) -> impl Iterator<Item=usize> {
         let size = self.size;
         self.neighbor_points(one_to_2dim(self.size, index))
             .map(move |x| two_to_1dim(size, x))
@@ -402,8 +430,6 @@ impl Hash for Goban {
         self.zobrist_hash.hash(state)
     }
 }
-
-impl Eq for Goban {}
 
 impl Default for Goban {
     fn default() -> Self {

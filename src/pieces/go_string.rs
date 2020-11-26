@@ -76,9 +76,10 @@ impl GoString {
     }
 
     #[inline]
-    pub fn remove_liberty(&mut self, stone_idx: usize) {
-        debug_assert!(self.liberties.contains(&stone_idx));
+    pub fn remove_liberty(&mut self, stone_idx: usize) -> &mut Self {
+        //debug_assert!(self.liberties.contains(&stone_idx));
         self.liberties.remove(&stone_idx);
+        self
     }
 
     #[inline]
@@ -89,16 +90,18 @@ impl GoString {
     }
 
     #[inline]
-    pub fn add_liberty(&mut self, stone_idx: usize) {
-        debug_assert!(!self.liberties.contains(&stone_idx));
+    pub fn add_liberty(&mut self, stone_idx: usize) -> &mut Self {
+        //debug_assert!(!self.liberties.contains(&stone_idx));
         self.liberties.insert(stone_idx);
+        self
     }
 
     #[inline]
-    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item = usize>) {
+    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item=usize>) -> &mut Self {
         for idx in stones_idx {
             self.add_liberty(idx);
         }
+        self
     }
 
     #[inline]
@@ -109,7 +112,7 @@ impl GoString {
     }
 
     #[inline]
-    pub fn with_liberties(&self, stones_idx: impl Iterator<Item = usize>) -> GoString {
+    pub fn with_liberties(&self, stones_idx: impl Iterator<Item=usize>) -> GoString {
         let mut new = self.clone();
         new.add_liberties(stones_idx);
         new
@@ -119,23 +122,23 @@ impl GoString {
     /// their liberties to our struct.
     /// The method cas produce some bugs, there can be some liberties in excess after the merge.
     #[inline]
-    pub fn merge_with(
+    pub fn with_merge(
         mut self,
-        GoString {
-            color,
-            stones,
-            liberties,
-        }: &GoString,
+        other: &GoString,
     ) -> Self {
+        self.merge(other);
+        self
+    }
+
+    pub fn merge(&mut self, other: &GoString) -> &mut GoString {
         assert_eq!(
-            self.color, *color,
+            self.color, other.color,
             "When merging two strings, the 2  go strings need to be of \
              same color. Colors found {} and {}",
-            self.color, *color
+            self.color, other.color
         );
-        self.stones.extend(stones);
-        self.liberties.extend(liberties);
-
+        self.stones.extend(&other.stones);
+        self.liberties.extend(&other.liberties);
         self
     }
 }

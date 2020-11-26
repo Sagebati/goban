@@ -267,9 +267,9 @@ impl Game {
     pub fn will_capture(&self, point: Point) -> bool {
         self.goban
             .get_neighbors_strings(point)
-            .filter(|go_str_ptr| go_str_ptr.color() != self.turn.stone_color())
+            .filter(|go_str| go_str.color() != self.turn.stone_color())
             // if an enemy string has only liberty it's a capture move
-            .any(|go_str_ptr| go_str_ptr.is_atari())
+            .any(|go_str| go_str.is_atari())
     }
 
     /// Test if a point is legal or not for the current player,
