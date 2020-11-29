@@ -14,8 +14,10 @@ impl Goban {
     ) -> impl Iterator<Item=usize> + '_ {
         self.go_strings
             .iter()
+            .enumerate()
+            .filter(move |(i,_)| self.used[*i])
             .filter(move |(_, go_str)| go_str.color() == color && go_str.is_dead())
-            .map(move |x|*x.0)
+            .map(move |x|x.0)
     }
 
     ///

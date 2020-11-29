@@ -26,6 +26,7 @@ thread-safe = []
 arrayvec = "^0.5.2"
 bitflags = "^1.2.1"
 getset = "^0.1.1"
+bitvec = "0.19.4"
 hash_hasher = "^2.0.3"
 ahash = "^0.5.7"
 sgf-parser = "^2.4.0"
