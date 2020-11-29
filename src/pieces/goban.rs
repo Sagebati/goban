@@ -265,18 +265,13 @@ impl Goban {
 
     /// Get points by their color.
     #[inline]
-    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Point> {
-        let mut res = Vec::with_capacity(self.size.0 as usize * self.size.1 as usize);
-        for i in 0..self.size.0 as u8 {
-            for j in 0..self.size.1 as u8 {
-                match self.board[two_to_1dim(self.size, (i, j))] {
-                    Some(go_str_index) if self.go_strings[go_str_index].color() == color => res.push((i, j)),
-                    Option::None if color == Color::None => res.push((i, j)),
-                    _ => {}
-                }
-            }
-        }
-        res.into_iter()
+    pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Point> + '_ {
+        let size = self.size;
+        self.board.iter()
+            .enumerate()
+            .filter(move |(_, option)|
+                option.map(move |ren_idx| self.go_strings[ren_idx].color()).unwrap_or(Color::None) == color)
+            .map(move |(index, _)| one_to_2dim(size, index))
     }
 
     /// Returns the empty stones connected to the stone
