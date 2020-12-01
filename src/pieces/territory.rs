@@ -12,12 +12,8 @@ impl Goban {
         &self,
         color: Color,
     ) -> impl Iterator<Item=usize> + '_ {
-        self.go_strings
-            .iter()
-            .enumerate()
-            .filter(move |(i,_)| self.used[*i])
-            .filter(move |(_, go_str)| go_str.color() == color && go_str.is_dead())
-            .map(move |x|x.0)
+        self.used.iter_set_bits(0..)
+            .filter(move |&ren_index| self.go_strings[ren_index].color() == color && self.go_strings[ren_index].is_dead())
     }
 
     ///

@@ -6,15 +6,16 @@ use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 
+use ahash::AHashMap;
+use vob::*;
+
+use crate::pieces::{Nat, Set};
 use crate::pieces::go_string::GoString;
 use crate::pieces::stones::*;
 use crate::pieces::util::coord::{
-    is_coord_valid, neighbor_points, one_to_2dim, two_to_1dim, Point,
+    is_coord_valid, neighbor_points, one_to_2dim, Point, two_to_1dim,
 };
 use crate::pieces::zobrist::*;
-use crate::pieces::{Nat, Set};
-use ahash::AHashMap;
-use bitvec::prelude::*;
 
 type GoStringIndex = usize;
 
@@ -29,7 +30,7 @@ pub struct Goban {
 
     #[get_copy = "pub"]
     zobrist_hash: u64,
-    pub(super) used: BitVec,
+    pub(super) used: Vob,
 }
 
 impl Goban {
@@ -43,7 +44,7 @@ impl Goban {
             zobrist_hash: 0,
             board: vec![None; height as usize * width as usize],
             go_strings: Default::default(),
-            used: bitvec![Lsb0, usize; 0; 0],
+            used: vob![],
         }
     }
 
@@ -380,7 +381,8 @@ impl Goban {
     /// Add the string to the vec then updates the indexes;
     fn place_string(&mut self, string_to_add: GoString) {
         debug_assert_eq!(self.go_strings.len(), self.used.len());
-        if let Some((ren_idx, _)) = self.used.iter().enumerate().find(|(_, x)| !**x) {
+        // If the vector has some dead structure replace by the new
+        if let Some(ren_idx) = self.used.iter_unset_bits(0..).next() {
             self.go_strings[ren_idx] = string_to_add;
             self.update_vec_indexes(ren_idx);
             self.used.set(ren_idx, true);
