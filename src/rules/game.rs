@@ -1,16 +1,16 @@
 use hash_hasher::{HashBuildHasher, HashedSet};
 
 use crate::pieces::goban::*;
+use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use crate::pieces::util::coord::{corner_points, is_coord_valid, Point};
-use crate::pieces::Nat;
+use crate::rules::{CHINESE, PlayError};
+use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 use crate::rules::EndGame::{Draw, WinnerByScore};
-use crate::rules::{PlayError, CHINESE};
 use crate::rules::Player;
 use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
-use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 
 /// Most important struct of the library, it's the entry point.
 /// It represents a Game of Go.
@@ -136,6 +136,7 @@ impl Game {
     pub fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
+
 
     /// Returns a list with legals moves. from the rule specified in at the creation.
     #[inline]
@@ -346,23 +347,14 @@ impl Game {
             for s in corner_points(point)
                 .into_iter()
                 .filter(move |p| is_coord_valid(self.goban.size(), *p))
-                .filter_map(move |p| {
-                    let s = Stone {
+                .filter_map(move |p|
+                    Some(Stone {
                         coordinates: p,
                         color: self.goban.get_stone(p),
-                    };
-                    if s.color == Color::None {
-                        Some(s)
-                    } else {
-                        None
-                    }
-                })
-            {
-                if self
-                    .goban
+                    }).filter(|s| s.color == Color::None)) {
+                if self.goban
                     .get_neighbors(s.coordinates)
-                    .any(|s| s.color != color)
-                {
+                    .any(|s| s.color != color) {
                     return false;
                 }
                 let (ca, cof) = self.helper_check_eye(s.coordinates, color);
@@ -388,9 +380,7 @@ impl Game {
         if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
-            self.check_ko(stone)
-                || self
-                .hashes
+            self.check_ko(stone) || self.hashes
                 .contains(&self.play_for_verification(stone.coordinates))
         }
     }
@@ -423,31 +413,31 @@ impl Game {
     }
 
     /// Remove captured stones, and add it to the count of prisoners
-    /// returns new captured stones. If there is an Ko point updates it.
+    /// returns new prisoners stones. If there is an Ko point updates it.
     #[inline]
     fn remove_captured_stones(&mut self) -> (u32, u32) {
-        let (pris, ko_point_op) = self
-            .goban
+        let (captured, ko_point_op) = self.goban
             .remove_captured_stones_turn((!self.turn).stone_color());
+
         let new_prisoners = match self.turn {
-            Black => (self.prisoners.0 + pris, self.prisoners.1),
-            White => (self.prisoners.0, self.prisoners.1 + pris),
+            Black => (self.prisoners.0 + captured, self.prisoners.1),
+            White => (self.prisoners.0, self.prisoners.1 + captured),
         };
+        // if the rules doesn't contain IllegalRules::SUICIDE it means it's authorised
         if !self.rule.f_illegal.contains(IllegalRules::SUICIDE) {
-            let (pris, _) = self
-                .goban
+            let (suicide_stones, _) = self.goban
                 .remove_captured_stones_turn(self.turn.stone_color());
-            if ko_point_op.is_some() && pris == 0 {
+
+            if ko_point_op.is_some() && suicide_stones == 0 {
                 self.ko_point = ko_point_op;
             }
+
             match self.turn {
-                Black => (new_prisoners.0, new_prisoners.1 + pris),
-                White => (new_prisoners.0 + pris, new_prisoners.1 + pris),
+                Black => (new_prisoners.0, new_prisoners.1 + suicide_stones),
+                White => (new_prisoners.0 + suicide_stones, new_prisoners.1),
             }
         } else {
-            if ko_point_op.is_some() {
-                self.ko_point = ko_point_op;
-            }
+            self.ko_point = ko_point_op;
             new_prisoners
         }
     }

@@ -6,8 +6,8 @@ use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
 
 use goban::pieces::stones::Stone;
+use goban::rules::{CHINESE, GobanSizes, JAPANESE, Move, Rule};
 use goban::rules::game::Game;
-use goban::rules::{GobanSizes, Move, Rule, CHINESE, JAPANESE};
 
 pub fn perft(pos: &Game, depth: u8) -> u64 {
     if depth < 1 {
@@ -48,9 +48,10 @@ pub fn fast_play_random(state: &Game, thread_rng: &mut ThreadRng) -> Move {
 }
 
 pub fn fast_play_game(rule: Rule) {
+    let mut thread_rng = thread_rng();
     let mut g = Game::new(GobanSizes::Nineteen, rule);
     while !g.is_over() {
-        g.play(fast_play_random(&g, &mut thread_rng()));
+        g.play(fast_play_random(&g, &mut thread_rng));
     }
 }
 

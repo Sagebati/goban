@@ -6,16 +6,17 @@ use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 
+use ahash::AHashMap;
+
+use crate::pieces::{GoStringPtr, Nat, Ptr, Set};
 use crate::pieces::go_string::GoString;
 use crate::pieces::stones::*;
 use crate::pieces::util::coord::{
-    is_coord_valid, neighbor_points, one_to_2dim, two_to_1dim, Point,
+    is_coord_valid, neighbor_points, one_to_2dim, Point, two_to_1dim,
 };
 use crate::pieces::zobrist::*;
-use crate::pieces::{GoStringPtr, Nat, Ptr, Set};
-use ahash::AHashMap;
 
-/// Represents a Goban. the stones are stored in ROW MAJOR (row, colum)
+/// Represents a Goban. the stones are stored in ROW MAJOR (row, column)
 #[derive(Getters, Setters, CopyGetters, Debug, Clone)]
 pub struct Goban {
     #[get = "pub"]
@@ -114,42 +115,39 @@ impl Goban {
         let mut new_string = GoString::new_with_color_and_stone_idx(color, pushed_stone_idx);
         let mut num_stones_connected = 0;
 
-        let mut adjacent_same_color_str_set = Set::default();
+        let mut adjacent_friend_go_str = Set::default();
         let mut adjacent_opposite_color_str_set = Set::default();
 
         for neighbor_idx in self.neighbor_points_index(pushed_stone_idx) {
             match &self.go_strings[neighbor_idx] {
-                Some(adj_go_str_ptr) => match adj_go_str_ptr.color() {
-                    go_str_color if go_str_color == color => {
+                Some(adj_go_str_ptr) => {
+                    if adj_go_str_ptr.color() == color {
                         num_stones_connected += adj_go_str_ptr.stones().len();
-                        adjacent_same_color_str_set.insert(adj_go_str_ptr.to_owned());
-                    }
-                    Color::None => unreachable!("A string cannot be of color none"),
-                    go_str_color if go_str_color != color => {
+                        adjacent_friend_go_str.insert(adj_go_str_ptr.to_owned());
+                    } else {
                         adjacent_opposite_color_str_set.insert(adj_go_str_ptr.to_owned());
                     }
-                    _ => unreachable!()
-                },
+                }
                 Option::None => {
                     new_string.add_liberty(neighbor_idx);
                 }
             }
         }
         new_string.reserve_stone(num_stones_connected);
-
-        // for every string of same color "connected" merge it into big string
-        let mut new_string = adjacent_same_color_str_set
-            .into_iter()
-            .fold(new_string, |init, same_color_string| {
-                init.merge_with(&same_color_string)
+        adjacent_friend_go_str.into_iter()
+            .for_each(|same_color_string| {
+                new_string.merge(&same_color_string);
             });
-
+        #[cfg(debug_assertions)]
         if new_string.contains_liberty(pushed_stone_idx) {
             new_string.remove_liberty(pushed_stone_idx);
         }
+        #[cfg(not(debug_assertions))]
+            new_string.remove_liberty(pushed_stone_idx);
+
+        self.place_string(new_string);
 
         self.zobrist_hash ^= index_zobrist(pushed_stone_idx, color);
-        self.place_string(new_string);
 
         // for every string of opposite color remove a liberty and update the string.
         for other_color_string in adjacent_opposite_color_str_set
