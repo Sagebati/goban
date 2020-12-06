@@ -437,9 +437,6 @@ impl Goban {
     fn add_stone_to_string(&mut self, ren_idx: usize, stone: usize) {
         debug_assert_eq!(iter_stones!(self, ren_idx).last().unwrap(), self.go_strings[ren_idx].last);
         let ren = &mut self.go_strings[ren_idx];
-        if ren_idx == 9 {
-            println!();
-        }
         if stone < ren.origin {
             // replace origin
             self.next_stone[stone] = ren.origin;
@@ -459,10 +456,7 @@ impl Goban {
             self.go_strings[ren1_idx].color, self.go_strings[ren2_idx].color,
             "Cannot merge two strings of different color"
         );
-        debug_assert_ne!(ren1_idx, ren2_idx, "merging the same string");
-        if ren2_idx == 9 || ren1_idx == 9  {
-            println!();
-        }
+        assert_ne!(ren1_idx, ren2_idx, "merging the same string");
         let (ren1, ren2) = if ren1_idx < ren2_idx {
             let (s1, s2) = self.go_strings.split_at_mut(ren2_idx);
             (&mut s1[ren1_idx], s2.first_mut().unwrap())
