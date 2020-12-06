@@ -8,11 +8,12 @@ mod tests {
     use goban::pieces::stones::Color;
     use goban::pieces::stones::Color::Black;
     use goban::pieces::stones::Stone;
+    use goban::pieces::util::CircularRenIter;
     use goban::pieces::zobrist::index_zobrist;
     use goban::rules::game::Game;
     use goban::rules::Move::Play;
-    use goban::rules::{CHINESE, JAPANESE};
     use goban::rules::{EndGame, GobanSizes, Move, Player};
+    use goban::rules::{CHINESE, JAPANESE};
 
     #[test]
     fn goban() {
@@ -518,7 +519,7 @@ mod tests {
 
     #[test]
     fn score_calcul2() {
-        let mut g = Game::new(GobanSizes::Nineteen,CHINESE);
+        let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
         g.set_komi(0.);
         (0..38).for_each(|x| {
             g.try_play(Play(if x % 2 == 0 { 9 } else { 8 }, x / 2))
@@ -699,5 +700,23 @@ mod tests {
             goban.remove_go_string(string);
         }
         println!("{}", goban);
+    }
+
+    #[test]
+    fn circular_ren_iter_test() {
+        let a = vec![0, 0, 4, 0, 6, 0, 2, 0, 8, 0, 0, 0];
+        let mut iter = CircularRenIter::new(2, &a);
+        assert_eq!(2, iter.next().unwrap());
+        assert_eq!(4, iter.next().unwrap());
+        assert_eq!(6, iter.next().unwrap());
+        assert_eq!(None, iter.next());
+
+
+        let iter = CircularRenIter::new(2, &a);
+        assert_eq!(6, iter.last().unwrap());
+
+        let mut iter = CircularRenIter::new(8, &a);
+        assert_eq!(8, iter.next().unwrap());
+        assert_eq!(None, iter.next());
     }
 }

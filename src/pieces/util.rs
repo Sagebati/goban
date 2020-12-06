@@ -1,6 +1,39 @@
-//! Module with the logic for calculating coordinates.
+pub struct CircularRenIter<'a> {
+    next_stone: &'a [usize],
+    origin: usize,
+    next: Option<usize>,
+}
+
+impl<'a> CircularRenIter<'a> {
+    pub fn new(origin: usize, next_stone: &'a [usize]) -> Self {
+        Self {
+            next_stone,
+            origin,
+            next: Some(origin),
+        }
+    }
+}
+
+impl<'a> Iterator for CircularRenIter<'a> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let origin = self.origin;
+        let ret = self.next;
+        self.next = self.next
+            .map(|stone_idx| self.next_stone[stone_idx])
+            .filter(move |&o| o != origin);
+        #[cfg(debug_assertions)]
+        if ret.is_some() && self.next == ret {
+            dbg!(self.next_stone.iter().enumerate().collect::<Vec<_>>());
+            panic!("infinite loop detected")
+        }
+        ret
+    }
+}
 
 pub mod coord {
+    //! Module with the logic for calculating coordinates.
     use arrayvec::ArrayVec;
 
     use crate::pieces::Nat;

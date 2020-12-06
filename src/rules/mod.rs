@@ -1,7 +1,7 @@
 //! Module for ruling in the game of go.
 
 use std::fmt::{Display, Error, Formatter};
-use std::ops::{Not};
+use std::ops::Not;
 use std::str::FromStr;
 
 use crate::pieces::stones::Color;
@@ -153,7 +153,6 @@ bitflags! {
     }
 }
 
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Rule {
     pub komi: f32,
@@ -163,13 +162,19 @@ pub struct Rule {
 
 pub static JAPANESE: Rule = Rule {
     komi: 6.5,
-    f_illegal: IllegalRules::from_bits_truncate(IllegalRules::KO.bits() | IllegalRules::SUICIDE.bits()),
-    f_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::PRISONNERS.bits()),
+    f_illegal: IllegalRules::from_bits_truncate(
+        IllegalRules::KO.bits() | IllegalRules::SUICIDE.bits(),
+    ),
+    f_score: ScoreRules::from_bits_truncate(
+        ScoreRules::KOMI.bits() | ScoreRules::PRISONNERS.bits(),
+    ),
 };
 
 pub static CHINESE: Rule = Rule {
     komi: 7.5,
-    f_illegal: IllegalRules::from_bits_truncate(IllegalRules::KO.bits() | IllegalRules::SUPERKO.bits() | IllegalRules::SUICIDE.bits()),
+    f_illegal: IllegalRules::from_bits_truncate(
+        IllegalRules::KO.bits() | IllegalRules::SUPERKO.bits() | IllegalRules::SUICIDE.bits(),
+    ),
     f_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::STONES.bits()),
 };
 

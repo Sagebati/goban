@@ -23,8 +23,8 @@ use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
 use crate::pieces::Nat;
 use crate::rules::game::Game;
-use crate::rules::{EndGame, Move, Player, Rule, CHINESE};
 use crate::rules::Player::White;
+use crate::rules::{EndGame, Move, Player, Rule, CHINESE};
 
 pub struct GameBuilder {
     size: (u32, u32),

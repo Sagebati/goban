@@ -4,7 +4,7 @@ use crate::pieces::util::coord::Point;
 use crate::pieces::Nat;
 use crate::rules::game::Game;
 use crate::rules::game_builder::GameBuilder;
-use crate::rules::{EndGame, Move, Player, Rule, JAPANESE, CHINESE};
+use crate::rules::{EndGame, Move, Player, Rule, CHINESE, JAPANESE};
 
 impl Game {
     pub fn from_sgf(sgf_str: &str) -> Result<Self, String> {

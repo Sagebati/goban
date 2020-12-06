@@ -6,11 +6,11 @@ use crate::pieces::stones::Stone;
 use crate::pieces::util::coord::{corner_points, is_coord_valid, Point};
 use crate::pieces::Nat;
 use crate::rules::EndGame::{Draw, WinnerByScore};
-use crate::rules::{PlayError, CHINESE};
 use crate::rules::Player;
 use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
 use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
+use crate::rules::{PlayError, CHINESE};
 
 /// Most important struct of the library, it's the entry point.
 /// It represents a Game of Go.
@@ -57,7 +57,7 @@ impl Game {
         let goban = Goban::new(size.into());
         let pass = 0;
         #[cfg(feature = "history")]
-            let history = Vec::with_capacity(width as usize * height as usize);
+        let history = Vec::with_capacity(width as usize * height as usize);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashedSet::with_capacity_and_hasher(
@@ -88,7 +88,6 @@ impl Game {
     pub fn resume(&mut self) {
         self.passes = 0;
     }
-
 
     #[inline]
     pub fn set_komi(&mut self, komi: f32) {
@@ -133,20 +132,20 @@ impl Game {
 
     /// Generate all moves on all empty intersections.
     #[inline]
-    pub fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
+    pub fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
     /// Returns a list with legals moves. from the rule specified in at the creation.
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.legals_by(self.rule.f_illegal)
     }
 
     /// Return a list with the legals moves. doesn't take the rule specified in the game but take
     /// the one passed on parameter.
     #[inline]
-    pub fn legals_by(&self, legals_rules: IllegalRules) -> impl Iterator<Item=Point> + '_ {
+    pub fn legals_by(&self, legals_rules: IllegalRules) -> impl Iterator<Item = Point> + '_ {
         self.pseudo_legals()
             .filter(move |&s| self.check_point_by(s, legals_rules).is_none())
     }
@@ -170,7 +169,7 @@ impl Game {
                 self.last_hash = hash;
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
-                    self.history.push(self.goban.clone());
+                self.history.push(self.goban.clone());
                 self.goban.push((x, y), self.turn.stone_color());
                 self.ko_point = None;
                 self.prisoners = self.remove_captured_stones();
@@ -267,7 +266,7 @@ impl Game {
     pub fn will_capture(&self, point: Point) -> bool {
         self.goban
             .get_neighbors_strings(point)
-            .filter(|go_str| go_str.color() != self.turn.stone_color())
+            .filter(|go_str| go_str.color != self.turn.stone_color())
             // if an enemy string has only liberty it's a capture move
             .any(|go_str| go_str.is_atari())
     }
@@ -390,8 +389,8 @@ impl Game {
         } else {
             self.check_ko(stone)
                 || self
-                .hashes
-                .contains(&self.play_for_verification(stone.coordinates))
+                    .hashes
+                    .contains(&self.play_for_verification(stone.coordinates))
         }
     }
 
@@ -406,7 +405,7 @@ impl Game {
                 .goban
                 .get_neighbors_strings(stone.coordinates)
                 .any(|neighbor_go_string| {
-                    if neighbor_go_string.color() == stone.color {
+                    if neighbor_go_string.color == stone.color {
                         // Connecting with an other string which is not in danger
                         !neighbor_go_string.is_atari()
                     } else {
