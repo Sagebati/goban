@@ -442,7 +442,7 @@ impl Goban {
         }
         if stone < ren.origin {
             // replace origin
-            self.next_stone[stone] = self.next_stone[ren.origin];
+            self.next_stone[stone] = ren.origin;
             self.next_stone[ren.last] = stone;
             ren.origin = stone;
         } else {
