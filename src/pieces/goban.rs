@@ -106,6 +106,10 @@ impl Goban {
             })
     }
 
+    pub(crate) fn board(&self) -> &[Option<GoStringIndex>] {
+        &self.board
+    }
+
     pub(crate) fn push_get_dead_ren(&mut self, point: Point, color: Color) -> (Vec<usize>, AddedRen) {
         let pushed_stone_idx = two_to_1dim(self.size, point);
 

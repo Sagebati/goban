@@ -136,6 +136,20 @@ impl Game {
         self.goban.get_points_by_color(Color::None)
     }
 
+    pub fn pseudo_legals_vec(&self) -> Vec<Point> {
+        let size = self.size();
+        let mut vec = Vec::with_capacity(size.0 * size.1);
+        let board = self.goban.board();
+        for i in 0..size.0 as u8 {
+            for j in 0..size.1 as u8 {
+                if board[two_to_1dim(size, (i, j))] == None {
+                    vec.push((i, j));
+                }
+            }
+        }
+        vec
+    }
+
     /// Returns a list with legals moves. from the rule specified in at the creation.
     #[inline]
     pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
@@ -427,7 +441,7 @@ impl Game {
         self.ko_point = res.1;
     }
 
-    fn remove_captured_stones_aux(goban: &mut Goban, turn: Player, suicide_allowed: bool,  prisoners: (u32, u32), dead_rens: &[GoStringIndex], added_ren: AddedRen) -> ((u32, u32), Option<Point>) {
+    fn remove_captured_stones_aux(goban: &mut Goban, turn: Player, suicide_allowed: bool, prisoners: (u32, u32), dead_rens: &[GoStringIndex], added_ren: AddedRen) -> ((u32, u32), Option<Point>) {
         let only_one_ren_removed = dead_rens.len() == 1;
         let mut stones_removed = prisoners;
         let mut ko_point = None;
