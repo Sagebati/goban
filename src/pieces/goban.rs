@@ -16,7 +16,7 @@ use crate::pieces::util::CircularRenIter;
 use crate::pieces::zobrist::*;
 use crate::pieces::{Nat, Set};
 
-type GoStringIndex = usize;
+pub(crate) type GoStringIndex = usize;
 
 macro_rules! iter_stones {
     ($self: ident,$ren_idx: expr) => {
@@ -39,6 +39,11 @@ pub struct Goban {
     zobrist_hash: u64,
 }
 
+pub(crate) struct AddedRen {
+    pub ren_idx: GoStringIndex,
+    pub num_liberties: usize,
+}
+
 impl Goban {
     /// Creates a Goban
     /// # Arguments
@@ -50,8 +55,8 @@ impl Goban {
             zobrist_hash: 0,
             board: vec![None; height as usize * width as usize],
             next_stone: vec![0; height as usize * width as usize],
-            go_strings: Vec::with_capacity(40),
-            free_slots: Vec::with_capacity(4),
+            go_strings: Vec::with_capacity(60),
+            free_slots: Vec::with_capacity(20),
         }
     }
 
@@ -101,24 +106,7 @@ impl Goban {
             })
     }
 
-    /// Put a stones in the goban. The point depends on the order choose.
-    /// default (line, column)
-    /// the (0,0) point is in the top left.
-    ///
-    /// # Panics
-    /// if the point is out of bounds
-    pub fn push(&mut self, point: Point, color: Color) -> &mut Self {
-        assert_ne!(color, Color::None, "We can't push Empty stones");
-        assert!(
-            (point.0 as usize) < self.size.0,
-            "Coordinate point.0 {} out of bounds",
-            point.0
-        );
-        assert!(
-            (point.1 as usize) < self.size.1,
-            "Coordinate point.1 {} out of bounds",
-            point.1
-        );
+    pub(crate) fn push_get_dead_ren(&mut self, point: Point, color: Color) -> (Vec<usize>, AddedRen) {
         let pushed_stone_idx = two_to_1dim(self.size, point);
 
         let mut adjacent_same_color_str_set = Set::default();
@@ -126,7 +114,6 @@ impl Goban {
         let mut liberties = Set::default();
 
         for neighbor_idx in self.neighbor_points_indexes(pushed_stone_idx) {
-            debug_assert_ne!(neighbor_idx, pushed_stone_idx);
             match self.board[neighbor_idx] {
                 Some(adj_ren_index) => {
                     if self.go_strings[adj_ren_index].color == color {
@@ -141,9 +128,14 @@ impl Goban {
             }
         }
 
+        let mut dead_ren = Vec::with_capacity(4);
         // for every string of opposite color remove a liberty and update the string.
         for ren_idx in adjacent_opposite_color_str_set {
-            self.go_strings[ren_idx].remove_liberty(pushed_stone_idx);
+            let ren = &mut self.go_strings[ren_idx];
+            ren.remove_liberty(pushed_stone_idx);
+            if ren.is_dead() {
+                dead_ren.push(ren_idx);
+            }
         }
 
         let number_of_neighbors_strings = adjacent_same_color_str_set.len();
@@ -169,8 +161,31 @@ impl Goban {
             }
         }
         self.zobrist_hash ^= index_zobrist(pushed_stone_idx, color);
-        #[cfg(debug_assertions)]
-            self.check_integrity_all();
+        let added_ren_idx = self.board[pushed_stone_idx].unwrap();
+        (dead_ren, AddedRen { ren_idx: added_ren_idx, num_liberties: self.go_strings[added_ren_idx].number_of_liberties() })
+    }
+
+    /// Put a stones in the goban. The point depends on the order choose.
+    /// default (line, column)
+    /// the (0,0) point is in the top left.
+    ///
+    /// # Panics
+    /// if the point is out of bounds
+    pub fn push(&mut self, point: Point, color: Color) -> &mut Self {
+        assert_ne!(color, Color::None, "We can't push Empty stones");
+        assert!(
+            (point.0 as usize) < self.size.0,
+            "Coordinate point.0 {} out of bounds",
+            point.0
+        );
+        assert!(
+            (point.1 as usize) < self.size.1,
+            "Coordinate point.1 {} out of bounds",
+            point.1
+        );
+
+        self.push_get_dead_ren(point, color);
+
         self
     }
 
@@ -186,6 +201,10 @@ impl Goban {
         points.iter().for_each(|&point| {
             self.push(point, value);
         })
+    }
+
+    pub fn get_go_string(&self, ren_idx: GoStringIndex) -> &GoStringNew {
+        &self.go_strings[ren_idx]
     }
 
     /// Get all the neighbors to the coordinate including empty intersections.
@@ -358,15 +377,12 @@ impl Goban {
         let mut number_of_stones_captured = 0;
         let mut ko_point = None;
 
-        let go_strings_without_liberties = self
-            .get_go_strings_without_liberties_by_color(color)
-            .collect::<Vec<_>>();
+        let ren_indices: Vec<_> = self.get_go_strings_without_liberties_by_color(color).collect();
+        let one_str_captured = ren_indices.len() == 1;
 
-        let one_str_captured = go_strings_without_liberties.len() == 1;
-
-        for ren_idx in go_strings_without_liberties {
+        for ren_idx in ren_indices {
             let ren_without_liberties = &self.go_strings[ren_idx];
-            number_of_stones_captured += self.get_stones_from_string(ren_idx).count() as u32;
+            number_of_stones_captured += ren_without_liberties.num_stones as u32;
 
             // if only one string of one stone is takes then it's a Ko point.
             if one_str_captured && number_of_stones_captured == 1 {
@@ -435,7 +451,6 @@ impl Goban {
     }
 
     fn add_stone_to_string(&mut self, ren_idx: usize, stone: usize) {
-        debug_assert_eq!(iter_stones!(self, ren_idx).last().unwrap(), self.go_strings[ren_idx].last);
         let ren = &mut self.go_strings[ren_idx];
         if stone < ren.origin {
             // replace origin
@@ -456,7 +471,8 @@ impl Goban {
             self.go_strings[ren1_idx].color, self.go_strings[ren2_idx].color,
             "Cannot merge two strings of different color"
         );
-        assert_ne!(ren1_idx, ren2_idx, "merging the same string");
+        debug_assert_ne!(ren1_idx, ren2_idx, "merging the same string");
+
         let (ren1, ren2) = if ren1_idx < ren2_idx {
             let (s1, s2) = self.go_strings.split_at_mut(ren2_idx);
             (&mut s1[ren1_idx], s2.first_mut().unwrap())
@@ -473,9 +489,6 @@ impl Goban {
 
         let ren1_origin = ren1.origin;
         let ren2_origin = ren2.origin;
-
-        debug_assert_eq!(self.next_stone[ren1_last], ren1_origin);
-        debug_assert_eq!(self.next_stone[ren2_last], ren2_origin);
 
         if ren1_origin > ren2_origin {
             ren1.origin = ren2_origin;
