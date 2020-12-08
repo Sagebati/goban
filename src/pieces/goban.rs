@@ -39,11 +39,6 @@ pub struct Goban {
     zobrist_hash: u64,
 }
 
-pub(crate) struct AddedRen {
-    pub ren_idx: GoStringIndex,
-    pub num_liberties: usize,
-}
-
 impl Goban {
     /// Creates a Goban
     /// # Arguments
@@ -106,11 +101,12 @@ impl Goban {
             })
     }
 
+    #[inline]
     pub(crate) fn board(&self) -> &[Option<GoStringIndex>] {
         &self.board
     }
 
-    pub(crate) fn push_get_dead_ren(&mut self, point: Point, color: Color) -> (Vec<usize>, AddedRen) {
+    pub(crate) fn push_wth_feedback(&mut self, point: Point, color: Color) -> (Vec<usize>, GoStringIndex) {
         let pushed_stone_idx = two_to_1dim(self.size, point);
 
         let mut adjacent_same_color_str_set = Set::default();
@@ -143,9 +139,9 @@ impl Goban {
         }
 
         let number_of_neighbors_strings = adjacent_same_color_str_set.len();
-        match number_of_neighbors_strings {
+        let updated_ren_index = match number_of_neighbors_strings {
             0 => {
-                self.create_string(pushed_stone_idx, color, liberties);
+                self.create_string(pushed_stone_idx, color, liberties)
             }
             1 => {
                 let only_ren_idx = adjacent_same_color_str_set.into_iter().next().unwrap();
@@ -155,18 +151,24 @@ impl Goban {
                     .add_liberties_owned(liberties);
                 self.add_stone_to_string(only_ren_idx, pushed_stone_idx);
                 self.board[pushed_stone_idx] = Some(only_ren_idx);
+                only_ren_idx
             }
             _ => {
-                let added_ren = self.create_string(pushed_stone_idx, color, liberties);
-                adjacent_same_color_str_set.into_iter().for_each(|ren_idx| {
-                    self.merge_strings(added_ren, ren_idx);
-                });
-                self.go_strings[added_ren].remove_liberty(pushed_stone_idx);
+                let mut to_merge = self.create_string(pushed_stone_idx, color, liberties);
+                for adj_ren in adjacent_same_color_str_set {
+                    if self.go_strings[adj_ren].number_of_liberties() < self.go_strings[to_merge].number_of_liberties() {
+                        self.merge_strings(to_merge, adj_ren);
+                    }else {
+                        self.merge_strings(adj_ren, to_merge);
+                        to_merge = adj_ren;
+                    }
+                }
+                self.go_strings[to_merge].remove_liberty(pushed_stone_idx);
+                to_merge
             }
-        }
+        };
         self.zobrist_hash ^= index_zobrist(pushed_stone_idx, color);
-        let added_ren_idx = self.board[pushed_stone_idx].unwrap();
-        (dead_ren, AddedRen { ren_idx: added_ren_idx, num_liberties: self.go_strings[added_ren_idx].number_of_liberties() })
+        (dead_ren, updated_ren_index)
     }
 
     /// Put a stones in the goban. The point depends on the order choose.
@@ -187,9 +189,7 @@ impl Goban {
             "Coordinate point.1 {} out of bounds",
             point.1
         );
-
-        self.push_get_dead_ren(point, color);
-
+        self.push_wth_feedback(point, color);
         self
     }
 
@@ -316,8 +316,8 @@ impl Goban {
         for i in 0..self.size.0 as u8 {
             for j in 0..self.size.1 as u8 {
                 buff.push(match self.get_stone((i, j)) {
-                    Color::White => '●',
-                    Color::Black => '○',
+                    Color::Black => '●',
+                    Color::White => '○',
                     Color::None => {
                         match (
                             i == 0,
@@ -371,34 +371,7 @@ impl Goban {
             self.go_strings[ren_idx].add_liberties(new_liberties.into_iter());
         }
 
-        self.bin_ren(ren_to_remove_idx);
-    }
-
-    /// Removes the dead stones from the goban by specifying a color stone.
-    /// If there is only one stone captured, then update self.ko_point.
-    /// Returns the number of stones removed from the goban.
-    pub fn remove_captured_stones_turn(&mut self, color: Color) -> (u32, Option<Point>) {
-        let mut number_of_stones_captured = 0;
-        let mut ko_point = None;
-
-        let ren_indices: Vec<_> = self.get_go_strings_without_liberties_by_color(color).collect();
-        let one_str_captured = ren_indices.len() == 1;
-
-        for ren_idx in ren_indices {
-            let ren_without_liberties = &self.go_strings[ren_idx];
-            number_of_stones_captured += ren_without_liberties.num_stones as u32;
-
-            // if only one string of one stone is takes then it's a Ko point.
-            if one_str_captured && number_of_stones_captured == 1 {
-                ko_point = Some(ren_without_liberties.origin)
-            }
-            self.remove_go_string(ren_idx);
-        }
-        let size = self.size;
-        (
-            number_of_stones_captured,
-            ko_point.map(move |v| one_to_2dim(size, v)),
-        )
+        self.put_ren_in_bin(ren_to_remove_idx);
     }
 
     /// Updates the indexes to math actual goban. must use after an we put a stone
@@ -504,11 +477,11 @@ impl Goban {
         ren1.num_stones += ren2.num_stones;
 
         self.update_vec_indexes(ren1_idx);
-        self.bin_ren(ren2_idx);
+        self.put_ren_in_bin(ren2_idx);
     }
 
     #[inline]
-    fn bin_ren(&mut self, ren_idx: GoStringIndex) {
+    fn put_ren_in_bin(&mut self, ren_idx: GoStringIndex) {
         self.go_strings[ren_idx].used = false;
         self.free_slots.push(ren_idx);
     }

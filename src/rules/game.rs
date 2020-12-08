@@ -184,7 +184,7 @@ impl Game {
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
                     self.history.push(self.goban.clone());
-                let (dead_rens, added_ren) = self.goban.push_get_dead_ren((x, y), self.turn.stone_color());
+                let (dead_rens, added_ren) = self.goban.push_wth_feedback((x, y), self.turn.stone_color());
                 self.ko_point = None;
                 self.remove_captured_stones(&dead_rens, added_ren);
                 //self.prisoners = self.remove_captured_stones();
@@ -204,7 +204,7 @@ impl Game {
     pub fn play_for_verification(&self, (x, y): Point) -> u64 {
         let mut test_goban = self.goban.clone();
         let (dead_go_strings, added_ren) =
-            test_goban.push_get_dead_ren((x, y), self.turn.stone_color());
+            test_goban.push_wth_feedback((x, y), self.turn.stone_color());
         Game::remove_captured_stones_aux(&mut test_goban, self.turn, !self.rule.f_illegal.contains(IllegalRules::SUICIDE), self.prisoners, &dead_go_strings, added_ren);
         test_goban.zobrist_hash()
     }
@@ -435,32 +435,32 @@ impl Game {
     }
 
     #[inline]
-    fn remove_captured_stones(&mut self, dead_go_strings: &[GoStringIndex], added_ren: AddedRen) {
+    fn remove_captured_stones(&mut self, dead_go_strings: &[GoStringIndex], added_ren: GoStringIndex) {
         let res = Game::remove_captured_stones_aux(&mut self.goban, self.turn, !self.rule.f_illegal.contains(IllegalRules::SUICIDE), self.prisoners, dead_go_strings, added_ren);
         self.prisoners = res.0;
         self.ko_point = res.1;
     }
 
-    fn remove_captured_stones_aux(goban: &mut Goban, turn: Player, suicide_allowed: bool, prisoners: (u32, u32), dead_rens: &[GoStringIndex], added_ren: AddedRen) -> ((u32, u32), Option<Point>) {
-        let only_one_ren_removed = dead_rens.len() == 1;
+    fn remove_captured_stones_aux(goban: &mut Goban, turn: Player, suicide_allowed: bool, prisoners: (u32, u32), dead_rens_indices: &[GoStringIndex], added_ren: GoStringIndex) -> ((u32, u32), Option<Point>) {
+        let only_one_ren_removed = dead_rens_indices.len() == 1;
         let mut stones_removed = prisoners;
         let mut ko_point = None;
-        for &ren_idx in dead_rens {
-            let ren = goban.get_go_string(ren_idx);
-            if ren.num_stones == 1 && only_one_ren_removed {
-                ko_point = Some(one_to_2dim(goban.size(), ren.origin));
+        for &dead_ren_idx in dead_rens_indices {
+            let dead_ren = goban.get_go_string(dead_ren_idx);
+            if dead_ren.num_stones == 1 && only_one_ren_removed {
+                ko_point = Some(one_to_2dim(goban.size(), dead_ren.origin));
             }
             stones_removed = match turn {
-                Player::White => (stones_removed.0, stones_removed.1 + ren.num_stones as u32),
-                Player::Black => (stones_removed.0 + ren.num_stones as u32, stones_removed.1)
+                Player::White => (stones_removed.0, stones_removed.1 + dead_ren.num_stones as u32),
+                Player::Black => (stones_removed.0 + dead_ren.num_stones as u32, stones_removed.1)
             };
-            goban.remove_go_string(ren_idx);
+            goban.remove_go_string(dead_ren_idx);
         }
-        if suicide_allowed && goban.get_go_string(added_ren.ren_idx).num_stones == 0 {
-            goban.remove_go_string(added_ren.ren_idx);
+        if suicide_allowed && goban.get_go_string(added_ren).num_stones == 0 {
+            goban.remove_go_string(added_ren);
             ko_point = None;
 
-            let num_stones = goban.get_go_string(added_ren.ren_idx).num_stones as u32;
+            let num_stones = goban.get_go_string(added_ren).num_stones as u32;
             stones_removed = match turn {
                 Player::Black => (stones_removed.0, stones_removed.1 + num_stones),
                 Player::White => (stones_removed.0 + num_stones, stones_removed.1)
