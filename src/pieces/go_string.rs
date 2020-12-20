@@ -59,6 +59,11 @@ impl GoString {
         self.liberties.len()
     }
 
+    #[inline]
+    pub fn number_of_stones(&self) -> usize {
+        self.stones.len()
+    }
+
     /// A go string is atari if it only has one liberty
     #[inline]
     pub fn is_atari(&self) -> bool {

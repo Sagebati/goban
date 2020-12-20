@@ -1,10 +1,10 @@
 use hash_hasher::{HashBuildHasher, HashedSet};
 
+use crate::pieces::{GoStringPtr, Nat};
 use crate::pieces::goban::*;
-use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
-use crate::pieces::util::coord::{corner_points, is_coord_valid, Point};
+use crate::pieces::util::coord::{corner_points, is_coord_valid, one_to_2dim, Point};
 use crate::rules::{CHINESE, PlayError};
 use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 use crate::rules::EndGame::{Draw, WinnerByScore};
@@ -172,9 +172,11 @@ impl Game {
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
                     self.history.push(self.goban.clone());
-                self.goban.push((x, y), self.turn.stone_color());
+                let (added_str, dead_strings) =
+                    self.goban.push_feedback((x, y), self.turn.stone_color());
+
                 self.ko_point = None;
-                self.prisoners = self.remove_captured_stones();
+                self.remove_captured_stones(added_str, &dead_strings);
                 self.turn = !self.turn;
                 self.passes = 0;
                 self
@@ -190,11 +192,8 @@ impl Game {
     /// used in legals for fast move simulation in Super Ko situations.
     pub fn play_for_verification(&self, (x, y): Point) -> u64 {
         let mut test_goban = self.goban.clone();
-        test_goban.push((x, y), self.turn.stone_color());
-        test_goban.remove_captured_stones_turn((!self.turn).stone_color());
-        if !self.rule.f_illegal.contains(IllegalRules::SUICIDE) {
-            test_goban.remove_captured_stones_turn(self.turn.stone_color());
-        }
+        let (added_string, dead_strings) = test_goban.push_feedback((x, y), self.turn.stone_color());
+        Self::remove_captured_stones_goban(&mut test_goban, !self.turn, added_string, &dead_strings);
         test_goban.zobrist_hash()
     }
 
@@ -414,32 +413,38 @@ impl Game {
 
     /// Remove captured stones, and add it to the count of prisoners
     /// returns new prisoners stones. If there is an Ko point updates it.
-    #[inline]
-    fn remove_captured_stones(&mut self) -> (u32, u32) {
-        let (captured, ko_point_op) = self.goban
-            .remove_captured_stones_turn((!self.turn).stone_color());
+    fn remove_captured_stones(&mut self, added_string: GoStringPtr, dead_strings: &[GoStringPtr]) {
+        let (prisoners, ko_point) = Self::remove_captured_stones_goban(&mut self.goban, self.turn, added_string, dead_strings);
+        self.prisoners.0 += prisoners.0 as u32;
+        self.prisoners.1 += prisoners.1 as u32;
+        self.ko_point = ko_point;
+    }
 
-        let new_prisoners = match self.turn {
-            Black => (self.prisoners.0 + captured, self.prisoners.1),
-            White => (self.prisoners.0, self.prisoners.1 + captured),
-        };
-        // if the rules doesn't contain IllegalRules::SUICIDE it means it's authorised
-        if !self.rule.f_illegal.contains(IllegalRules::SUICIDE) {
-            let (suicide_stones, _) = self.goban
-                .remove_captured_stones_turn(self.turn.stone_color());
-
-            if ko_point_op.is_some() && suicide_stones == 0 {
-                self.ko_point = ko_point_op;
-            }
-
-            match self.turn {
-                Black => (new_prisoners.0, new_prisoners.1 + suicide_stones),
-                White => (new_prisoners.0 + suicide_stones, new_prisoners.1),
-            }
-        } else {
-            self.ko_point = ko_point_op;
-            new_prisoners
+    fn remove_captured_stones_goban(goban: &mut Goban, turn: Player, added_string: GoStringPtr, dead_strings: &[GoStringPtr]) -> ((usize, usize), Option<Point>) {
+        let mut ko_point = None;
+        if dead_strings.len() == 1 {
+            let go_str_str = dead_strings.first().unwrap();
+            ko_point = go_str_str.stones().into_iter().next()
+                .map(|&x| one_to_2dim(goban.size(), x));
         }
+
+        let mut removed_stones = 0;
+        for go_str_ptr in dead_strings {
+            removed_stones += go_str_ptr.number_of_stones();
+            goban.remove_go_string(go_str_ptr.clone());
+        }
+
+        // if the rules doesn't contain IllegalRules::SUICIDE it means it's authorised
+        let mut self_removed_stones = 0;
+        if added_string.is_dead() && removed_stones == 0 {
+            self_removed_stones = added_string.number_of_stones();
+            goban.remove_go_string(added_string);
+        }
+        let prisoners = match turn {
+            Black => (removed_stones, self_removed_stones),
+            White => (self_removed_stones, removed_stones)
+        };
+        (prisoners, ko_point)
     }
 }
 
