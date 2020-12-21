@@ -1,21 +1,21 @@
 //! Module with the goban and his implementations.
 
-use std::collections::HashSet;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 
+use ahash::AHashMap;
+
+use crate::pieces::{GoStringPtr, Nat, Ptr, Set};
 use crate::pieces::go_string::GoString;
 use crate::pieces::stones::*;
 use crate::pieces::util::coord::{
-    is_coord_valid, neighbor_points, one_to_2dim, two_to_1dim, Point,
+    is_coord_valid, neighbor_points, one_to_2dim, Point, two_to_1dim,
 };
 use crate::pieces::zobrist::*;
-use crate::pieces::{GoStringPtr, Nat, Ptr, Set};
-use ahash::AHashMap;
 
-/// Represents a Goban. the stones are stored in ROW MAJOR (row, colum)
+/// Represents a Goban. the stones are stored in ROW MAJOR (row, column)
 #[derive(Getters, Setters, CopyGetters, Debug, Clone)]
 pub struct Goban {
     #[get = "pub"]
@@ -110,55 +110,61 @@ impl Goban {
             point.1
         );
 
+        self.push_feedback(point, color);
+        self
+    }
+
+    pub(crate) fn push_feedback(&mut self, point: Point, color: Color) -> (GoStringPtr,Vec<GoStringPtr>) {
         let pushed_stone_idx = two_to_1dim(self.size, point);
         let mut new_string = GoString::new_with_color_and_stone_idx(color, pushed_stone_idx);
         let mut num_stones_connected = 0;
 
-        let mut adjacent_same_color_str_set = Set::default();
+        let mut adjacent_friend_go_str = Set::default();
         let mut adjacent_opposite_color_str_set = Set::default();
 
         for neighbor_idx in self.neighbor_points_index(pushed_stone_idx) {
             match &self.go_strings[neighbor_idx] {
-                Some(adj_go_str_ptr) => match adj_go_str_ptr.color() {
-                    go_str_color if go_str_color == color => {
+                Some(adj_go_str_ptr) => {
+                    if adj_go_str_ptr.color() == color {
                         num_stones_connected += adj_go_str_ptr.stones().len();
-                        adjacent_same_color_str_set.insert(adj_go_str_ptr.to_owned());
-                    }
-                    Color::None => unreachable!("A string cannot be of color none"),
-                    go_str_color if go_str_color != color => {
+                        adjacent_friend_go_str.insert(adj_go_str_ptr.to_owned());
+                    } else {
                         adjacent_opposite_color_str_set.insert(adj_go_str_ptr.to_owned());
                     }
-                    _ => unreachable!()
-                },
+                }
                 Option::None => {
                     new_string.add_liberty(neighbor_idx);
                 }
             }
         }
         new_string.reserve_stone(num_stones_connected);
-
-        // for every string of same color "connected" merge it into big string
-        let mut new_string = adjacent_same_color_str_set
-            .into_iter()
-            .fold(new_string, |init, same_color_string| {
-                init.merge_with(&same_color_string)
+        adjacent_friend_go_str.into_iter()
+            .for_each(|same_color_string| {
+                new_string.merge(&same_color_string);
             });
-
+        #[cfg(debug_assertions)]
         if new_string.contains_liberty(pushed_stone_idx) {
             new_string.remove_liberty(pushed_stone_idx);
         }
+        #[cfg(not(debug_assertions))]
+            new_string.remove_liberty(pushed_stone_idx);
+
+        let added_str = self.put_string(new_string);
 
         self.zobrist_hash ^= index_zobrist(pushed_stone_idx, color);
-        self.place_string(new_string);
 
         // for every string of opposite color remove a liberty and update the string.
+        let mut dead_strings =
+            Vec::with_capacity(adjacent_opposite_color_str_set.len());
+
         for other_color_string in adjacent_opposite_color_str_set
-            .into_iter()
-            .map(|go_str_ptr| go_str_ptr.without_liberty(pushed_stone_idx))
         {
-            self.place_string(other_color_string);
+            let new_other_str =  self.put_string(other_color_string.without_liberty(pushed_stone_idx));
+            if new_other_str.is_dead() {
+                dead_strings.push(new_other_str);
+            }
         }
-        self
+        (added_str,dead_strings)
     }
 
     /// Helper function to put a stone.
@@ -309,7 +315,7 @@ impl Goban {
         for &stone_idx in go_string_to_remove.stones() {
             for neighbor_str_ptr in self
                 .get_neighbors_strings_index(stone_idx)
-                .collect::<HashSet<_>>()
+                .collect::<Set<_>>()
             {
                 if go_string_to_remove != neighbor_str_ptr {
                     updates
@@ -324,44 +330,20 @@ impl Goban {
         }
 
         for (k, v) in updates {
-            self.place_string(k.with_liberties(v.into_iter()))
+            self.put_string(k.with_liberties(v.into_iter()));
         }
-    }
-
-    /// Removes the dead stones from the goban by specifying a color stone.
-    /// If there is only one stone captured, then update self.ko_point.
-    /// Returns the number of stones removed from the goban.
-    pub fn remove_captured_stones_turn(&mut self, color: Color) -> (u32, Option<Point>) {
-        let mut number_of_stones_captured = 0;
-        let mut ko_point = None;
-        let go_strings_without_liberties = self
-            .get_strings_of_stones_without_liberties_by_color(color)
-            .collect::<Set<_>>();
-        let one_str_captured = go_strings_without_liberties.len() == 1;
-        for ren_without_liberties in go_strings_without_liberties {
-            number_of_stones_captured += ren_without_liberties.stones().len() as u32;
-            // if only one string of one stone is takes then it's a Ko point.
-            if one_str_captured && number_of_stones_captured == 1 {
-                ko_point = Some(*ren_without_liberties.stones().iter().next().unwrap())
-            }
-            self.remove_go_string(ren_without_liberties);
-        }
-        let size = self.size;
-        (
-            number_of_stones_captured,
-            ko_point.map(move |v| one_to_2dim(size, v)),
-        )
     }
 
     /// Just create the Rc pointer and add it to the set.
     /// moves out the string.
-    fn place_string(&mut self, string_to_add: GoString) {
+    fn put_string(&mut self, string_to_add: GoString) -> GoStringPtr {
         let new_string: GoStringPtr = Ptr::new(string_to_add).into();
-        self.update_vec_indexes(new_string);
+        self.update_goban_indexes(&new_string);
+        new_string
     }
 
     /// Updates the indexes to math actual goban. must use after an we put a stone
-    fn update_vec_indexes(&mut self, go_string: GoStringPtr) {
+    fn update_goban_indexes(&mut self, go_string: &GoStringPtr) {
         for &point in go_string.stones() {
             unsafe {
                 *self.go_strings.get_unchecked_mut(point) = Some(go_string.clone());

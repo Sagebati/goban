@@ -1,5 +1,5 @@
-use crate::pieces::stones::Color;
 use crate::pieces::Set;
+use crate::pieces::stones::Color;
 
 type SetIdx = Set<usize>;
 
@@ -59,6 +59,11 @@ impl GoString {
         self.liberties.len()
     }
 
+    #[inline]
+    pub fn number_of_stones(&self) -> usize {
+        self.stones.len()
+    }
+
     /// A go string is atari if it only has one liberty
     #[inline]
     pub fn is_atari(&self) -> bool {
@@ -82,37 +87,51 @@ impl GoString {
     }
 
     #[inline]
-    pub fn without_liberty(&self, point: usize) -> GoString {
+    pub fn without_liberty(&self, point: usize) -> Self {
         let mut new = self.clone();
         new.remove_liberty(point);
         new
     }
 
     #[inline]
-    pub fn add_liberty(&mut self, stone_idx: usize) {
+    pub fn add_liberty(&mut self, stone_idx: usize) -> &mut Self {
         debug_assert!(!self.liberties.contains(&stone_idx));
         self.liberties.insert(stone_idx);
+        self
     }
 
     #[inline]
-    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item = usize>) {
+    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item=usize>) -> &mut Self {
         for idx in stones_idx {
             self.add_liberty(idx);
         }
+        self
     }
 
     #[inline]
-    pub fn with_liberty(&self, stone_idx: usize) -> GoString {
+    pub fn with_liberty(&self, stone_idx: usize) -> Self {
         let mut new = self.clone();
         new.add_liberty(stone_idx);
         new
     }
 
     #[inline]
-    pub fn with_liberties(&self, stones_idx: impl Iterator<Item = usize>) -> GoString {
+    pub fn with_liberties(&self, stones_idx: impl Iterator<Item=usize>) -> Self {
         let mut new = self.clone();
         new.add_liberties(stones_idx);
         new
+    }
+
+    pub fn merge(&mut self, go_string: &GoString) -> &mut Self {
+        assert_eq!(
+            self.color, go_string.color,
+            "When merging two strings, the 2  go strings need to be of \
+             same color. Colors found {} and {}",
+            self.color, go_string.color
+        );
+        self.stones.extend(&go_string.stones);
+        self.liberties.extend(&go_string.liberties);
+        self
     }
 
     /// Merges the string passed in param to self, indeed adding their stones to our struct, and adding
@@ -120,22 +139,11 @@ impl GoString {
     /// The method cas produce some bugs, there can be some liberties in excess after the merge.
     #[inline]
     pub fn merge_with(
-        mut self,
-        GoString {
-            color,
-            stones,
-            liberties,
-        }: &GoString,
+        &self,
+        other: &GoString,
     ) -> Self {
-        assert_eq!(
-            self.color, *color,
-            "When merging two strings, the 2  go strings need to be of \
-             same color. Colors found {} and {}",
-            self.color, *color
-        );
-        self.stones.extend(stones);
-        self.liberties.extend(liberties);
-
-        self
+        let mut new = self.clone();
+        new.merge(other);
+        new
     }
 }

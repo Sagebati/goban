@@ -4,7 +4,7 @@ use crate::pieces::util::coord::Point;
 use crate::pieces::Nat;
 use crate::rules::game::Game;
 use crate::rules::game_builder::GameBuilder;
-use crate::rules::{EndGame, Move, Player, Rule};
+use crate::rules::{EndGame, Move, Player, Rule, JAPANESE, CHINESE};
 
 impl Game {
     pub fn from_sgf(sgf_str: &str) -> Result<Self, String> {
@@ -58,11 +58,12 @@ impl Game {
         gamebuilder.build()
     }
 }
+
 impl From<RuleSet> for Rule {
     fn from(r: RuleSet) -> Self {
         match r {
-            RuleSet::Japanese => Rule::Japanese,
-            RuleSet::Chinese => Rule::Chinese,
+            RuleSet::Japanese => JAPANESE,
+            RuleSet::Chinese => CHINESE,
             _ => panic!(format!(
                 "The rule {} is not implemented yet !",
                 r.to_string()

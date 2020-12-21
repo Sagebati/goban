@@ -11,7 +11,7 @@
 //!
 //!let mut g = Game::builder()
 //!    .size((19,19))
-//!    .rule(Rule::Chinese)
+//!    .rule(CHINESE)
 //!//  .komi(7.5)  Komi is hardcoded for each rule, but can be override like this.
 //!    .build().unwrap();
 //!
