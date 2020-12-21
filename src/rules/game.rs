@@ -55,7 +55,6 @@ impl Game {
     pub fn new(size: GobanSizes, rule: Rule) -> Self {
         let (width, height) = size.into();
         let goban = Goban::new(size.into());
-        let pass = 0;
         #[cfg(feature = "history")]
             let history = Vec::with_capacity(width as usize * height as usize);
         let prisoners = (0, 0);
@@ -64,19 +63,18 @@ impl Game {
             width as usize * height as usize,
             HashBuildHasher::default(),
         );
-        let last_hash = 0;
         Self {
             goban,
             turn: Player::Black,
             prisoners,
-            passes: pass,
+            passes: 0,
             #[cfg(feature = "history")]
             history,
             outcome: None,
             rule,
             handicap,
             hashes,
-            last_hash,
+            last_hash: 0,
             ko_point: None,
         }
     }
