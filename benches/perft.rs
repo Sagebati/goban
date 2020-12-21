@@ -6,26 +6,25 @@ use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
 
 use goban::pieces::stones::Stone;
+use goban::rules::{CHINESE, GobanSizes, JAPANESE, Move, Rule};
 use goban::rules::game::Game;
-use goban::rules::{GobanSizes, Move, Rule, CHINESE, JAPANESE};
+use goban::rules::GobanSizes::Nineteen;
 use goban::rules::Move::Play;
 
-pub fn perft(pos: &Game, depth: u8) -> u64 {
+pub fn perft(state: &Game, depth: u8) -> u64 {
     if depth < 1 {
         1
     } else {
-        let moves = pos.legals();
+        let moves = state.legals();
 
         if depth == 1 {
             moves.count() as u64
         } else {
-            moves
-                .map(|m| {
-                    let mut child = pos.clone();
-                    child.play(Move::Play(m.0, m.1));
-                    perft(&child, depth - 1)
-                })
-                .sum()
+            moves.map(|m| {
+                let mut child = state.clone();
+                child.play(Move::Play(m.0, m.1));
+                perft(&child, depth - 1)
+            }).sum()
         }
     }
 }
@@ -49,9 +48,10 @@ pub fn fast_play_random(state: &Game, thread_rng: &mut ThreadRng) -> Move {
 }
 
 pub fn fast_play_game(rule: Rule) {
+    let mut thread_rng = thread_rng();
     let mut g = Game::new(GobanSizes::Nineteen, rule);
     while !g.is_over() {
-        g.play(fast_play_random(&g, &mut thread_rng()));
+        g.play(fast_play_random(&g, &mut thread_rng));
     }
 }
 
@@ -432,7 +432,6 @@ fn some_plays_from_sgf() {
 pub fn game_play_bench(_c: &mut Criterion) {
     let c = Criterion::default();
     c.sample_size(100)
-        //.bench_function("game_play", |b| b.iter(play_game))
         .bench_function("fast_play_game_chinese", |b| {
             b.iter(|| fast_play_game(CHINESE))
         })
@@ -442,6 +441,9 @@ pub fn game_play_bench(_c: &mut Criterion) {
         .bench_function("play_sgf_game", |b| {
             b.iter(|| some_plays_from_sgf());
         });
+    Criterion::default().sample_size(10)
+        .bench_function("perft_4",
+                        |b| b.iter(|| perft(&Game::new(Nineteen, CHINESE), 3)));
 }
 
 criterion_group!(benches, game_play_bench);
