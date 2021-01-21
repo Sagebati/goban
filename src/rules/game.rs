@@ -422,8 +422,10 @@ impl Game {
         let mut ko_point = None;
         if dead_strings.len() == 1 {
             let go_str_str = dead_strings.first().unwrap();
-            ko_point = go_str_str.stones().into_iter().next()
-                .map(|&x| one_to_2dim(goban.size(), x));
+            if go_str_str.number_of_stones() == 1 {
+                ko_point = go_str_str.stones().into_iter().next()
+                    .map(|&x| one_to_2dim(goban.size(), x));
+            }
         }
 
         let mut removed_stones = 0;
