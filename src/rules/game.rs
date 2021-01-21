@@ -277,11 +277,13 @@ impl Game {
     }
 
     /// Test if a point is legal or not by the rule passed in parameter.
+    /// WARNING: A PlayError:Ko can wrap an Suicide move.
     pub fn check_point_by(&self, point: Point, illegal_rules: IllegalRules) -> Option<PlayError> {
         let stone = Stone {
             coordinates: point,
             color: self.turn.stone_color(),
         };
+
         if illegal_rules.contains(IllegalRules::KO) && self.check_ko(stone) {
             Some(PlayError::Ko)
         } else if illegal_rules.contains(IllegalRules::SUICIDE) && self.check_suicide(stone) {
@@ -368,6 +370,7 @@ impl Game {
 
     /// Test if a play is ko.
     /// If the goban is in the configuration of two plays ago returns true
+    /// The ko_point can detect a suicide move.
     pub fn check_ko(&self, stone: Stone) -> bool {
         self.ko_point == Some(stone.coordinates)
     }
