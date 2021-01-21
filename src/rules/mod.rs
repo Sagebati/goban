@@ -1,12 +1,12 @@
 //! Module for ruling in the game of go.
 
 use std::fmt::{Display, Error, Formatter};
-use std::ops::{Not};
+use std::ops::Not;
 use std::str::FromStr;
 
+use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
-use crate::pieces::Nat;
 
 #[cfg(deadstones)]
 mod deadstones;
@@ -43,7 +43,7 @@ impl Display for Player {
 impl Player {
     /// Get the stone color of the player
     #[inline]
-    pub fn stone_color(self) -> Color {
+    pub const fn stone_color(self) -> Color {
         match self {
             Player::Black => Color::Black,
             Player::White => Color::White,
@@ -107,7 +107,7 @@ pub enum EndGame {
 impl EndGame {
     /// Return the winner of the game, if none the game is draw.
     #[inline]
-    pub fn get_winner(self) -> Option<Player> {
+    pub const fn get_winner(self) -> Option<Player> {
         match self {
             EndGame::WinnerByScore(p, _)
             | EndGame::WinnerByResign(p)
