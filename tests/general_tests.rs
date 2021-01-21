@@ -9,10 +9,10 @@ mod tests {
     use goban::pieces::stones::Color::Black;
     use goban::pieces::stones::Stone;
     use goban::pieces::zobrist::index_zobrist;
-    use goban::rules::game::Game;
-    use goban::rules::Move::Play;
     use goban::rules::{CHINESE, JAPANESE};
     use goban::rules::{EndGame, GobanSizes, Move, Player};
+    use goban::rules::game::Game;
+    use goban::rules::Move::Play;
 
     #[test]
     fn goban() {
@@ -628,6 +628,29 @@ mod tests {
             coordinates: (1, 2),
             color: Color::Black,
         }));
+    }
+
+    /// https://github.com/Sagebati/goban/issues/6
+    #[test]
+    fn ko_test_2() {
+        let mut game = Game::new(GobanSizes::Nineteen, CHINESE);
+        // let plays = vec![(0, 2), (0, 1), (0, 3), (1, 2), (1, 4), (1, 3), (0, 5), (2, 4), (2, 5), (0, 4), (0, 3)];
+        // for (x, y) in plays {
+        //     game.try_play(Move::Play(x, y)).unwrap();
+        //     game.display_goban();
+        // }
+        game.try_play(Move::Play(0, 2)).unwrap();
+        game.try_play(Move::Play(0, 1)).unwrap();
+        game.try_play(Move::Play(0, 3)).unwrap();
+        game.try_play(Move::Play(1, 2)).unwrap();
+        game.try_play(Move::Play(1, 4)).unwrap();
+        game.try_play(Move::Play(1, 3)).unwrap();
+        game.try_play(Move::Play(0, 5)).unwrap();
+        game.try_play(Move::Play(2, 4)).unwrap();
+        game.try_play(Move::Play(2, 5)).unwrap();
+        game.try_play(Move::Play(0, 4)).unwrap();
+        game.try_play(Move::Play(0, 3)).unwrap();
+        // game.display_goban();
     }
 
     #[test]
