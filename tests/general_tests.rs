@@ -646,8 +646,8 @@ mod tests {
         game.try_play(Move::Play(1, 4)).unwrap();
         game.try_play(Move::Play(1, 3)).unwrap();
         game.try_play(Move::Play(0, 5)).unwrap();
-        //game.try_play(Move::Play(2, 4)).unwrap();
-        //game.try_play(Move::Play(2, 5)).unwrap();
+        game.try_play(Move::Play(2, 4)).unwrap();
+        game.try_play(Move::Play(2, 5)).unwrap();
         game.try_play(Move::Play(0, 4)).unwrap();
         game.try_play(Move::Play(0, 3)).unwrap();
         // game.display_goban();
