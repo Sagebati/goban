@@ -1,7 +1,7 @@
 //! Module with the logic for calculating coordinates.
 
 pub mod coord {
-    use arrayvec::ArrayVec;
+    use std::array::IntoIter;
 
     use crate::pieces::Nat;
 
@@ -25,8 +25,8 @@ pub mod coord {
     }
 
     #[inline]
-    pub fn neighbor_points((x1, x2): Point) -> ArrayVec<[Point; 4]> {
-        ArrayVec::from([
+    pub fn neighbor_points((x1, x2): Point) -> impl Iterator<Item=Point> {
+        IntoIter::new([
             (x1 + 1, x2),
             (x1.wrapping_sub(1), x2),
             (x1, x2 + 1),
@@ -34,8 +34,8 @@ pub mod coord {
         ])
     }
 
-    pub fn corner_points((x1, x2): Point) -> ArrayVec<[Point; 4]> {
-        ArrayVec::from([
+    pub fn corner_points((x1, x2): Point) -> impl Iterator<Item=Point> {
+        IntoIter::new([
             (x1 + 1, x2 + 1),
             (x1.wrapping_sub(1), x2.wrapping_sub(1)),
             (x1 + 1, x2.wrapping_sub(1)),
