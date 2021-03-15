@@ -28,15 +28,15 @@ bitflags = "1.2.1"
 by_address = "1.0.4"
 getset = "0.1.1"
 hash_hasher = "2.0.3"
-ahash = "0.6.3"
-sgf-parser = "2.5.0"
-rand = { version = "0.8.2", optional = true }
+ahash = "0.7.2"
+sgf-parser = "2.6.0"
+rand = { version = "0.8.3", optional = true }
 oxymcts = { version = "0.1.0", optional = true }
 
 
 [dev-dependencies]
-criterion = "0.3.3"
-rand = "0.8.2"
+criterion = "0.3.4"
+rand = "0.8.3"
 
 [profile.bench]
 lto = "fat"

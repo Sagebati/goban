@@ -3,9 +3,9 @@
 use std::collections::HashSet;
 
 use crate::pieces::goban::Goban;
+use crate::pieces::GoStringPtr;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
-use crate::pieces::GoStringPtr;
 
 impl Goban {
     #[inline]
@@ -16,7 +16,7 @@ impl Goban {
         self.go_strings
             .iter()
             .cloned()
-            .filter_map(|x| x)
+            .flatten()
             .filter(move |go_str| go_str.is_dead() && go_str.color() == color)
     }
 

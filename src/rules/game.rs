@@ -5,8 +5,8 @@ use crate::pieces::goban::*;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use crate::pieces::util::coord::{corner_points, is_coord_valid, one_to_2dim, Point};
-use crate::rules::{CHINESE, PlayError};
 use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
+use crate::rules::{CHINESE, PlayError};
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::Player;
 use crate::rules::Player::{Black, White};
@@ -56,7 +56,7 @@ impl Game {
         let (width, height) = size.into();
         let goban = Goban::new(size.into());
         #[cfg(feature = "history")]
-            let history = Vec::with_capacity(width as usize * height as usize);
+        let history = Vec::with_capacity(width as usize * height as usize);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashedSet::with_capacity_and_hasher(
@@ -86,7 +86,6 @@ impl Game {
     pub fn resume(&mut self) {
         self.passes = 0;
     }
-
 
     #[inline]
     pub fn set_komi(&mut self, komi: f32) {
@@ -131,21 +130,20 @@ impl Game {
 
     /// Generate all moves on all empty intersections.
     #[inline]
-    pub fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
+    pub fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
-
     /// Returns a list with legals moves. from the rule specified in at the creation.
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.legals_by(self.rule.f_illegal)
     }
 
     /// Return a list with the legals moves. doesn't take the rule specified in the game but take
     /// the one passed on parameter.
     #[inline]
-    pub fn legals_by(&self, legals_rules: IllegalRules) -> impl Iterator<Item=Point> + '_ {
+    pub fn legals_by(&self, legals_rules: IllegalRules) -> impl Iterator<Item = Point> + '_ {
         self.pseudo_legals()
             .filter(move |&s| self.check_point_by(s, legals_rules).is_none())
     }
@@ -169,7 +167,7 @@ impl Game {
                 self.last_hash = hash;
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
-                    self.history.push(self.goban.clone());
+                self.history.push(self.goban.clone());
                 let (added_str, dead_strings) =
                     self.goban.push_feedback((x, y), self.turn.stone_color());
 
@@ -190,8 +188,14 @@ impl Game {
     /// used in legals for fast move simulation in Super Ko situations.
     pub fn play_for_verification(&self, (x, y): Point) -> u64 {
         let mut test_goban = self.goban.clone();
-        let (added_string, dead_strings) = test_goban.push_feedback((x, y), self.turn.stone_color());
-        Self::remove_captured_stones_goban(&mut test_goban, !self.turn, added_string, &dead_strings);
+        let (added_string, dead_strings) =
+            test_goban.push_feedback((x, y), self.turn.stone_color());
+        Self::remove_captured_stones_goban(
+            &mut test_goban,
+            !self.turn,
+            added_string,
+            &dead_strings,
+        );
         test_goban.zobrist_hash()
     }
 
@@ -346,14 +350,19 @@ impl Game {
             for s in corner_points(point)
                 .into_iter()
                 .filter(move |p| is_coord_valid(self.goban.size(), *p))
-                .filter_map(move |p|
+                .filter_map(move |p| {
                     Some(Stone {
                         coordinates: p,
                         color: self.goban.get_stone(p),
-                    }).filter(|s| s.color == Color::None)) {
-                if self.goban
+                    })
+                    .filter(|s| s.color == Color::None)
+                })
+            {
+                if self
+                    .goban
                     .get_neighbors(s.coordinates)
-                    .any(|s| s.color != color) {
+                    .any(|s| s.color != color)
+                {
                     return false;
                 }
                 let (ca, cof) = self.helper_check_eye(s.coordinates, color);
@@ -380,8 +389,10 @@ impl Game {
         if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coordinates) {
             false
         } else {
-            self.check_ko(stone) || self.hashes
-                .contains(&self.play_for_verification(stone.coordinates))
+            self.check_ko(stone)
+                || self
+                    .hashes
+                    .contains(&self.play_for_verification(stone.coordinates))
         }
     }
 
@@ -415,18 +426,31 @@ impl Game {
     /// Remove captured stones, and add it to the count of prisoners
     /// returns new prisoners stones. If there is an Ko point updates it.
     fn remove_captured_stones(&mut self, added_string: GoStringPtr, dead_strings: &[GoStringPtr]) {
-        let (prisoners, ko_point) = Self::remove_captured_stones_goban(&mut self.goban, self.turn, added_string, dead_strings);
+        let (prisoners, ko_point) = Self::remove_captured_stones_goban(
+            &mut self.goban,
+            self.turn,
+            added_string,
+            dead_strings,
+        );
         self.prisoners.0 += prisoners.0 as u32;
         self.prisoners.1 += prisoners.1 as u32;
         self.ko_point = ko_point;
     }
 
-    fn remove_captured_stones_goban(goban: &mut Goban, turn: Player, added_string: GoStringPtr, dead_strings: &[GoStringPtr]) -> ((usize, usize), Option<Point>) {
+    fn remove_captured_stones_goban(
+        goban: &mut Goban,
+        turn: Player,
+        added_string: GoStringPtr,
+        dead_strings: &[GoStringPtr],
+    ) -> ((usize, usize), Option<Point>) {
         let mut ko_point = None;
         if dead_strings.len() == 1 {
             let go_str_str = dead_strings.first().unwrap();
             if go_str_str.number_of_stones() == 1 {
-                ko_point = go_str_str.stones().into_iter().next()
+                ko_point = go_str_str
+                    .stones()
+                    .into_iter()
+                    .next()
                     .map(|&x| one_to_2dim(goban.size(), x));
             }
         }
@@ -445,7 +469,7 @@ impl Game {
         }
         let prisoners = match turn {
             Black => (removed_stones, self_removed_stones),
-            White => (self_removed_stones, removed_stones)
+            White => (self_removed_stones, removed_stones),
         };
         (prisoners, ko_point)
     }

@@ -20,11 +20,13 @@ pub fn perft(state: &Game, depth: u8) -> u64 {
         if depth == 1 {
             moves.count() as u64
         } else {
-            moves.map(|m| {
-                let mut child = state.clone();
-                child.play(Move::Play(m.0, m.1));
-                perft(&child, depth - 1)
-            }).sum()
+            moves
+                .map(|m| {
+                    let mut child = state.clone();
+                    child.play(Move::Play(m.0, m.1));
+                    perft(&child, depth - 1)
+                })
+                .sum()
         }
     }
 }
@@ -441,9 +443,11 @@ pub fn game_play_bench(_c: &mut Criterion) {
         .bench_function("play_sgf_game", |b| {
             b.iter(|| some_plays_from_sgf());
         });
-        Criterion::default().sample_size(10)
-        .bench_function("perft_4",
-                        |b| b.iter(|| perft(&Game::new(Nineteen, CHINESE), 3)));
+    Criterion::default()
+        .sample_size(10)
+        .bench_function("perft_4", |b| {
+            b.iter(|| perft(&Game::new(Nineteen, CHINESE), 3))
+        });
 }
 
 criterion_group!(benches, game_play_bench);

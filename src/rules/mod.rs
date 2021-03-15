@@ -59,9 +59,9 @@ pub enum GobanSizes {
     Custom(Nat, Nat),
 }
 
-impl Into<(Nat, Nat)> for GobanSizes {
-    fn into(self) -> (Nat, Nat) {
-        match self {
+impl From<GobanSizes> for (Nat, Nat) {
+    fn from(goban_size: GobanSizes) -> Self {
+        match goban_size {
             GobanSizes::Nine => (9, 9),
             GobanSizes::Thirteen => (13, 13),
             GobanSizes::Nineteen => (19, 19),
@@ -153,7 +153,6 @@ bitflags! {
     }
 }
 
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Rule {
     pub komi: f32,
@@ -163,13 +162,19 @@ pub struct Rule {
 
 pub static JAPANESE: Rule = Rule {
     komi: 6.5,
-    f_illegal: IllegalRules::from_bits_truncate(IllegalRules::KO.bits() | IllegalRules::SUICIDE.bits()),
-    f_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::PRISONNERS.bits()),
+    f_illegal: IllegalRules::from_bits_truncate(
+        IllegalRules::KO.bits() | IllegalRules::SUICIDE.bits(),
+    ),
+    f_score: ScoreRules::from_bits_truncate(
+        ScoreRules::KOMI.bits() | ScoreRules::PRISONNERS.bits(),
+    ),
 };
 
 pub static CHINESE: Rule = Rule {
     komi: 7.5,
-    f_illegal: IllegalRules::from_bits_truncate(IllegalRules::KO.bits() | IllegalRules::SUPERKO.bits() | IllegalRules::SUICIDE.bits()),
+    f_illegal: IllegalRules::from_bits_truncate(
+        IllegalRules::KO.bits() | IllegalRules::SUPERKO.bits() | IllegalRules::SUICIDE.bits(),
+    ),
     f_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::STONES.bits()),
 };
 

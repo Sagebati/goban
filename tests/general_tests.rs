@@ -9,8 +9,8 @@ mod tests {
     use goban::pieces::stones::Color::Black;
     use goban::pieces::stones::Stone;
     use goban::pieces::zobrist::index_zobrist;
-    use goban::rules::{CHINESE, JAPANESE};
     use goban::rules::{EndGame, GobanSizes, Move, Player};
+    use goban::rules::{CHINESE, JAPANESE};
     use goban::rules::game::Game;
     use goban::rules::Move::Play;
 
@@ -518,7 +518,7 @@ mod tests {
 
     #[test]
     fn score_calcul2() {
-        let mut g = Game::new(GobanSizes::Nineteen,CHINESE);
+        let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
         g.set_komi(0.);
         (0..38).for_each(|x| {
             g.try_play(Play(if x % 2 == 0 { 9 } else { 8 }, x / 2))

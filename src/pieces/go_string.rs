@@ -101,7 +101,7 @@ impl GoString {
     }
 
     #[inline]
-    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item=usize>) -> &mut Self {
+    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item = usize>) -> &mut Self {
         for idx in stones_idx {
             self.add_liberty(idx);
         }
@@ -116,7 +116,7 @@ impl GoString {
     }
 
     #[inline]
-    pub fn with_liberties(&self, stones_idx: impl Iterator<Item=usize>) -> Self {
+    pub fn with_liberties(&self, stones_idx: impl Iterator<Item = usize>) -> Self {
         let mut new = self.clone();
         new.add_liberties(stones_idx);
         new
@@ -138,10 +138,7 @@ impl GoString {
     /// their liberties to our struct.
     /// The method cas produce some bugs, there can be some liberties in excess after the merge.
     #[inline]
-    pub fn merge_with(
-        &self,
-        other: &GoString,
-    ) -> Self {
+    pub fn merge_with(&self, other: &GoString) -> Self {
         let mut new = self.clone();
         new.merge(other);
         new
