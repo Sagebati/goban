@@ -34,6 +34,7 @@ pub mod coord {
         ])
     }
 
+    #[inline]
     pub fn corner_points((x1, x2): Point) -> impl Iterator<Item=Point> {
         IntoIter::new([
             (x1 + 1, x2 + 1),
