@@ -2,17 +2,17 @@ use std::collections::{HashMap, HashSet};
 
 use ahash::AHashSet;
 use oxymcts::{
-    uct_value, DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts,
-    LazyMctsNode, Num, Playout,
+    DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts, LazyMctsNode,
+    Num, Playout, uct_value,
 };
 use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
 
 use crate::pieces::goban::Goban;
-use crate::pieces::stones::{Color, Stone};
 use crate::pieces::GoStringPtr;
-use crate::rules::game::Game;
+use crate::pieces::stones::{Color, Stone};
 use crate::rules::{IllegalRules, Move, Player};
+use crate::rules::game::Game;
 
 impl GameTrait for Game {
     type Player = Player;
@@ -195,10 +195,12 @@ impl Game {
         }
         let final_state_raw = game.goban().raw();
         let mut dead_ren = AHashSet::new();
-        for chain in floating_stones {
-            for &stone in chain.stones() {
-                if final_state_raw[stone] != chain.color {
-                    dead_ren.insert(chain);
+        for ren_ptr in floating_stones {
+            for &stone in ren_ptr.stones() {
+                // If some stones of the string arent in the final goban then it's plausible that
+                // this string is dead.
+                if final_state_raw[stone] != ren_ptr.color() {
+                    dead_ren.insert(ren_ptr);
                     break;
                 }
             }
@@ -208,6 +210,7 @@ impl Game {
 
     /// Return an array of dead stones, works better if the game if ended.
     /// the "dead" stones are only potentially dead.
+    #[inline]
     pub fn dead_stones(&self) -> AHashSet<GoStringPtr> {
         self.dead_stones_wth_simulations(600)
     }

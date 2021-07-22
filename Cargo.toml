@@ -1,6 +1,6 @@
 [package]
 name = "goban"
-version = "0.15.2"
+version = "0.16.2"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme = "README.md"
 description = "Library for Go move generation and Go ruling."
@@ -23,19 +23,18 @@ deadstones = ["rand", "oxymcts"]
 thread-safe = []
 
 [dependencies]
-arrayvec = "0.5.2"
-bitflags = "1.2.1"
-getset = "0.1.1"
+bitflags = "^1.2.1"
+getset = "^0.1.1"
 hash_hasher = "^2.0.3"
-ahash = "0.5.7"
+ahash = "^0.5.7"
 sgf-parser = "^2.4.0"
-rand = { version = "0.7.3", optional = true }
-oxymcts = { version = "0.1.0", optional = true }
+rand = { version = "^0.7.3", optional = true }
+oxymcts = { version = "^0.1.0", optional = true }
 
 
 [dev-dependencies]
-criterion = "0.3.3"
-rand = "0.7.3"
+criterion = "0.3.4"
+rand = "0.8.3"
 
 [profile.bench]
 lto = "fat"

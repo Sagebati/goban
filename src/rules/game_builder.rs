@@ -19,9 +19,10 @@
 //! ```
 
 use crate::pieces::goban::Goban;
+use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
-use crate::pieces::Nat;
+use crate::rules::{CHINESE, EndGame, Move, Player, Rule};
 use crate::rules::game::Game;
 use crate::rules::Player::White;
 use crate::rules::{EndGame, Move, Player, Rule, CHINESE};

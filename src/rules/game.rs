@@ -6,6 +6,7 @@ use crate::pieces::stones::Stone;
 use crate::pieces::util::coord::{corner_points, is_coord_valid, Point, two_to_1dim, one_to_2dim};
 use crate::pieces::Nat;
 use crate::rules::EndGame::{Draw, WinnerByScore};
+use crate::rules::{PlayError, CHINESE};
 use crate::rules::Player;
 use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
@@ -64,19 +65,18 @@ impl Game {
             width as usize * height as usize,
             HashBuildHasher::default(),
         );
-        let last_hash = 0;
         Self {
             goban,
             turn: Player::Black,
             prisoners,
-            passes: pass,
+            passes: 0,
             #[cfg(feature = "history")]
             history,
             outcome: None,
             rule,
             handicap,
             hashes,
-            last_hash,
+            last_hash: 0,
             ko_point: None,
         }
     }
@@ -132,7 +132,7 @@ impl Game {
 
     /// Generate all moves on all empty intersections.
     #[inline]
-    pub fn pseudo_legals(&self) -> impl Iterator<Item=Point> + '_ {
+    pub fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
@@ -152,14 +152,14 @@ impl Game {
 
     /// Returns a list with legals moves. from the rule specified in at the creation.
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item=Point> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.legals_by(self.rule.f_illegal)
     }
 
     /// Return a list with the legals moves. doesn't take the rule specified in the game but take
     /// the one passed on parameter.
     #[inline]
-    pub fn legals_by(&self, legals_rules: IllegalRules) -> impl Iterator<Item=Point> + '_ {
+    pub fn legals_by(&self, legals_rules: IllegalRules) -> impl Iterator<Item = Point> + '_ {
         self.pseudo_legals()
             .filter(move |&s| self.check_point_by(s, legals_rules).is_none())
     }
@@ -359,15 +359,11 @@ impl Game {
                 .into_iter()
                 .filter(move |p| is_coord_valid(self.goban.size(), *p))
                 .filter_map(move |p| {
-                    let s = Stone {
+                    Some(Stone {
                         coordinates: p,
                         color: self.goban.get_stone(p),
-                    };
-                    if s.color == Color::None {
-                        Some(s)
-                    } else {
-                        None
-                    }
+                    })
+                    .filter(|s| s.color == Color::None)
                 })
             {
                 if self
@@ -402,8 +398,8 @@ impl Game {
         } else {
             self.check_ko(stone)
                 || self
-                .hashes
-                .contains(&self.play_for_verification(stone.coordinates))
+                    .hashes
+                    .contains(&self.play_for_verification(stone.coordinates))
         }
     }
 

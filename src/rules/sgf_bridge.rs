@@ -1,10 +1,12 @@
 use sgf_parser::{Action, Color, Outcome, RuleSet, SgfToken};
 
+use crate::pieces::util::coord::Point;
 use crate::pieces::Nat;
 use crate::pieces::util::coord::Point;
 use crate::rules::{CHINESE, EndGame, JAPANESE, Move, Player, Rule};
 use crate::rules::game::Game;
 use crate::rules::game_builder::GameBuilder;
+use crate::rules::{EndGame, Move, Player, Rule, JAPANESE, CHINESE};
 
 impl Game {
     pub fn from_sgf(sgf_str: &str) -> Result<Self, String> {
