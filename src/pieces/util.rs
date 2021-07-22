@@ -23,6 +23,7 @@ impl<'a> Iterator for CircularRenIter<'a> {
         self.next = self.next
             .map(|stone_idx| self.next_stone[stone_idx])
             .filter(move |&o| o != origin);
+
         #[cfg(debug_assertions)]
         if ret.is_some() && self.next == ret {
             dbg!(self.next_stone.iter().enumerate().collect::<Vec<_>>());
@@ -33,6 +34,7 @@ impl<'a> Iterator for CircularRenIter<'a> {
 }
 
 pub mod coord {
+    use std::array::IntoIter;
 
     use crate::pieces::Nat;
 

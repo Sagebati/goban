@@ -1,17 +1,16 @@
 use hash_hasher::{HashBuildHasher, HashedSet};
 
 use crate::pieces::goban::*;
+use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
-use crate::pieces::util::coord::{corner_points, is_coord_valid, Point, two_to_1dim, one_to_2dim};
-use crate::pieces::Nat;
+use crate::pieces::util::coord::{corner_points, is_coord_valid, one_to_2dim, Point, two_to_1dim};
+use crate::rules::{CHINESE, PlayError};
+use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 use crate::rules::EndGame::{Draw, WinnerByScore};
-use crate::rules::{PlayError, CHINESE};
 use crate::rules::Player;
 use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
-use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
-use crate::rules::{PlayError, CHINESE};
 
 /// Most important struct of the library, it's the entry point.
 /// It represents a Game of Go.
@@ -56,7 +55,6 @@ impl Game {
     pub fn new(size: GobanSizes, rule: Rule) -> Self {
         let (width, height) = size.into();
         let goban = Goban::new(size.into());
-        let pass = 0;
         #[cfg(feature = "history")]
             let history = Vec::with_capacity(width as usize * height as usize);
         let prisoners = (0, 0);

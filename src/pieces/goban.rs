@@ -1,6 +1,5 @@
 //! Module with the goban and his implementations.
 
-use std::collections::HashSet;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
@@ -13,11 +12,18 @@ use crate::pieces::go_string::GoString;
 use crate::pieces::stones::*;
 use crate::pieces::util::CircularRenIter;
 use crate::pieces::util::coord::{
-    is_coord_valid, neighbor_points, one_to_2dim, two_to_1dim, Point,
+    is_coord_valid, neighbor_points, one_to_2dim, Point, two_to_1dim,
 };
 use crate::pieces::zobrist::*;
-use crate::pieces::{GoStringPtr, Nat, Ptr, Set};
-use ahash::AHashMap;
+
+pub type GoStringIndex = usize;
+
+
+macro_rules! iter_stones {
+    ($goban: expr, $ren_idx: expr) => {
+        CircularRenIter::new( $goban.go_strings[$ren_idx].origin, &$goban.next_stone)
+    };
+}
 
 /// Represents a Goban. the stones are stored in ROW MAJOR (row, colum)
 #[derive(Getters, Setters, CopyGetters, Debug, Clone)]
@@ -70,9 +76,7 @@ impl Goban {
         self.board
             .iter()
             .map(|point| {
-                point
-                    .as_ref()
-                    .map_or(Color::None, |go_str_ptr| go_str_ptr.color())
+                point.map_or(Color::None, |go_str_ptr| self.go_strings[go_str_ptr].color)
             })
             .collect()
     }
@@ -157,7 +161,7 @@ impl Goban {
                 for adj_ren in adjacent_same_color_str_set {
                     if self.go_strings[adj_ren].number_of_liberties() < self.go_strings[to_merge].number_of_liberties() {
                         self.merge_strings(to_merge, adj_ren);
-                    }else {
+                    } else {
                         self.merge_strings(adj_ren, to_merge);
                         to_merge = adj_ren;
                     }
@@ -212,7 +216,7 @@ impl Goban {
 
     /// Get all the neighbors to the coordinate including empty intersections.
     #[inline]
-    pub fn get_neighbors(&self, coord: Point) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_neighbors(&self, coord: Point) -> impl Iterator<Item=Stone> + '_ {
         self.neighbor_points(coord).map(move |point| Stone {
             coordinates: point,
             color: self.get_stone(point),
@@ -221,7 +225,7 @@ impl Goban {
 
     /// Get all the stones that are neighbor to the coord except empty intersections.
     #[inline]
-    pub fn get_neighbors_stones(&self, coord: Point) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_neighbors_stones(&self, coord: Point) -> impl Iterator<Item=Stone> + '_ {
         self.get_neighbors(coord).filter(|s| s.color != Color::None)
     }
 
@@ -264,17 +268,18 @@ impl Goban {
     /// Get all the stones except "Empty stones"
     #[inline]
     pub fn get_stones(&self) -> impl Iterator<Item=Stone> + '_ {
-        self.board.iter().enumerate().filter_map(move |(index, o)| {
-            o.map(move |ren_index| Stone {
-                coordinates: one_to_2dim(self.size, index),
-                color: self.go_strings[ren_index].color,
+        self.board.iter().enumerate()
+            .filter_map(move |(index, o)| {
+                o.map(move |ren_index| Stone {
+                    coordinates: one_to_2dim(self.size, index),
+                    color: self.go_strings[ren_index].color,
+                })
             })
-            )}
     }
 
     /// Get stones by their color.
     #[inline]
-    pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item = Stone> + '_ {
+    pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item=Stone> + '_ {
         self.get_points_by_color(color).map(move |c| Stone {
             color,
             coordinates: c,
@@ -385,7 +390,7 @@ impl Goban {
 
     /// Get the neighbors points filtered by limits of the board.
     #[inline]
-    fn neighbor_points(&self, point: Point) -> impl Iterator<Item = Point> {
+    fn neighbor_points(&self, point: Point) -> impl Iterator<Item=Point> {
         let size = self.size;
         neighbor_points(point)
             .into_iter()

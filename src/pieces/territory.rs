@@ -5,7 +5,6 @@ use std::collections::HashSet;
 use crate::pieces::goban::Goban;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
-use crate::pieces::GoStringPtr;
 
 impl Goban {
     #[inline]

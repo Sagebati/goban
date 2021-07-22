@@ -25,7 +25,6 @@ use crate::pieces::util::coord::Point;
 use crate::rules::{CHINESE, EndGame, Move, Player, Rule};
 use crate::rules::game::Game;
 use crate::rules::Player::White;
-use crate::rules::{EndGame, Move, Player, Rule, CHINESE};
 
 pub struct GameBuilder {
     size: (u32, u32),
