@@ -4,9 +4,9 @@ use std::fmt::{Display, Error, Formatter};
 use std::ops::Not;
 use std::str::FromStr;
 
+use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
-use crate::pieces::Nat;
 
 #[cfg(deadstones)]
 mod deadstones;
@@ -59,9 +59,9 @@ pub enum GobanSizes {
     Custom(Nat, Nat),
 }
 
-impl Into<(Nat, Nat)> for GobanSizes {
-    fn into(self) -> (Nat, Nat) {
-        match self {
+impl From<GobanSizes> for (Nat, Nat) {
+    fn from(goban_sizes: GobanSizes) -> (Nat, Nat) {
+        match goban_sizes {
             GobanSizes::Nine => (9, 9),
             GobanSizes::Thirteen => (13, 13),
             GobanSizes::Nineteen => (19, 19),

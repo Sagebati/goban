@@ -7,14 +7,14 @@ use std::hash::{Hash, Hasher};
 
 use ahash::AHashMap;
 
-use crate::pieces::go_string_new::GoStringNew;
-use crate::pieces::stones::*;
-use crate::pieces::util::coord::{
-    is_coord_valid, neighbor_points, one_to_2dim, two_to_1dim, Point,
-};
-use crate::pieces::util::CircularRenIter;
-use crate::pieces::zobrist::*;
 use crate::pieces::{Nat, Set};
+use crate::pieces::go_string::GoString;
+use crate::pieces::stones::*;
+use crate::pieces::util::CircularRenIter;
+use crate::pieces::util::coord::{
+    is_coord_valid, neighbor_points, one_to_2dim, Point, two_to_1dim,
+};
+use crate::pieces::zobrist::*;
 
 pub(crate) type GoStringIndex = usize;
 
@@ -28,7 +28,7 @@ macro_rules! iter_stones {
 #[derive(Getters, Setters, CopyGetters, Debug, Clone, Eq)]
 pub struct Goban {
     #[get = "pub"]
-    pub(super) go_strings: Vec<GoStringNew>,
+    pub(super) go_strings: Vec<GoString>,
     board: Vec<Option<GoStringIndex>>,
     next_stone: Vec<usize>,
     free_slots: Vec<usize>,
@@ -207,7 +207,7 @@ impl Goban {
         })
     }
 
-    pub fn get_go_string(&self, ren_idx: GoStringIndex) -> &GoStringNew {
+    pub fn get_go_string(&self, ren_idx: GoStringIndex) -> &GoString {
         &self.go_strings[ren_idx]
     }
 
@@ -228,7 +228,7 @@ impl Goban {
 
     /// Get all the neighbors go strings to the point. Only return point with a color.
     #[inline]
-    pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item=&GoStringNew> + '_ {
+    pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item=&GoString> + '_ {
         self.neighbor_points(coord)
             .map(move |point| two_to_1dim(self.size, point))
             .filter_map(move |point| self.board[point].map(|ren_idx| &self.go_strings[ren_idx]))
@@ -412,7 +412,7 @@ impl Goban {
         color: Color,
         liberties: Set<usize>,
     ) -> GoStringIndex {
-        let ren_to_place = GoStringNew::new_with_liberties(color, origin, liberties);
+        let ren_to_place = GoString::new_with_liberties(color, origin, liberties);
 
         self.next_stone[origin] = origin;
         let ren_index = if let Some(free_slot_idx) = self.free_slots.pop()

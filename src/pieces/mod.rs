@@ -10,7 +10,6 @@ type Set<T> = AHashSet<T>;
 pub(super) type Nat = u8;
 
 pub mod go_string;
-mod go_string_new;
 pub mod goban;
 pub mod stones;
 pub mod territory;
