@@ -20,7 +20,6 @@ codegen-units = 1
 [features]
 history = []
 deadstones = ["rand", "oxymcts"]
-thread-safe = []
 
 [dependencies]
 bitflags = "1.2.1"
