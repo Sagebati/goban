@@ -4,6 +4,7 @@ use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
+use std::mem::take;
 
 use ahash::AHashMap;
 
@@ -72,7 +73,7 @@ impl Goban {
     }
 
     /// Returns the underlying goban in a vector with a RowMajor Policy, calculated on the fly.
-    pub fn raw(&self) -> Vec<Color> {
+    pub fn vec(&self) -> Vec<Color> {
         self.board
             .iter()
             .map(|point| {
@@ -81,7 +82,7 @@ impl Goban {
             .collect()
     }
 
-    pub fn raw_matrix(&self) -> Vec<Vec<Color>> {
+    pub fn matrix(&self) -> Vec<Vec<Color>> {
         let mut mat = vec![vec![]];
         for line in self.board.chunks_exact(self.size.1) {
             let v = line
@@ -378,7 +379,7 @@ impl Goban {
         self.put_ren_in_bin(ren_to_remove_idx);
     }
 
-    /// Updates the indexes to math actual goban. must use after an we put a stone
+    /// Updates the indexes to math actual goban. must use after we put a stone.
     fn update_vec_indexes(&mut self, ren_idx: GoStringIndex) {
         debug_assert_eq!(iter_stones!(self, ren_idx).last().unwrap(), self.go_strings[ren_idx].last);
         for point in iter_stones!(self, ren_idx) {
@@ -477,7 +478,6 @@ impl Goban {
             ren1.last = ren2_last;
         }
         self.next_stone.swap(ren1_last, ren2_last);
-
         ren1.num_stones += ren2.num_stones;
 
         self.update_vec_indexes(ren1_idx);

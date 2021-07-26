@@ -43,34 +43,30 @@ impl GoString {
     /// A go string is atari if it only has one liberty
     #[inline]
     pub fn is_atari(&self) -> bool {
-        self.liberties.len() == 1
+        self.number_of_liberties() == 1
     }
 
     #[inline]
-    pub fn contains_liberty(&self, point: usize) -> bool {
-        self.liberties.contains(&point)
+    pub fn contains_liberty(&self, stone_idx: usize) -> bool {
+        self.liberties.contains(&stone_idx)
     }
 
     #[inline]
     pub fn remove_liberty(&mut self, stone_idx: usize) -> &mut Self {
-        #[cfg(debug_assertions)]
-        if !self.liberties.contains(&stone_idx) {
-            panic!("Tried to remove a liberty who doesn't exist")
-        }
-        debug_assert!(self.liberties.contains(&stone_idx));
+        debug_assert!(self.liberties.contains(&stone_idx), "Tried to remove a liberty, who isn't present. stone idx: {}", stone_idx);
         self.liberties.remove(&stone_idx);
         self
     }
 
     #[inline]
     pub fn add_liberty(&mut self, stone_idx: usize) -> &mut Self {
-        debug_assert!(!self.liberties.contains(&stone_idx));
+        debug_assert!(!self.liberties.contains(&stone_idx), "Tried to add a liberty already present, stone idx: {}", stone_idx);
         self.liberties.insert(stone_idx);
         self
     }
 
     #[inline]
-    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item = usize>) -> &mut Self {
+    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item=usize>) -> &mut Self {
         for idx in stones_idx {
             self.add_liberty(idx);
         }

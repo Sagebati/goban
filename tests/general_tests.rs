@@ -10,10 +10,10 @@ mod tests {
     use goban::pieces::stones::Stone;
     use goban::pieces::util::CircularRenIter;
     use goban::pieces::zobrist::index_zobrist;
-    use goban::rules::game::Game;
-    use goban::rules::Move::Play;
     use goban::rules::{EndGame, GobanSizes, Move, Player};
     use goban::rules::{CHINESE, JAPANESE};
+    use goban::rules::game::Game;
+    use goban::rules::Move::Play;
 
     #[test]
     fn goban() {
@@ -28,7 +28,7 @@ mod tests {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
         g.push((1, 2), Color::White);
         g.push((1, 3), Color::Black);
-        let tab = g.raw();
+        let tab = g.vec();
         let g2 = Goban::from_array(&tab);
         assert_eq!(g, g2)
     }
