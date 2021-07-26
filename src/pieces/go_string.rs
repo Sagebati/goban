@@ -1,7 +1,7 @@
+use bitvec::bitvec;
 use bitvec::macros::internal::core::ops::BitOrAssign;
 use bitvec::vec::BitVec;
 
-use crate::pieces::Set;
 use crate::pieces::stones::Color;
 
 type SetIdx = BitVec;
@@ -19,7 +19,7 @@ pub struct GoString {
 impl GoString {
     #[inline]
     pub fn new(color: Color, stone: usize) -> Self {
-        Self::new_with_liberties(color, stone, Default::default())
+        Self::new_with_liberties(color, stone, bitvec![0;361])
     }
 
     pub fn new_with_liberties(color: Color, stone: usize, liberties: SetIdx) -> Self {
