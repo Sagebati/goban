@@ -4,7 +4,6 @@ use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
-use std::mem::take;
 
 use ahash::AHashMap;
 

@@ -28,7 +28,7 @@
 //!        // None if the game is not finished
 //!        println!("{:?}", g.outcome());
 //!        // Inner array using row policy
-//!        println!("{:?}", g.goban().raw());
+//!        println!("{:?}", g.goban().vec());
 //!
 //!
 //!}
