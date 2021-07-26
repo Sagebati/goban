@@ -378,7 +378,7 @@ impl Goban {
         self.put_ren_in_bin(ren_to_remove_idx);
     }
 
-    /// Updates the indexes to math actual goban. must use after we put a stone.
+    /// Updates the indexes to match actual goban. must use after we put a stone.
     fn update_vec_indexes(&mut self, ren_idx: GoStringIndex) {
         debug_assert_eq!(iter_stones!(self, ren_idx).last().unwrap(), self.go_strings[ren_idx].last);
         for point in iter_stones!(self, ren_idx) {
