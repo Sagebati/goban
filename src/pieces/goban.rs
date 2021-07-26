@@ -353,7 +353,7 @@ impl Goban {
     /// adjacent string of not the same color.
     pub fn remove_go_string(&mut self, ren_to_remove_idx: GoStringIndex) {
         let color_of_the_string = self.go_strings[ren_to_remove_idx].color;
-        let mut updates: AHashMap<usize, Vec<usize>> = AHashMap::new();
+        let mut updates: AHashMap<GoStringIndex, Vec<usize>> = AHashMap::new();
 
         for point_idx in iter_stones!(self, ren_to_remove_idx) {
             for neighbor_str_idx in self
