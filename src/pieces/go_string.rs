@@ -1,7 +1,10 @@
+use bitvec::macros::internal::core::ops::BitOrAssign;
+use bitvec::vec::BitVec;
+
 use crate::pieces::Set;
 use crate::pieces::stones::Color;
 
-type SetIdx = Set<usize>;
+type SetIdx = BitVec;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GoString {
@@ -32,12 +35,12 @@ impl GoString {
 
     #[inline]
     pub fn is_dead(&self) -> bool {
-        self.liberties.is_empty()
+        self.liberties.not_any()
     }
 
     #[inline]
     pub fn number_of_liberties(&self) -> usize {
-        self.liberties.len()
+        self.liberties.count_ones()
     }
 
     /// A go string is atari if it only has one liberty
@@ -48,20 +51,20 @@ impl GoString {
 
     #[inline]
     pub fn contains_liberty(&self, stone_idx: usize) -> bool {
-        self.liberties.contains(&stone_idx)
+        self.liberties[stone_idx]
     }
 
     #[inline]
     pub fn remove_liberty(&mut self, stone_idx: usize) -> &mut Self {
-        debug_assert!(self.liberties.contains(&stone_idx), "Tried to remove a liberty, who isn't present. stone idx: {}", stone_idx);
-        self.liberties.remove(&stone_idx);
+        debug_assert!(self.liberties[stone_idx], "Tried to remove a liberty, who isn't present. stone idx: {}", stone_idx);
+        self.liberties.set(stone_idx, false);
         self
     }
 
     #[inline]
     pub fn add_liberty(&mut self, stone_idx: usize) -> &mut Self {
-        debug_assert!(!self.liberties.contains(&stone_idx), "Tried to add a liberty already present, stone idx: {}", stone_idx);
-        self.liberties.insert(stone_idx);
+        debug_assert!(!self.liberties[stone_idx], "Tried to add a liberty already present, stone idx: {}", stone_idx);
+        self.liberties.set(stone_idx, true);
         self
     }
 
@@ -75,7 +78,7 @@ impl GoString {
 
     #[inline]
     pub fn add_liberties_owned(&mut self, stones_idx: SetIdx) -> &mut Self {
-        self.liberties.extend(stones_idx);
+        self.liberties.bitor_assign(stones_idx);
         self
     }
 }

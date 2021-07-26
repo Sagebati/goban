@@ -4,8 +4,12 @@ use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
+use std::mem::take;
+use std::ops::BitOrAssign;
 
 use ahash::AHashMap;
+use bitvec::bitvec;
+use bitvec::vec::BitVec;
 
 use crate::pieces::{Nat, Set};
 use crate::pieces::go_string::GoString;
@@ -114,7 +118,7 @@ impl Goban {
 
         let mut adjacent_same_color_str_set = Set::default();
         let mut adjacent_opposite_color_str_set = Set::default();
-        let mut liberties = Set::default();
+        let mut liberties = bitvec![0;361];
 
         for neighbor_idx in self.neighbor_points_indexes(pushed_stone_idx) {
             match self.board[neighbor_idx] {
@@ -126,7 +130,7 @@ impl Goban {
                     }
                 }
                 Option::None => {
-                    liberties.insert(neighbor_idx);
+                    liberties.set(neighbor_idx, true);
                 }
             }
         }
@@ -405,7 +409,7 @@ impl Goban {
     }
 
     #[inline]
-    fn get_stones_from_string(&self, ren_idx: usize) -> impl Iterator<Item=usize> + '_ {
+    pub fn get_stones_from_string(&self, ren_idx: usize) -> impl Iterator<Item=usize> + '_ {
         CircularRenIter::new(self.go_strings[ren_idx].origin, &self.next_stone)
     }
 
@@ -414,7 +418,7 @@ impl Goban {
         &mut self,
         origin: usize,
         color: Color,
-        liberties: Set<usize>,
+        liberties: BitVec,
     ) -> GoStringIndex {
         let ren_to_place = GoString::new_with_liberties(color, origin, liberties);
 
@@ -462,7 +466,7 @@ impl Goban {
             let (s_contains_ren2, s_contains_ren1) = self.go_strings.split_at_mut(ren1_idx);
             (s_contains_ren1.first_mut().unwrap(), &mut s_contains_ren2[ren2_idx])
         };
-        ren1.liberties.extend(&ren2.liberties);
+        ren1.liberties.bitor_assign(take(&mut ren2.liberties));
 
 
         let ren1_last = ren1.last;

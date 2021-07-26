@@ -22,6 +22,7 @@ history = []
 deadstones = ["rand", "oxymcts"]
 
 [dependencies]
+bitvec = "0.22.3"
 bitflags = "1.2.1"
 getset = "0.1.1"
 hash_hasher = "2.0.3"
