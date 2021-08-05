@@ -429,18 +429,18 @@ impl Game {
     }
 
     #[inline]
-    fn remove_captured_stones(&mut self, dead_go_strings: &[GoStringIndex], added_ren: GoStringIndex) {
+    fn remove_captured_stones(&mut self, dead_go_strings: &[ChainId], added_ren: ChainId) {
         let res = Game::remove_captured_stones_aux(&mut self.goban, self.turn, !self.rule.f_illegal.contains(IllegalRules::SUICIDE), self.prisoners, dead_go_strings, added_ren);
         self.prisoners = res.0;
         self.ko_point = res.1;
     }
 
-    fn remove_captured_stones_aux(goban: &mut Goban, turn: Player, suicide_allowed: bool, prisoners: (u32, u32), dead_rens_indices: &[GoStringIndex], added_ren: GoStringIndex) -> ((u32, u32), Option<Point>) {
+    fn remove_captured_stones_aux(goban: &mut Goban, turn: Player, suicide_allowed: bool, prisoners: (u32, u32), dead_rens_indices: &[ChainId], added_ren: ChainId) -> ((u32, u32), Option<Point>) {
         let only_one_ren_removed = dead_rens_indices.len() == 1;
         let mut stones_removed = prisoners;
         let mut ko_point = None;
         for &dead_ren_idx in dead_rens_indices {
-            let dead_ren = goban.get_go_string(dead_ren_idx);
+            let dead_ren = goban.get_chain_from_id(dead_ren_idx);
             if dead_ren.num_stones == 1 && only_one_ren_removed {
                 ko_point = Some(one_to_2dim(goban.size(), dead_ren.origin));
             }
@@ -448,13 +448,13 @@ impl Game {
                 Player::White => (stones_removed.0, stones_removed.1 + dead_ren.num_stones as u32),
                 Player::Black => (stones_removed.0 + dead_ren.num_stones as u32, stones_removed.1)
             };
-            goban.remove_go_string(dead_ren_idx);
+            goban.remove_chain(dead_ren_idx);
         }
-        if suicide_allowed && goban.get_go_string(added_ren).num_stones == 0 {
-            goban.remove_go_string(added_ren);
+        if suicide_allowed && goban.get_chain_from_id(added_ren).num_stones == 0 {
+            goban.remove_chain(added_ren);
             ko_point = None;
 
-            let num_stones = goban.get_go_string(added_ren).num_stones as u32;
+            let num_stones = goban.get_chain_from_id(added_ren).num_stones as u32;
             stones_removed = match turn {
                 Player::Black => (stones_removed.0, stones_removed.1 + num_stones),
                 Player::White => (stones_removed.0 + num_stones, stones_removed.1)

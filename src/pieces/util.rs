@@ -38,7 +38,7 @@ pub mod coord {
 
     use crate::pieces::Nat;
 
-    /// Defining the policy for the colums.
+    /// Defining the policy for the columns.
     pub type Point = (Nat, Nat);
 
     /// Return true if the coord is in the goban.
@@ -57,7 +57,7 @@ pub mod coord {
         ((index / size.0) as u8, (index % size.1) as u8)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn neighbor_points((x1, x2): Point) -> impl Iterator<Item=Point> {
         IntoIter::new([
             (x1 + 1, x2),
@@ -67,7 +67,7 @@ pub mod coord {
         ])
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn corner_points((x1, x2): Point) -> impl Iterator<Item=Point> {
         IntoIter::new([
             (x1 + 1, x2 + 1),

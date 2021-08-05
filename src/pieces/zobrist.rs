@@ -1,8 +1,8 @@
 use crate::pieces::stones::Color;
 
-const GOBOARD_SZIE: usize = 19 * 19;
+const BOARD_SIZE: usize = 19 * 19;
 
-pub const ZOBRIST: [u64; GOBOARD_SZIE * 2] = [
+pub const ZOBRIST: [u64; BOARD_SIZE * 2] = [
     0xffed071d11b312ad,
     0xecf90189c0cadd3d,
     0xe6bdde96d4fa3748,
@@ -729,5 +729,5 @@ pub const ZOBRIST: [u64; GOBOARD_SZIE * 2] = [
 
 pub const fn index_zobrist(index: usize, color: Color) -> u64 {
     let page_idx = color as usize - 1;
-    ZOBRIST[index + (GOBOARD_SZIE * page_idx)]
+    ZOBRIST[index + (BOARD_SIZE * page_idx)]
 }

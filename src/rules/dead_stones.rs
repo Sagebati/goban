@@ -54,7 +54,7 @@ impl GameTrait for Game {
         self.outcome()
             .unwrap()
             .get_winner()
-            .expect("Exquo in Go is very rare")
+            .expect("The game was ex aequo")
     }
 }
 

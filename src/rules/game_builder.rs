@@ -1,6 +1,6 @@
 //! # GameBuilder Helper
 //! Utility for creating complex games with non standard komi, handicap etc...
-//! # Exemple
+//! # Example
 //! ```
 //! use crate::goban::rules::game_builder::GameBuilder;
 //! use crate::goban::rules::Rule;

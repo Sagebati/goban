@@ -9,7 +9,7 @@ use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
 
 #[cfg(deadstones)]
-mod deadstones;
+mod dead_stones;
 pub mod game;
 pub mod game_builder;
 mod sgf_bridge;

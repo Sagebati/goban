@@ -4,7 +4,7 @@ use crate::pieces::stones::Color;
 type SetIdx = Set<usize>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct GoString {
+pub struct Ren {
     pub color: Color,
     pub origin: usize,
     pub last: usize,
@@ -13,14 +13,14 @@ pub struct GoString {
     pub num_stones: u16,
 }
 
-impl GoString {
+impl Ren {
     #[inline]
     pub fn new(color: Color, stone: usize) -> Self {
         Self::new_with_liberties(color, stone, Default::default())
     }
 
     pub fn new_with_liberties(color: Color, stone: usize, liberties: SetIdx) -> Self {
-        GoString {
+        Ren {
             color,
             origin: stone,
             last: stone,

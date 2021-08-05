@@ -8,7 +8,7 @@ use std::hash::{Hash, Hasher};
 use ahash::AHashMap;
 
 use crate::pieces::{Nat, Set};
-use crate::pieces::go_string::GoString;
+use crate::pieces::go_string::Ren;
 use crate::pieces::stones::*;
 use crate::pieces::util::CircularRenIter;
 use crate::pieces::util::coord::{
@@ -16,7 +16,8 @@ use crate::pieces::util::coord::{
 };
 use crate::pieces::zobrist::*;
 
-pub type GoStringIndex = usize;
+pub type ChainId = usize;
+pub type BoardIdx = usize;
 
 
 macro_rules! iter_stones {
@@ -25,12 +26,12 @@ macro_rules! iter_stones {
     };
 }
 
-/// Represents a Goban. the stones are stored in ROW MAJOR (row, colum)
+/// Represents a Goban. the stones are stored in ROW MAJOR (row, column)
 #[derive(Getters, Setters, CopyGetters, Debug, Clone)]
 pub struct Goban {
     #[get = "pub"]
-    pub(super) go_strings: Vec<GoString>,
-    board: Vec<Option<GoStringIndex>>,
+    pub(super) go_strings: Vec<Ren>,
+    board: Vec<Option<ChainId>>,
     next_stone: Vec<usize>,
     free_slots: Vec<usize>,
     #[get_copy = "pub"]
@@ -81,6 +82,7 @@ impl Goban {
             .collect()
     }
 
+    /// Like vec but in a matrix shape.
     pub fn matrix(&self) -> Vec<Vec<Color>> {
         let mut mat = vec![vec![]];
         for line in self.board.chunks_exact(self.size.1) {
@@ -105,11 +107,17 @@ impl Goban {
     }
 
     #[inline]
-    pub(crate) fn board(&self) -> &[Option<GoStringIndex>] {
+    pub(crate) fn board(&self) -> &[Option<ChainId>] {
         &self.board
     }
 
-    pub(crate) fn push_wth_feedback(&mut self, point: Point, color: Color) -> (Vec<usize>, GoStringIndex) {
+    /// pushes the stone
+    /// # Arguments
+    /// point: the point where the stone will be placed
+    /// color: the color of the stone must be != empty
+    /// # Returns
+    /// A tuple with (the ren without liberties, the ren where the point was added)
+    pub(crate) fn push_wth_feedback(&mut self, point: Point, color: Color) -> (Vec<usize>, ChainId) {
         let pushed_stone_idx = two_to_1dim(self.size, point);
 
         let mut adjacent_same_color_str_set = Set::default();
@@ -174,7 +182,7 @@ impl Goban {
         (dead_ren, updated_ren_index)
     }
 
-    /// Put a stones in the goban. The point depends on the order choose.
+    /// Put a stones in the goban.
     /// default (line, column)
     /// the (0,0) point is in the top left.
     ///
@@ -210,7 +218,8 @@ impl Goban {
         })
     }
 
-    pub fn get_go_string(&self, ren_idx: GoStringIndex) -> &GoString {
+    /// Get the chain from their id
+    pub fn get_chain_from_id(&self, ren_idx: ChainId) -> &Ren {
         &self.go_strings[ren_idx]
     }
 
@@ -231,7 +240,7 @@ impl Goban {
 
     /// Get all the neighbors go strings to the point. Only return point with a color.
     #[inline]
-    pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item=&GoString> + '_ {
+    pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item=&Ren> + '_ {
         self.neighbor_points(coord)
             .map(move |point| two_to_1dim(self.size, point))
             .filter_map(move |point| self.board[point].map(|ren_idx| &self.go_strings[ren_idx]))
@@ -242,7 +251,7 @@ impl Goban {
     pub fn get_neighbors_strings_idx(
         &self,
         coord: Point,
-    ) -> impl Iterator<Item=GoStringIndex> + '_ {
+    ) -> impl Iterator<Item=ChainId> + '_ {
         self.neighbor_points(coord)
             .map(move |point| two_to_1dim(self.size, point))
             .filter_map(move |point| self.board[point])
@@ -252,17 +261,18 @@ impl Goban {
     pub fn get_neighbors_strings_indices_by_idx(
         &self,
         index: usize,
-    ) -> impl Iterator<Item=GoStringIndex> + '_ {
+    ) -> impl Iterator<Item=ChainId> + '_ {
         self.neighbor_points_indexes(index)
             .filter_map(move |idx| self.board[idx])
     }
 
     /// Function for getting the stone in the goban.
-    #[inline]
+    #[inline(always)]
     pub fn get_stone(&self, point: Point) -> Color {
-        self.board[two_to_1dim(self.size, point)].map_or(Color::None, |go_str_index| {
-            self.go_strings[go_str_index].color
-        })
+        self.board[two_to_1dim(self.size, point)]
+            .map_or(Color::None, |go_str_index| {
+                self.go_strings[go_str_index].color
+            })
     }
 
     /// Get all the stones except "Empty stones"
@@ -350,10 +360,10 @@ impl Goban {
     }
 
     /// Remove a string from the game, it add liberties to all
-    /// adjacent string of not the same color.
-    pub fn remove_go_string(&mut self, ren_to_remove_idx: GoStringIndex) {
+    /// adjacent chains that aren't the same color.
+    pub fn remove_chain(&mut self, ren_to_remove_idx: ChainId) {
         let color_of_the_string = self.go_strings[ren_to_remove_idx].color;
-        let mut updates: AHashMap<GoStringIndex, Vec<usize>> = AHashMap::new();
+        let mut updates: AHashMap<ChainId, Vec<ChainId>> = AHashMap::new();
 
         for point_idx in iter_stones!(self, ren_to_remove_idx) {
             for neighbor_str_idx in self
@@ -379,7 +389,7 @@ impl Goban {
     }
 
     /// Updates the indexes to match actual goban. must use after we put a stone.
-    fn update_vec_indexes(&mut self, ren_idx: GoStringIndex) {
+    fn update_chain_indexes_in_board(&mut self, ren_idx: ChainId) {
         debug_assert_eq!(iter_stones!(self, ren_idx).last().unwrap(), self.go_strings[ren_idx].last);
         for point in iter_stones!(self, ren_idx) {
             unsafe {
@@ -393,14 +403,13 @@ impl Goban {
     fn neighbor_points(&self, point: Point) -> impl Iterator<Item=Point> {
         let size = self.size;
         neighbor_points(point)
-            .into_iter()
             .filter(move |&p| is_coord_valid(size, p))
     }
 
     #[inline]
-    fn neighbor_points_indexes(&self, index: usize) -> impl Iterator<Item=usize> {
+    fn neighbor_points_indexes(&self, board_idx: BoardIdx) -> impl Iterator<Item=usize> {
         let size = self.size;
-        self.neighbor_points(one_to_2dim(self.size, index))
+        self.neighbor_points(one_to_2dim(self.size, board_idx))
             .map(move |x| two_to_1dim(size, x))
     }
 
@@ -414,9 +423,9 @@ impl Goban {
         &mut self,
         origin: usize,
         color: Color,
-        liberties: Set<usize>,
-    ) -> GoStringIndex {
-        let ren_to_place = GoString::new_with_liberties(color, origin, liberties);
+        liberties: Set<BoardIdx>,
+    ) -> ChainId {
+        let ren_to_place = Chain::new_with_liberties(color, origin, liberties);
 
         self.next_stone[origin] = origin;
         let ren_index = if let Some(free_slot_idx) = self.free_slots.pop()
@@ -427,7 +436,7 @@ impl Goban {
             self.go_strings.push(ren_to_place);
             self.go_strings.len() - 1
         };
-        self.update_vec_indexes(ren_index);
+        self.update_chain_indexes_in_board(ren_index);
         ren_index
     }
 
@@ -447,7 +456,7 @@ impl Goban {
         debug_assert_eq!(iter_stones!(self, ren_idx).last().unwrap(), self.go_strings[ren_idx].last);
     }
 
-    fn merge_strings(&mut self, ren1_idx: GoStringIndex, ren2_idx: GoStringIndex) {
+    fn merge_strings(&mut self, ren1_idx: ChainId, ren2_idx: ChainId) {
         debug_assert_eq!(
             self.go_strings[ren1_idx].color, self.go_strings[ren2_idx].color,
             "Cannot merge two strings of different color"
@@ -479,18 +488,19 @@ impl Goban {
         self.next_stone.swap(ren1_last, ren2_last);
         ren1.num_stones += ren2.num_stones;
 
-        self.update_vec_indexes(ren1_idx);
+        self.update_chain_indexes_in_board(ren1_idx);
         self.put_ren_in_bin(ren2_idx);
     }
 
     #[inline]
-    fn put_ren_in_bin(&mut self, ren_idx: GoStringIndex) {
+    fn put_ren_in_bin(&mut self, ren_idx: ChainId) {
         self.go_strings[ren_idx].used = false;
         self.free_slots.push(ren_idx);
     }
 
+    #[allow(dead_code)]
     #[cfg(debug_assertions)]
-    fn check_integrity_ren(&self, ren_idx: GoStringIndex) {
+    fn check_integrity_ren(&self, ren_idx: ChainId) {
         assert_eq!(iter_stones!(self, ren_idx).next().unwrap(), self.go_strings[ren_idx].origin, "The origin doesn't match");
         assert_eq!(iter_stones!(self, ren_idx).last().unwrap(), self.go_strings[ren_idx].last, "The last doesn't match");
         if iter_stones!(self, ren_idx).count() as u16 != self.go_strings[ren_idx].num_stones {
@@ -498,6 +508,7 @@ impl Goban {
         }
     }
 
+    #[allow(dead_code)]
     #[cfg(debug_assertions)]
     fn check_integrity_all(&self) {
         for ren_idx in (0..self.go_strings.len()).filter(|&ren_idx| self.go_strings[ren_idx].used) {

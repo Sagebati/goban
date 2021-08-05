@@ -79,8 +79,8 @@ impl Goban {
     ///
     #[inline]
     pub fn calculate_territories(&self) -> (usize, usize) {
-        let (black_territory, white_territoty) = self.get_territories();
-        (black_territory.count(), white_territoty.count())
+        let (black_territory, white_territory) = self.get_territories();
+        (black_territory.count(), white_territory.count())
     }
 
     ///
