@@ -5,8 +5,8 @@ use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use crate::pieces::util::coord::{corner_points, is_coord_valid, one_to_2dim, Point, two_to_1dim};
-use crate::rules::{CHINESE, PlayError};
 use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
+use crate::rules::{CHINESE, PlayError};
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::Player;
 use crate::rules::Player::{Black, White};
@@ -97,6 +97,11 @@ impl Game {
         self.rule.komi
     }
 
+    #[inline]
+    pub fn size(&self) -> (usize, usize) {
+        self.goban.size()
+    }
+
     /// True when the game is over (two passes, or no more legals moves, Resign)
     #[inline]
     pub fn is_over(&self) -> bool {
@@ -128,12 +133,13 @@ impl Game {
         }
     }
 
-    /// Generate all moves on all empty intersections.
+    /// Generate all moves on all empty intersections. Lazy.
     #[inline]
     pub fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
         self.goban.get_points_by_color(Color::None)
     }
 
+    /// Get all moves on all empty intersections.
     pub fn pseudo_legals_vec(&self) -> Vec<Point> {
         let size = self.size();
         let mut vec = Vec::with_capacity(size.0 * size.1);
@@ -151,7 +157,7 @@ impl Game {
     /// Returns a list with legals moves. from the rule specified in at the creation.
     #[inline]
     pub fn legals(&self) -> impl Iterator<Item = Point> + '_ {
-        self.legals_by(self.rule.f_illegal)
+        self.legals_by(self.rule.flag_illegal)
     }
 
     /// Return a list with the legals moves. doesn't take the rule specified in the game but take
@@ -182,7 +188,9 @@ impl Game {
                 self.hashes.insert(hash);
                 #[cfg(feature = "history")]
                     self.history.push(self.goban.clone());
-                let (dead_rens, added_ren) = self.goban.push_wth_feedback((x, y), self.turn.stone_color());
+                let (dead_rens, added_ren) = self
+                    .goban
+                    .push_wth_feedback((x, y), self.turn.stone_color());
                 self.ko_point = None;
                 self.remove_captured_stones(&dead_rens, added_ren);
                 //self.prisoners = self.remove_captured_stones();
@@ -203,7 +211,14 @@ impl Game {
         let mut test_goban = self.goban.clone();
         let (dead_go_strings, added_ren) =
             test_goban.push_wth_feedback((x, y), self.turn.stone_color());
-        Game::remove_captured_stones_aux(&mut test_goban, self.turn, !self.rule.f_illegal.contains(IllegalRules::SUICIDE), self.prisoners, &dead_go_strings, added_ren);
+        Game::remove_captured_stones_aux(
+            &mut test_goban,
+            self.turn,
+            !self.rule.flag_illegal.contains(IllegalRules::SUICIDE),
+            self.prisoners,
+            &dead_go_strings,
+            added_ren,
+        );
         test_goban.zobrist_hash()
     }
 
@@ -248,7 +263,7 @@ impl Game {
     /// Dependant of the rule in the game.
     #[inline]
     pub fn calculate_score(&self) -> (f32, f32) {
-        self.calculate_score_by(self.rule.f_score)
+        self.calculate_score_by(self.rule.flag_score)
     }
 
     /// Calculates the score by the rule passed in parameter.
@@ -276,7 +291,7 @@ impl Game {
     /// string.
     pub fn will_capture(&self, point: Point) -> bool {
         self.goban
-            .get_neighbors_strings(point)
+            .get_neighbors_chains(point)
             .filter(|go_str| go_str.color != self.turn.stone_color())
             // if an enemy string has only liberty it's a capture move
             .any(|go_str| go_str.is_atari())
@@ -285,7 +300,7 @@ impl Game {
     /// Test if a point is legal or not for the current player,
     #[inline]
     pub fn check_point(&self, point: Point) -> Option<PlayError> {
-        self.check_point_by(point, self.rule.f_illegal)
+        self.check_point_by(point, self.rule.flag_illegal)
     }
 
     /// Test if a point is legal or not by the rule passed in parameter.
@@ -410,7 +425,7 @@ impl Game {
         } else {
             !self
                 .goban
-                .get_neighbors_strings(stone.coordinates)
+                .get_neighbors_chains(stone.coordinates)
                 .any(|neighbor_go_string| {
                     if neighbor_go_string.color == stone.color {
                         // Connecting with an other string which is not in danger
@@ -429,13 +444,27 @@ impl Game {
     }
 
     #[inline]
-    fn remove_captured_stones(&mut self, dead_go_strings: &[ChainId], added_ren: ChainId) {
-        let res = Game::remove_captured_stones_aux(&mut self.goban, self.turn, !self.rule.f_illegal.contains(IllegalRules::SUICIDE), self.prisoners, dead_go_strings, added_ren);
+    fn remove_captured_stones(&mut self, dead_chains: &[ChainIdx], added_chain: ChainIdx) {
+        let res = Game::remove_captured_stones_aux(
+            &mut self.goban,
+            self.turn,
+            !self.rule.flag_illegal.contains(IllegalRules::SUICIDE),
+            self.prisoners,
+            dead_chains,
+            added_chain,
+        );
         self.prisoners = res.0;
         self.ko_point = res.1;
     }
 
-    fn remove_captured_stones_aux(goban: &mut Goban, turn: Player, suicide_allowed: bool, prisoners: (u32, u32), dead_rens_indices: &[ChainId], added_ren: ChainId) -> ((u32, u32), Option<Point>) {
+    fn remove_captured_stones_aux(
+        goban: &mut Goban,
+        turn: Player,
+        suicide_allowed: bool,
+        prisoners: (u32, u32),
+        dead_rens_indices: &[ChainIdx],
+        added_ren: ChainIdx,
+    ) -> ((u32, u32), Option<Point>) {
         let only_one_ren_removed = dead_rens_indices.len() == 1;
         let mut stones_removed = prisoners;
         let mut ko_point = None;
@@ -445,8 +474,14 @@ impl Game {
                 ko_point = Some(one_to_2dim(goban.size(), dead_ren.origin));
             }
             stones_removed = match turn {
-                Player::White => (stones_removed.0, stones_removed.1 + dead_ren.num_stones as u32),
-                Player::Black => (stones_removed.0 + dead_ren.num_stones as u32, stones_removed.1)
+                Player::White => (
+                    stones_removed.0,
+                    stones_removed.1 + dead_ren.num_stones as u32,
+                ),
+                Player::Black => (
+                    stones_removed.0 + dead_ren.num_stones as u32,
+                    stones_removed.1,
+                ),
             };
             goban.remove_chain(dead_ren_idx);
         }
@@ -457,15 +492,10 @@ impl Game {
             let num_stones = goban.get_chain_from_id(added_ren).num_stones as u32;
             stones_removed = match turn {
                 Player::Black => (stones_removed.0, stones_removed.1 + num_stones),
-                Player::White => (stones_removed.0 + num_stones, stones_removed.1)
+                Player::White => (stones_removed.0 + num_stones, stones_removed.1),
             };
         }
         (stones_removed, ko_point)
-    }
-
-    #[inline]
-    pub fn size(&self) -> (usize, usize) {
-        self.goban.size()
     }
 }
 

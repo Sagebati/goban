@@ -8,7 +8,7 @@ use std::hash::{Hash, Hasher};
 use ahash::AHashMap;
 
 use crate::pieces::{Nat, Set};
-use crate::pieces::go_string::Ren;
+use crate::pieces::chain::Chain;
 use crate::pieces::stones::*;
 use crate::pieces::util::CircularRenIter;
 use crate::pieces::util::coord::{
@@ -16,13 +16,12 @@ use crate::pieces::util::coord::{
 };
 use crate::pieces::zobrist::*;
 
-pub type ChainId = usize;
+pub type ChainIdx = usize;
 pub type BoardIdx = usize;
-
 
 macro_rules! iter_stones {
     ($goban: expr, $ren_idx: expr) => {
-        CircularRenIter::new( $goban.go_strings[$ren_idx].origin, &$goban.next_stone)
+        CircularRenIter::new($goban.chains[$ren_idx].origin, &$goban.next_stone)
     };
 }
 
@@ -30,8 +29,8 @@ macro_rules! iter_stones {
 #[derive(Getters, Setters, CopyGetters, Debug, Clone)]
 pub struct Goban {
     #[get = "pub"]
-    pub(super) go_strings: Vec<Ren>,
-    board: Vec<Option<ChainId>>,
+    pub(super) chains: Vec<Chain>,
+    board: Vec<Option<ChainIdx>>,
     next_stone: Vec<usize>,
     free_slots: Vec<usize>,
     #[get_copy = "pub"]
@@ -52,7 +51,7 @@ impl Goban {
             zobrist_hash: 0,
             board: vec![None; height as usize * width as usize],
             next_stone: vec![0; height as usize * width as usize],
-            go_strings: Vec::with_capacity(60),
+            chains: Vec::with_capacity(60),
             free_slots: Vec::with_capacity(20),
         }
     }
@@ -76,9 +75,7 @@ impl Goban {
     pub fn vec(&self) -> Vec<Color> {
         self.board
             .iter()
-            .map(|point| {
-                point.map_or(Color::None, |go_str_ptr| self.go_strings[go_str_ptr].color)
-            })
+            .map(|point| point.map_or(Color::None, |go_str_ptr| self.chains[go_str_ptr].color))
             .collect()
     }
 
@@ -88,7 +85,7 @@ impl Goban {
         for line in self.board.chunks_exact(self.size.1) {
             let v = line
                 .iter()
-                .map(|o| o.map_or(Color::None, |idx| self.go_strings[idx].color))
+                .map(|o| o.map_or(Color::None, |idx| self.chains[idx].color))
                 .collect();
             mat.push(v);
         }
@@ -107,7 +104,7 @@ impl Goban {
     }
 
     #[inline]
-    pub(crate) fn board(&self) -> &[Option<ChainId>] {
+    pub(crate) fn board(&self) -> &[Option<ChainIdx>] {
         &self.board
     }
 
@@ -117,7 +114,11 @@ impl Goban {
     /// color: the color of the stone must be != empty
     /// # Returns
     /// A tuple with (the ren without liberties, the ren where the point was added)
-    pub(crate) fn push_wth_feedback(&mut self, point: Point, color: Color) -> (Vec<usize>, ChainId) {
+    pub(crate) fn push_wth_feedback(
+        &mut self,
+        point: Point,
+        color: Color,
+    ) -> (Vec<usize>, ChainIdx) {
         let pushed_stone_idx = two_to_1dim(self.size, point);
 
         let mut adjacent_same_color_str_set = Set::default();
@@ -127,7 +128,7 @@ impl Goban {
         for neighbor_idx in self.neighbor_points_indexes(pushed_stone_idx) {
             match self.board[neighbor_idx] {
                 Some(adj_ren_index) => {
-                    if self.go_strings[adj_ren_index].color == color {
+                    if self.chains[adj_ren_index].color == color {
                         adjacent_same_color_str_set.insert(adj_ren_index);
                     } else {
                         adjacent_opposite_color_str_set.insert(adj_ren_index);
@@ -142,7 +143,7 @@ impl Goban {
         let mut dead_ren = Vec::with_capacity(4);
         // for every string of opposite color remove a liberty and update the string.
         for ren_idx in adjacent_opposite_color_str_set {
-            let ren = &mut self.go_strings[ren_idx];
+            let ren = &mut self.chains[ren_idx];
             ren.remove_liberty(pushed_stone_idx);
             if ren.is_dead() {
                 dead_ren.push(ren_idx);
@@ -151,30 +152,30 @@ impl Goban {
 
         let number_of_neighbors_strings = adjacent_same_color_str_set.len();
         let updated_ren_index = match number_of_neighbors_strings {
-            0 => {
-                self.create_string(pushed_stone_idx, color, liberties)
-            }
+            0 => self.create_chain(pushed_stone_idx, color, liberties),
             1 => {
                 let only_ren_idx = adjacent_same_color_str_set.into_iter().next().unwrap();
 
-                self.go_strings[only_ren_idx]
+                self.chains[only_ren_idx]
                     .remove_liberty(pushed_stone_idx)
                     .add_liberties_owned(liberties);
-                self.add_stone_to_string(only_ren_idx, pushed_stone_idx);
+                self.add_stone_to_chain(only_ren_idx, pushed_stone_idx);
                 self.board[pushed_stone_idx] = Some(only_ren_idx);
                 only_ren_idx
             }
             _ => {
-                let mut to_merge = self.create_string(pushed_stone_idx, color, liberties);
+                let mut to_merge = self.create_chain(pushed_stone_idx, color, liberties);
                 for adj_ren in adjacent_same_color_str_set {
-                    if self.go_strings[adj_ren].number_of_liberties() < self.go_strings[to_merge].number_of_liberties() {
+                    if self.chains[adj_ren].number_of_liberties()
+                        < self.chains[to_merge].number_of_liberties()
+                    {
                         self.merge_strings(to_merge, adj_ren);
                     } else {
                         self.merge_strings(adj_ren, to_merge);
                         to_merge = adj_ren;
                     }
                 }
-                self.go_strings[to_merge].remove_liberty(pushed_stone_idx);
+                self.chains[to_merge].remove_liberty(pushed_stone_idx);
                 to_merge
             }
         };
@@ -219,8 +220,16 @@ impl Goban {
     }
 
     /// Get the chain from their id
-    pub fn get_chain_from_id(&self, ren_idx: ChainId) -> &Ren {
-        &self.go_strings[ren_idx]
+    pub fn get_chain_from_id(&self, ren_idx: ChainIdx) -> &Chain {
+        &self.chains[ren_idx]
+    }
+
+    pub fn get_chain_by_board_idx(&self, board_idx: BoardIdx) -> Option<&Chain> {
+        self.board[board_idx].map(|chain| &self.chains[chain])
+    }
+
+    pub fn get_chain_by_point(&self, point: Point) -> Option<&Chain> {
+        self.get_chain_by_board_idx(two_to_1dim(self.size, point))
     }
 
     /// Get all the neighbors to the coordinate including empty intersections.
@@ -238,30 +247,26 @@ impl Goban {
         self.get_neighbors(coord).filter(|s| s.color != Color::None)
     }
 
-    /// Get all the neighbors go strings to the point. Only return point with a color.
+    /// Get all the neighbors indexes to the point. Only return point with a color.
     #[inline]
-    pub fn get_neighbors_strings(&self, coord: Point) -> impl Iterator<Item=&Ren> + '_ {
-        self.neighbor_points(coord)
-            .map(move |point| two_to_1dim(self.size, point))
-            .filter_map(move |point| self.board[point].map(|ren_idx| &self.go_strings[ren_idx]))
-    }
-
-    /// Get all the neighbors go strings indexes to the point. Only return point with a color.
-    #[inline]
-    pub fn get_neighbors_strings_idx(
-        &self,
-        coord: Point,
-    ) -> impl Iterator<Item=ChainId> + '_ {
+    pub fn get_neighbors_chain_indexes(&self, coord: Point) -> impl Iterator<Item=ChainIdx> + '_ {
         self.neighbor_points(coord)
             .map(move |point| two_to_1dim(self.size, point))
             .filter_map(move |point| self.board[point])
+    }
+
+    /// Get all the chains adjacent to the point. The result iterator can contains duplicates.
+    #[inline]
+    pub fn get_neighbors_chains(&self, coord: Point) -> impl Iterator<Item=&Chain> + '_ {
+        self.get_neighbors_chain_indexes(coord)
+            .map(move |chain_idx| &self.chains[chain_idx])
     }
 
     #[inline]
     pub fn get_neighbors_strings_indices_by_idx(
         &self,
         index: usize,
-    ) -> impl Iterator<Item=ChainId> + '_ {
+    ) -> impl Iterator<Item=ChainIdx> + '_ {
         self.neighbor_points_indexes(index)
             .filter_map(move |idx| self.board[idx])
     }
@@ -270,21 +275,18 @@ impl Goban {
     #[inline(always)]
     pub fn get_stone(&self, point: Point) -> Color {
         self.board[two_to_1dim(self.size, point)]
-            .map_or(Color::None, |go_str_index| {
-                self.go_strings[go_str_index].color
-            })
+            .map_or(Color::None, |go_str_index| self.chains[go_str_index].color)
     }
 
     /// Get all the stones except "Empty stones"
     #[inline]
     pub fn get_stones(&self) -> impl Iterator<Item=Stone> + '_ {
-        self.board.iter().enumerate()
-            .filter_map(move |(index, o)| {
-                o.map(move |ren_index| Stone {
-                    coordinates: one_to_2dim(self.size, index),
-                    color: self.go_strings[ren_index].color,
-                })
+        self.board.iter().enumerate().filter_map(move |(index, o)| {
+            o.map(move |ren_index| Stone {
+                coordinates: one_to_2dim(self.size, index),
+                color: self.chains[ren_index].color,
             })
+        })
     }
 
     /// Get stones by their color.
@@ -305,7 +307,7 @@ impl Goban {
             .enumerate()
             .filter(move |(_, option)| {
                 option
-                    .map(move |ren_idx| self.go_strings[ren_idx].color)
+                    .map(move |ren_idx| self.chains[ren_idx].color)
                     .unwrap_or(Color::None)
                     == color
             })
@@ -361,9 +363,9 @@ impl Goban {
 
     /// Remove a string from the game, it add liberties to all
     /// adjacent chains that aren't the same color.
-    pub fn remove_chain(&mut self, ren_to_remove_idx: ChainId) {
-        let color_of_the_string = self.go_strings[ren_to_remove_idx].color;
-        let mut updates: AHashMap<ChainId, Vec<ChainId>> = AHashMap::new();
+    pub fn remove_chain(&mut self, ren_to_remove_idx: ChainIdx) {
+        let color_of_the_string = self.chains[ren_to_remove_idx].color;
+        let mut updates: AHashMap<ChainIdx, Vec<ChainIdx>> = AHashMap::new();
 
         for point_idx in iter_stones!(self, ren_to_remove_idx) {
             for neighbor_str_idx in self
@@ -382,15 +384,18 @@ impl Goban {
         }
 
         for (ren_idx, new_liberties) in updates {
-            self.go_strings[ren_idx].add_liberties(new_liberties.into_iter());
+            self.chains[ren_idx].add_liberties(new_liberties.into_iter());
         }
 
         self.put_ren_in_bin(ren_to_remove_idx);
     }
 
     /// Updates the indexes to match actual goban. must use after we put a stone.
-    fn update_chain_indexes_in_board(&mut self, ren_idx: ChainId) {
-        debug_assert_eq!(iter_stones!(self, ren_idx).last().unwrap(), self.go_strings[ren_idx].last);
+    fn update_chain_indexes_in_board(&mut self, ren_idx: ChainIdx) {
+        debug_assert_eq!(
+            iter_stones!(self, ren_idx).last().unwrap(),
+            self.chains[ren_idx].last
+        );
         for point in iter_stones!(self, ren_idx) {
             unsafe {
                 *self.board.get_unchecked_mut(point) = Some(ren_idx);
@@ -402,8 +407,7 @@ impl Goban {
     #[inline]
     fn neighbor_points(&self, point: Point) -> impl Iterator<Item=Point> {
         let size = self.size;
-        neighbor_points(point)
-            .filter(move |&p| is_coord_valid(size, p))
+        neighbor_points(point).filter(move |&p| is_coord_valid(size, p))
     }
 
     #[inline]
@@ -413,97 +417,108 @@ impl Goban {
             .map(move |x| two_to_1dim(size, x))
     }
 
-    #[inline]
-    fn get_stones_from_string(&self, ren_idx: usize) -> impl Iterator<Item=usize> + '_ {
-        CircularRenIter::new(self.go_strings[ren_idx].origin, &self.next_stone)
+    pub fn get_chain_it(&self, chain_idx: ChainIdx) -> impl Iterator<Item=usize> + '_ {
+        CircularRenIter::new(self.chains[chain_idx].origin, &self.next_stone)
     }
 
     #[inline]
-    fn create_string(
-        &mut self,
-        origin: usize,
-        color: Color,
-        liberties: Set<BoardIdx>,
-    ) -> ChainId {
-        let ren_to_place = Chain::new_with_liberties(color, origin, liberties);
+    pub fn get_chain_it_by_board_idx(&self, board_idx: BoardIdx) -> impl Iterator<Item=usize> + '_ {
+        self.board[board_idx].map(|chain_idx| self.get_chain_it(chain_idx)).expect(&format!("The board index: {} was out of bounds", board_idx))
+    }
+
+    #[inline]
+    fn create_chain(&mut self, origin: usize, color: Color, liberties: Set<BoardIdx>) -> ChainIdx {
+        let chain_to_place = Chain::new_with_liberties(color, origin, liberties);
 
         self.next_stone[origin] = origin;
-        let ren_index = if let Some(free_slot_idx) = self.free_slots.pop()
-        {
-            self.go_strings[free_slot_idx] = ren_to_place;
+        let ren_index = if let Some(free_slot_idx) = self.free_slots.pop() {
+            self.chains[free_slot_idx] = chain_to_place;
             free_slot_idx
         } else {
-            self.go_strings.push(ren_to_place);
-            self.go_strings.len() - 1
+            self.chains.push(chain_to_place);
+            self.chains.len() - 1
         };
         self.update_chain_indexes_in_board(ren_index);
         ren_index
     }
 
-    fn add_stone_to_string(&mut self, ren_idx: usize, stone: usize) {
-        let ren = &mut self.go_strings[ren_idx];
-        if stone < ren.origin {
+    fn add_stone_to_chain(&mut self, chain_idx: usize, stone: usize) {
+        let chain = &mut self.chains[chain_idx];
+        if stone < chain.origin {
             // replace origin
-            self.next_stone[stone] = ren.origin;
-            self.next_stone[ren.last] = stone;
-            ren.origin = stone;
+            self.next_stone[stone] = chain.origin;
+            self.next_stone[chain.last] = stone;
+            chain.origin = stone;
         } else {
-            self.next_stone[ren.last] = stone;
-            self.next_stone[stone] = ren.origin;
-            ren.last = stone;
+            self.next_stone[chain.last] = stone;
+            self.next_stone[stone] = chain.origin;
+            chain.last = stone;
         }
-        ren.num_stones += 1;
-        debug_assert_eq!(iter_stones!(self, ren_idx).last().unwrap(), self.go_strings[ren_idx].last);
+        chain.num_stones += 1;
+        debug_assert_eq!(
+            iter_stones!(self, chain_idx).last().unwrap(),
+            self.chains[chain_idx].last
+        );
     }
 
-    fn merge_strings(&mut self, ren1_idx: ChainId, ren2_idx: ChainId) {
+    fn merge_strings(&mut self, chain1_idx: ChainIdx, chain2_idx: ChainIdx) {
         debug_assert_eq!(
-            self.go_strings[ren1_idx].color, self.go_strings[ren2_idx].color,
+            self.chains[chain1_idx].color, self.chains[chain2_idx].color,
             "Cannot merge two strings of different color"
         );
-        debug_assert_ne!(ren1_idx, ren2_idx, "merging the same string");
+        debug_assert_ne!(chain1_idx, chain2_idx, "merging the same string");
 
-        let (ren1, ren2) = if ren1_idx < ren2_idx {
-            let (s1, s2) = self.go_strings.split_at_mut(ren2_idx);
-            (&mut s1[ren1_idx], s2.first_mut().unwrap())
+        let (chain1, chain2) = if chain1_idx < chain2_idx {
+            let (s1, s2) = self.chains.split_at_mut(chain2_idx);
+            (&mut s1[chain1_idx], s2.first_mut().unwrap())
         } else {
             // ren2_idx > ren1_idx
-            let (s_contains_ren2, s_contains_ren1) = self.go_strings.split_at_mut(ren1_idx);
-            (s_contains_ren1.first_mut().unwrap(), &mut s_contains_ren2[ren2_idx])
+            let (contains_chain2, contains_ren1) = self.chains.split_at_mut(chain1_idx);
+            (
+                contains_ren1.first_mut().unwrap(),
+                &mut contains_chain2[chain2_idx],
+            )
         };
-        ren1.liberties.extend(&ren2.liberties);
+        chain1.liberties.extend(&chain2.liberties);
 
+        let chain1_last = chain1.last;
+        let chain2_last = chain2.last;
 
-        let ren1_last = ren1.last;
-        let ren2_last = ren2.last;
+        let chain1_origin = chain1.origin;
+        let chain2_origin = chain2.origin;
 
-        let ren1_origin = ren1.origin;
-        let ren2_origin = ren2.origin;
-
-        if ren1_origin > ren2_origin {
-            ren1.origin = ren2_origin;
+        if chain1_origin > chain2_origin {
+            chain1.origin = chain2_origin;
         } else {
-            ren1.last = ren2_last;
+            chain1.last = chain2_last;
         }
-        self.next_stone.swap(ren1_last, ren2_last);
-        ren1.num_stones += ren2.num_stones;
+        self.next_stone.swap(chain1_last, chain2_last);
+        chain1.num_stones += chain2.num_stones;
 
-        self.update_chain_indexes_in_board(ren1_idx);
-        self.put_ren_in_bin(ren2_idx);
+        self.update_chain_indexes_in_board(chain1_idx);
+        self.put_ren_in_bin(chain2_idx);
     }
 
     #[inline]
-    fn put_ren_in_bin(&mut self, ren_idx: ChainId) {
-        self.go_strings[ren_idx].used = false;
+    fn put_ren_in_bin(&mut self, ren_idx: ChainIdx) {
+        self.chains[ren_idx].used = false;
         self.free_slots.push(ren_idx);
     }
 
     #[allow(dead_code)]
     #[cfg(debug_assertions)]
-    fn check_integrity_ren(&self, ren_idx: ChainId) {
-        assert_eq!(iter_stones!(self, ren_idx).next().unwrap(), self.go_strings[ren_idx].origin, "The origin doesn't match");
-        assert_eq!(iter_stones!(self, ren_idx).last().unwrap(), self.go_strings[ren_idx].last, "The last doesn't match");
-        if iter_stones!(self, ren_idx).count() as u16 != self.go_strings[ren_idx].num_stones {
+    fn check_integrity_ren(&self, ren_idx: ChainIdx) {
+        assert_eq!(
+            iter_stones!(self, ren_idx).next().unwrap(),
+            self.chains[ren_idx].origin,
+            "The origin doesn't match"
+        );
+        assert_eq!(
+            iter_stones!(self, ren_idx).last().unwrap(),
+            self.chains[ren_idx].last,
+            "The last doesn't match"
+        );
+        if iter_stones!(self, ren_idx).count() as u16 != self.chains[ren_idx].num_stones {
             panic!("The number of stones don't match")
         }
     }
@@ -511,7 +526,7 @@ impl Goban {
     #[allow(dead_code)]
     #[cfg(debug_assertions)]
     fn check_integrity_all(&self) {
-        for ren_idx in (0..self.go_strings.len()).filter(|&ren_idx| self.go_strings[ren_idx].used) {
+        for ren_idx in (0..self.chains.len()).filter(|&ren_idx| self.chains[ren_idx].used) {
             self.check_integrity_ren(ren_idx);
         }
     }

@@ -20,7 +20,8 @@ impl<'a> Iterator for CircularRenIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let origin = self.origin;
         let ret = self.next;
-        self.next = self.next
+        self.next = self
+            .next
             .map(|stone_idx| self.next_stone[stone_idx])
             .filter(move |&o| o != origin);
 

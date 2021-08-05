@@ -64,10 +64,7 @@ impl From<RuleSet> for Rule {
         match r {
             RuleSet::Japanese => JAPANESE,
             RuleSet::Chinese => CHINESE,
-            _ => panic!(
-                "The rule {} is not implemented yet !",
-                r.to_string()
-            ),
+            _ => panic!("The rule {} is not implemented yet !", r.to_string()),
         }
     }
 }

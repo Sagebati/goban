@@ -734,7 +734,6 @@ mod tests {
         assert_eq!(6, iter.next().unwrap());
         assert_eq!(None, iter.next());
 
-
         let iter = CircularRenIter::new(2, &a);
         assert_eq!(6, iter.last().unwrap());
 

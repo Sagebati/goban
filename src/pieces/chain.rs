@@ -1,26 +1,26 @@
 use crate::pieces::Set;
 use crate::pieces::stones::Color;
 
-type SetIdx = Set<usize>;
+type SetBoardIdx = Set<usize>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Ren {
+pub struct Chain {
     pub color: Color,
     pub origin: usize,
     pub last: usize,
-    pub liberties: SetIdx,
+    pub liberties: SetBoardIdx,
     pub used: bool,
     pub num_stones: u16,
 }
 
-impl Ren {
+impl Chain {
     #[inline]
     pub fn new(color: Color, stone: usize) -> Self {
         Self::new_with_liberties(color, stone, Default::default())
     }
 
-    pub fn new_with_liberties(color: Color, stone: usize, liberties: SetIdx) -> Self {
-        Ren {
+    pub fn new_with_liberties(color: Color, stone: usize, liberties: SetBoardIdx) -> Self {
+        Chain {
             color,
             origin: stone,
             last: stone,
@@ -53,14 +53,22 @@ impl Ren {
 
     #[inline]
     pub fn remove_liberty(&mut self, stone_idx: usize) -> &mut Self {
-        debug_assert!(self.liberties.contains(&stone_idx), "Tried to remove a liberty, who isn't present. stone idx: {}", stone_idx);
+        debug_assert!(
+            self.liberties.contains(&stone_idx),
+            "Tried to remove a liberty, who isn't present. stone idx: {}",
+            stone_idx
+        );
         self.liberties.remove(&stone_idx);
         self
     }
 
     #[inline]
     pub fn add_liberty(&mut self, stone_idx: usize) -> &mut Self {
-        debug_assert!(!self.liberties.contains(&stone_idx), "Tried to add a liberty already present, stone idx: {}", stone_idx);
+        debug_assert!(
+            !self.liberties.contains(&stone_idx),
+            "Tried to add a liberty already present, stone idx: {}",
+            stone_idx
+        );
         self.liberties.insert(stone_idx);
         self
     }
@@ -74,7 +82,7 @@ impl Ren {
     }
 
     #[inline]
-    pub fn add_liberties_owned(&mut self, stones_idx: SetIdx) -> &mut Self {
+    pub fn add_liberties_owned(&mut self, stones_idx: SetBoardIdx) -> &mut Self {
         self.liberties.extend(stones_idx);
         self
     }

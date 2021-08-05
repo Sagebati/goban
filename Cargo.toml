@@ -1,13 +1,13 @@
 [package]
 name = "goban"
-version = "0.16.2"
+version = "0.17.0"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme = "README.md"
 description = "Library for Go move generation and Go ruling."
 edition = "2018"
 license = "MIT"
 repository = "https://github.com/Sagebati/goban"
-keywords = ["go", "goban", "baduk", "board_game", "move_generation"]
+keywords = ["go", "game", "baduk", "igo", "move_generation"]
 
 [badges]
 gitlab = { repository = "Sabati/goban" }
