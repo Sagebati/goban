@@ -8,9 +8,10 @@ mod tests {
     use goban::pieces::stones::Color;
     use goban::pieces::stones::Color::Black;
     use goban::pieces::stones::Stone;
+    use goban::pieces::util::CircularRenIter;
     use goban::pieces::zobrist::index_zobrist;
-    use goban::rules::{CHINESE, JAPANESE};
     use goban::rules::{EndGame, GobanSizes, Move, Player};
+    use goban::rules::{CHINESE, JAPANESE};
     use goban::rules::game::Game;
     use goban::rules::Move::Play;
 
@@ -27,7 +28,7 @@ mod tests {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
         g.push((1, 2), Color::White);
         g.push((1, 3), Color::Black);
-        let tab = g.raw();
+        let tab = g.vec();
         let g2 = Goban::from_array(&tab);
         assert_eq!(g, g2)
     }
@@ -506,7 +507,7 @@ mod tests {
     }
 
     #[test]
-    fn score_calcul() {
+    fn calculate_score() {
         let mut g = Game::new(GobanSizes::Nine, JAPANESE);
         g.play(Move::Play(4, 4));
         g.play(Move::Pass);
@@ -517,8 +518,8 @@ mod tests {
     }
 
     #[test]
-    fn score_calcul2() {
-        let mut g = Game::new(GobanSizes::Nineteen,CHINESE);
+    fn calculate_score2() {
+        let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
         g.set_komi(0.);
         (0..38).for_each(|x| {
             g.try_play(Play(if x % 2 == 0 { 9 } else { 8 }, x / 2))
@@ -565,7 +566,7 @@ mod tests {
     }
 
     #[test]
-    fn score_calcul_chinese() {
+    fn calculate_chinesse_score() {
         let mut g = Game::new(GobanSizes::Nine, CHINESE);
         g.play(Move::Play(4, 4));
         g.play(Move::Pass);
@@ -574,7 +575,7 @@ mod tests {
             Some(endgame) => Ok(endgame),
             _ => Err("Game not finished"),
         }
-        .expect("Game finished");
+            .expect("Game finished");
         let (black, white) = g.calculate_score();
         assert_eq!(black, 81.);
         assert_eq!(white, g.komi());
@@ -666,8 +667,8 @@ mod tests {
         game.display_goban();
         game.play(Move::Play(2, 0)); // black
         game.display_goban();
-        //game.play(Move::Play(0, 1)); // white suicide whith
-        //println!("{}", game);
+        //game.play(Move::Play(0, 1)); // white suicide
+        // println!("{}", game);
         // suicide
         assert!(game.check_suicide(Stone {
             coordinates: (0, 1),
@@ -719,8 +720,25 @@ mod tests {
         game.display_goban();
         let mut goban: Goban = game.goban().clone();
         for string in game.dead_stones_wth_simulations(20) {
-            goban.remove_go_string(string);
+            goban.remove_chain(string);
         }
         println!("{}", goban);
+    }
+
+    #[test]
+    fn circular_ren_iter_test() {
+        let a = vec![0, 0, 4, 0, 6, 0, 2, 0, 8, 0, 0, 0];
+        let mut iter = CircularRenIter::new(2, &a);
+        assert_eq!(2, iter.next().unwrap());
+        assert_eq!(4, iter.next().unwrap());
+        assert_eq!(6, iter.next().unwrap());
+        assert_eq!(None, iter.next());
+
+        let iter = CircularRenIter::new(2, &a);
+        assert_eq!(6, iter.last().unwrap());
+
+        let mut iter = CircularRenIter::new(8, &a);
+        assert_eq!(8, iter.next().unwrap());
+        assert_eq!(None, iter.next());
     }
 }

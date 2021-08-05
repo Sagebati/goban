@@ -1,10 +1,10 @@
 use sgf_parser::{Action, Color, Outcome, RuleSet, SgfToken};
 
-use crate::pieces::util::coord::Point;
 use crate::pieces::Nat;
+use crate::pieces::util::coord::Point;
+use crate::rules::{CHINESE, EndGame, JAPANESE, Move, Player, Rule};
 use crate::rules::game::Game;
 use crate::rules::game_builder::GameBuilder;
-use crate::rules::{EndGame, Move, Player, Rule, JAPANESE, CHINESE};
 
 impl Game {
     pub fn from_sgf(sgf_str: &str) -> Result<Self, String> {
@@ -12,7 +12,7 @@ impl Game {
             Ok(game) => Ok(game),
             Err(e) => Err(e.to_string()),
         }?;
-        let mut gamebuilder: GameBuilder = Default::default();
+        let mut game_builder: GameBuilder = Default::default();
         let mut first = true;
         let mut moves = vec![];
         let mut handicap: Vec<Point> = vec![];
@@ -24,13 +24,13 @@ impl Game {
                 for token in &node.tokens {
                     match token {
                         SgfToken::Komi(komi) => {
-                            gamebuilder.komi(*komi);
+                            game_builder.komi(*komi);
                         }
                         SgfToken::Size(x, y) => {
-                            gamebuilder.size((*x, *y));
+                            game_builder.size((*x, *y));
                         }
                         SgfToken::Result(o) => {
-                            gamebuilder.outcome((*o).into());
+                            game_builder.outcome((*o).into());
                         }
                         SgfToken::Add {
                             color,
@@ -39,7 +39,7 @@ impl Game {
                             handicap.push(((*x - 1) as Nat, (*y - 1) as Nat));
                         }
                         SgfToken::Rule(rule) => {
-                            gamebuilder.rule(rule.clone().into());
+                            game_builder.rule(rule.clone().into());
                         }
                         //TODO another options
                         _ => (),
@@ -53,9 +53,9 @@ impl Game {
                 }
             }
         }
-        gamebuilder.handicap(&handicap);
-        gamebuilder.moves(&moves);
-        gamebuilder.build()
+        game_builder.handicap(&handicap);
+        game_builder.moves(&moves);
+        game_builder.build()
     }
 }
 
@@ -64,10 +64,7 @@ impl From<RuleSet> for Rule {
         match r {
             RuleSet::Japanese => JAPANESE,
             RuleSet::Chinese => CHINESE,
-            _ => panic!(format!(
-                "The rule {} is not implemented yet !",
-                r.to_string()
-            )),
+            _ => panic!("The rule {} is not implemented yet !", r.to_string()),
         }
     }
 }

@@ -54,7 +54,7 @@ impl GameTrait for Game {
         self.outcome()
             .unwrap()
             .get_winner()
-            .expect("Exquo in Go is very rare")
+            .expect("The game was ex aequo")
     }
 }
 
@@ -152,7 +152,7 @@ impl Game {
         for eye in eyes {
             let string_connected_eye = self
                 .goban
-                .get_neighbors_strings(eye)
+                .get_neighbors_strings_indices_by_idx(eye)
                 .collect::<HashSet<_>>();
             for x in string_connected_eye {
                 strings_wth_eye

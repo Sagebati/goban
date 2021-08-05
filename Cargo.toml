@@ -1,13 +1,13 @@
 [package]
 name = "goban"
-version = "0.16.1"
+version = "0.17.0"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme = "README.md"
 description = "Library for Go move generation and Go ruling."
 edition = "2018"
 license = "MIT"
 repository = "https://github.com/Sagebati/goban"
-keywords = ["go", "goban", "baduk", "board_game", "move_generation"]
+keywords = ["go", "game", "baduk", "igo", "move_generation"]
 
 [badges]
 gitlab = { repository = "Sabati/goban" }
@@ -20,27 +20,24 @@ codegen-units = 1
 [features]
 history = []
 deadstones = ["rand", "oxymcts"]
-thread-safe = []
 
 [dependencies]
-arrayvec = "^0.5.2"
-bitflags = "^1.2.1"
-by_address = "^1.0.4"
-getset = "^0.1.1"
-hash_hasher = "^2.0.3"
-ahash = "^0.6.2"
-sgf-parser = "^2.4.0"
-rand = { version = "^0.7.3", optional = true }
-oxymcts = { version = "^0.1.0", optional = true }
-
+bitflags = "1.2.1"
+getset = "0.1.1"
+hash_hasher = "2.0.3"
+ahash = "0.7.2"
+sgf-parser = "2.6.0"
+rand = { version = "0.8.3", optional = true }
+oxymcts = { version = "0.1.0", optional = true }
 
 [dev-dependencies]
-criterion = "0.3.3"
-rand = "0.7.3"
+criterion = "0.3.4"
+rand = "0.8.3"
 
 [profile.bench]
 lto = "fat"
 codegen-units = 1
+debug = true
 
 [[bench]]
 name = "perft"

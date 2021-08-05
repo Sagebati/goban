@@ -1,6 +1,6 @@
 //! # GameBuilder Helper
 //! Utility for creating complex games with non standard komi, handicap etc...
-//! # Exemple
+//! # Example
 //! ```
 //! use crate::goban::rules::game_builder::GameBuilder;
 //! use crate::goban::rules::Rule;
@@ -19,11 +19,11 @@
 //! ```
 
 use crate::pieces::goban::Goban;
+use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
-use crate::pieces::Nat;
+use crate::rules::{CHINESE, EndGame, Move, Player, Rule};
 use crate::rules::game::Game;
-use crate::rules::{EndGame, Move, Player, Rule, CHINESE};
 use crate::rules::Player::White;
 
 pub struct GameBuilder {

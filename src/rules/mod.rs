@@ -9,7 +9,7 @@ use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
 
 #[cfg(deadstones)]
-mod deadstones;
+mod dead_stones;
 pub mod game;
 pub mod game_builder;
 mod sgf_bridge;
@@ -59,9 +59,9 @@ pub enum GobanSizes {
     Custom(Nat, Nat),
 }
 
-impl Into<(Nat, Nat)> for GobanSizes {
-    fn into(self) -> (Nat, Nat) {
-        match self {
+impl From<GobanSizes> for (Nat, Nat) {
+    fn from(goban_sizes: GobanSizes) -> (Nat, Nat) {
+        match goban_sizes {
             GobanSizes::Nine => (9, 9),
             GobanSizes::Thirteen => (13, 13),
             GobanSizes::Nineteen => (19, 19),
@@ -153,24 +153,29 @@ bitflags! {
     }
 }
 
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Rule {
     pub komi: f32,
-    pub f_illegal: IllegalRules,
-    pub f_score: ScoreRules,
+    pub flag_illegal: IllegalRules,
+    pub flag_score: ScoreRules,
 }
 
 pub static JAPANESE: Rule = Rule {
     komi: 6.5,
-    f_illegal: IllegalRules::from_bits_truncate(IllegalRules::KO.bits() | IllegalRules::SUICIDE.bits()),
-    f_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::PRISONNERS.bits()),
+    flag_illegal: IllegalRules::from_bits_truncate(
+        IllegalRules::KO.bits() | IllegalRules::SUICIDE.bits(),
+    ),
+    flag_score: ScoreRules::from_bits_truncate(
+        ScoreRules::KOMI.bits() | ScoreRules::PRISONNERS.bits(),
+    ),
 };
 
 pub static CHINESE: Rule = Rule {
     komi: 7.5,
-    f_illegal: IllegalRules::from_bits_truncate(IllegalRules::KO.bits() | IllegalRules::SUPERKO.bits() | IllegalRules::SUICIDE.bits()),
-    f_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::STONES.bits()),
+    flag_illegal: IllegalRules::from_bits_truncate(
+        IllegalRules::KO.bits() | IllegalRules::SUPERKO.bits() | IllegalRules::SUICIDE.bits(),
+    ),
+    flag_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::STONES.bits()),
 };
 
 impl FromStr for Rule {
