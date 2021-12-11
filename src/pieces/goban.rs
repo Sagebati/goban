@@ -30,10 +30,10 @@ macro_rules! iter_stones {
 #[derive(Getters, Setters, CopyGetters, Debug, Clone)]
 pub struct Goban {
     #[get = "pub"]
-    pub(super) chains: ArrayVec<Chain, 128>,
+    pub(super) chains: Vec<Chain>,
     board: Vec<Option<ChainIdx>>,
-    next_stone: ArrayVec<usize, 361>,
-    free_slots: ArrayVec<usize, 64>,
+    next_stone: Vec<usize>,
+    free_slots: Vec<usize>,
     #[get_copy = "pub"]
     size: (usize, usize),
     #[get_copy = "pub"]
@@ -50,9 +50,9 @@ impl Goban {
             size: (height as usize, width as usize),
             zobrist_hash: 0,
             board: vec![None; height as usize * width as usize],
-            next_stone: ArrayVec::from([0; 361]),
-            chains: ArrayVec::new(),
-            free_slots: ArrayVec::new(),
+            next_stone: vec![0; height as usize * width as usize],
+            chains: Vec::with_capacity(128),
+            free_slots: Vec::with_capacity(32),
         }
     }
 
@@ -309,15 +309,13 @@ impl Goban {
             .iter()
             .enumerate()
             .filter(move |(_, option)| {
-                option
-                    .map(move |ren_idx| self.chains[ren_idx].color)
-                    .unwrap_or(Color::None)
-                    == color
+                option.map(move |ren_idx| self.chains[ren_idx].color)
+                    .unwrap_or(Color::None) == color
             })
             .map(move |(index, _)| one_to_2dim(size, index))
     }
 
-    /// Returns the empty stones connected to the stone
+    /// Returns the "empty" stones connected to the stone
     #[inline]
     pub fn get_liberties(&self, point: Point) -> impl Iterator<Item=Stone> + '_ {
         self.get_neighbors(point).filter(|s| s.color == Color::None)
@@ -391,7 +389,7 @@ impl Goban {
             self.board[point_idx] = Option::None;
         }
 
-        self.put_ren_in_bin(ren_to_remove_idx);
+        self.put_chain_in_bin(ren_to_remove_idx);
     }
 
     /// Updates the indexes to match actual goban. must use after we put a stone.
@@ -500,11 +498,11 @@ impl Goban {
         chain1.num_stones += chain2.num_stones;
 
         self.update_chain_indexes_in_board(chain1_idx);
-        self.put_ren_in_bin(chain2_idx);
+        self.put_chain_in_bin(chain2_idx);
     }
 
     #[inline]
-    fn put_ren_in_bin(&mut self, ren_idx: ChainIdx) {
+    fn put_chain_in_bin(&mut self, ren_idx: ChainIdx) {
         self.chains[ren_idx].used = false;
         self.free_slots.push(ren_idx);
     }
