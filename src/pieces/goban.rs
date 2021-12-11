@@ -6,6 +6,7 @@ use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 
 use ahash::AHashMap;
+use bitvec::{BitArr, bitarr};
 
 use crate::pieces::{Nat, Set};
 use crate::pieces::chain::Chain;
@@ -51,8 +52,8 @@ impl Goban {
             zobrist_hash: 0,
             board: vec![None; height as usize * width as usize],
             next_stone: vec![0; height as usize * width as usize],
-            chains: Vec::with_capacity(60),
-            free_slots: Vec::with_capacity(20),
+            chains: Vec::with_capacity(128),
+            free_slots: Vec::with_capacity(32),
         }
     }
 
@@ -123,7 +124,7 @@ impl Goban {
 
         let mut adjacent_same_color_str_set = Set::default();
         let mut adjacent_opposite_color_str_set = Set::default();
-        let mut liberties = Set::default();
+        let mut liberties = bitarr!(0;361);
 
         for neighbor_idx in self.neighbor_points_indexes(pushed_stone_idx) {
             match self.board[neighbor_idx] {
@@ -135,7 +136,7 @@ impl Goban {
                     }
                 }
                 Option::None => {
-                    liberties.insert(neighbor_idx);
+                    liberties.set(neighbor_idx, true);
                 }
             }
         }
@@ -427,7 +428,7 @@ impl Goban {
     }
 
     #[inline]
-    fn create_chain(&mut self, origin: usize, color: Color, liberties: Set<BoardIdx>) -> ChainIdx {
+    fn create_chain(&mut self, origin: usize, color: Color, liberties: BitArr!(for 361)) -> ChainIdx {
         let chain_to_place = Chain::new_with_liberties(color, origin, liberties);
 
         self.next_stone[origin] = origin;
@@ -479,7 +480,7 @@ impl Goban {
                 &mut contains_chain2[chain2_idx],
             )
         };
-        chain1.liberties.extend(&chain2.liberties);
+        chain1.liberties |= chain2.liberties;
 
         let chain1_last = chain1.last;
         let chain2_last = chain2.last;
