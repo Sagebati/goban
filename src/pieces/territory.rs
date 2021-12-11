@@ -1,7 +1,8 @@
 //! Module with tools for getting the connected stones and liberties.
 
+use std::collections::HashSet;
+
 use crate::pieces::goban::Goban;
-use crate::pieces::Set;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 
@@ -25,8 +26,8 @@ impl Goban {
     /// stone is.
     /// It will return the stone alone if it's lonely
     ///
-    pub fn get_chain_from_stone(&self, stone: Stone) -> Set<Stone> {
-        let mut explored: Set<Stone> = Set::new();
+    pub fn get_chain_from_stone(&self, stone: Stone) -> HashSet<Stone> {
+        let mut explored = HashSet::<Stone>::new();
         explored.insert(stone);
 
         let mut to_explore: Vec<Stone> = self
@@ -55,8 +56,8 @@ impl Goban {
     pub fn get_chains_from_stones(
         &self,
         stones: impl Iterator<Item=Stone>,
-    ) -> Vec<Set<Stone>> {
-        let mut groups_of_stones: Vec<Set<Stone>> = Default::default();
+    ) -> Vec<HashSet<Stone>> {
+        let mut groups_of_stones: Vec<HashSet<Stone>> = Default::default();
         for s in stones {
             let is_handled = groups_of_stones.iter().any(|set| set.contains(&s));
 

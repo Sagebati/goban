@@ -8,8 +8,8 @@ use std::hash::{Hash, Hasher};
 use arrayvec::ArrayVec;
 use bitvec::{BitArr, bitarr};
 
-use crate::pieces::Nat;
 use crate::pieces::chain::Chain;
+use crate::pieces::Nat;
 use crate::pieces::stones::*;
 use crate::pieces::util::CircularRenIter;
 use crate::pieces::util::coord::{
@@ -30,13 +30,12 @@ macro_rules! iter_stones {
 #[derive(Getters, Setters, CopyGetters, Debug, Clone)]
 pub struct Goban {
     #[get = "pub"]
-    pub(super) chains: Vec<Chain>,
+    pub(super) chains: ArrayVec<Chain, 128>,
     board: Vec<Option<ChainIdx>>,
-    next_stone: Vec<usize>,
-    free_slots: Vec<usize>,
+    next_stone: ArrayVec<usize, 361>,
+    free_slots: ArrayVec<usize, 64>,
     #[get_copy = "pub"]
     size: (usize, usize),
-
     #[get_copy = "pub"]
     zobrist_hash: u64,
 }
@@ -51,9 +50,9 @@ impl Goban {
             size: (height as usize, width as usize),
             zobrist_hash: 0,
             board: vec![None; height as usize * width as usize],
-            next_stone: vec![0; height as usize * width as usize],
-            chains: Vec::with_capacity(128),
-            free_slots: Vec::with_capacity(32),
+            next_stone: ArrayVec::from([0; 361]),
+            chains: ArrayVec::new(),
+            free_slots: ArrayVec::new(),
         }
     }
 
