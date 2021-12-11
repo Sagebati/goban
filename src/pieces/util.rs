@@ -35,8 +35,6 @@ impl<'a> Iterator for CircularRenIter<'a> {
 }
 
 pub mod coord {
-    use std::array::IntoIter;
-
     use crate::pieces::Nat;
 
     /// Defining the policy for the columns.

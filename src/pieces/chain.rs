@@ -1,7 +1,5 @@
-use bitvec::{bitarr, BitArr};
-use bitvec::order::Msb0;
+use bitvec::BitArr;
 
-use crate::pieces::Set;
 use crate::pieces::stones::Color;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

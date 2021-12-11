@@ -5,11 +5,10 @@ use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 
-use ahash::{AHashMap, AHashSet};
 use arrayvec::ArrayVec;
 use bitvec::{BitArr, bitarr};
 
-use crate::pieces::{Nat, Set};
+use crate::pieces::Nat;
 use crate::pieces::chain::Chain;
 use crate::pieces::stones::*;
 use crate::pieces::util::CircularRenIter;
@@ -120,20 +119,22 @@ impl Goban {
         &mut self,
         point: Point,
         color: Color,
-    ) -> (Vec<usize>, ChainIdx) {
+    ) -> (ArrayVec<usize, 4>, ChainIdx) {
         let pushed_stone_idx = two_to_1dim(self.size, point);
 
-        let mut adjacent_same_color_str_set = Set::default();
-        let mut adjacent_opposite_color_str_set = Set::default();
+        let mut adjacent_same_color_str_set = ArrayVec::<_, 4>::new();
+        let mut adjacent_opposite_color_str_set = ArrayVec::<_, 4>::new();
         let mut liberties = bitarr!(0;361);
 
         for neighbor_idx in self.neighbor_points_indexes(pushed_stone_idx) {
             match self.board[neighbor_idx] {
                 Some(adj_ren_index) => {
                     if self.chains[adj_ren_index].color == color {
-                        adjacent_same_color_str_set.insert(adj_ren_index);
-                    } else {
-                        adjacent_opposite_color_str_set.insert(adj_ren_index);
+                        if !adjacent_same_color_str_set.contains(&adj_ren_index) {
+                            adjacent_same_color_str_set.push(adj_ren_index);
+                        }
+                    } else if !adjacent_opposite_color_str_set.contains(&adj_ren_index) {
+                        adjacent_opposite_color_str_set.push(adj_ren_index);
                     }
                 }
                 Option::None => {
@@ -142,7 +143,7 @@ impl Goban {
             }
         }
 
-        let mut dead_ren = Vec::with_capacity(4);
+        let mut dead_ren = ArrayVec::<_, 4>::new();
         // for every string of opposite color remove a liberty and update the string.
         for ren_idx in adjacent_opposite_color_str_set {
             let ren = &mut self.chains[ren_idx];
@@ -240,7 +241,7 @@ impl Goban {
         self.neighbor_points(coord).map(move |point| Stone {
             coordinates: point,
             color: self.get_stone(point),
-        }).into_iter()
+        })
     }
 
     /// Get all the stones that are neighbor to the coord except empty intersections.
@@ -427,7 +428,7 @@ impl Goban {
 
     #[inline]
     pub fn get_chain_it_by_board_idx(&self, board_idx: BoardIdx) -> impl Iterator<Item=usize> + '_ {
-        self.board[board_idx].map(|chain_idx| self.get_chain_it(chain_idx)).expect(&format!("The board index: {} was out of bounds", board_idx))
+        self.board[board_idx].map(|chain_idx| self.get_chain_it(chain_idx)).unwrap_or_else(|| panic!("The board index: {} was out of bounds", board_idx))
     }
 
     #[inline]
