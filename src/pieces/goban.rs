@@ -5,7 +5,8 @@ use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 
-use ahash::AHashMap;
+use ahash::{AHashMap, AHashSet};
+use arrayvec::ArrayVec;
 use bitvec::{BitArr, bitarr};
 
 use crate::pieces::{Nat, Set};
@@ -239,7 +240,7 @@ impl Goban {
         self.neighbor_points(coord).map(move |point| Stone {
             coordinates: point,
             color: self.get_stone(point),
-        })
+        }).into_iter()
     }
 
     /// Get all the stones that are neighbor to the coord except empty intersections.
@@ -253,6 +254,7 @@ impl Goban {
     pub fn get_neighbors_chain_indexes(&self, coord: Point) -> impl Iterator<Item=ChainIdx> + '_ {
         self.neighbor_points(coord)
             .map(move |point| two_to_1dim(self.size, point))
+            .into_iter()
             .filter_map(move |point| self.board[point])
     }
 
@@ -366,26 +368,27 @@ impl Goban {
     /// adjacent chains that aren't the same color.
     pub fn remove_chain(&mut self, ren_to_remove_idx: ChainIdx) {
         let color_of_the_string = self.chains[ren_to_remove_idx].color;
-        let mut updates: AHashMap<ChainIdx, Vec<ChainIdx>> = AHashMap::new();
+        let mut neighbors = ArrayVec::<_, 4>::new();
 
         for point_idx in iter_stones!(self, ren_to_remove_idx) {
             for neighbor_str_idx in self
-                .get_neighbors_strings_indices_by_idx(point_idx)
-                .collect::<Set<_>>()
-            {
+                .get_neighbors_strings_indices_by_idx(point_idx) {
                 if ren_to_remove_idx != neighbor_str_idx {
-                    updates
-                        .entry(neighbor_str_idx)
-                        .and_modify(|v| v.push(point_idx))
-                        .or_insert_with(|| vec![point_idx]);
+                    #[cfg(debug_assertions)]
+                    if !neighbors.contains(&neighbor_str_idx) {
+                        neighbors.push(neighbor_str_idx)
+                    }
+                    #[cfg(not(debug_assertions))]
+                        neighbors.push(neighbor_str_idx)
                 }
             }
+
+            for &n in &neighbors {
+                self.chains[n].add_liberty(point_idx);
+            }
+            neighbors.clear();
             self.zobrist_hash ^= index_zobrist(point_idx, color_of_the_string);
             self.board[point_idx] = Option::None;
-        }
-
-        for (ren_idx, new_liberties) in updates {
-            self.chains[ren_idx].add_liberties(new_liberties.into_iter());
         }
 
         self.put_ren_in_bin(ren_to_remove_idx);
@@ -408,7 +411,7 @@ impl Goban {
     #[inline]
     fn neighbor_points(&self, point: Point) -> impl Iterator<Item=Point> {
         let size = self.size;
-        neighbor_points(point).filter(move |&p| is_coord_valid(size, p))
+        neighbor_points(point).into_iter().filter(move |&p| is_coord_valid(size, p))
     }
 
     #[inline]
