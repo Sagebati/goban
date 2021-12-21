@@ -35,8 +35,6 @@ impl<'a> Iterator for CircularRenIter<'a> {
 }
 
 pub mod coord {
-    use std::array::IntoIter;
-
     use crate::pieces::Nat;
 
     /// Defining the policy for the columns.
@@ -59,22 +57,22 @@ pub mod coord {
     }
 
     #[inline(always)]
-    pub fn neighbor_points((x1, x2): Point) -> impl Iterator<Item=Point> {
-        IntoIter::new([
+    pub const fn neighbor_points((x1, x2): Point) -> [Point; 4] {
+        [
             (x1 + 1, x2),
             (x1.wrapping_sub(1), x2),
             (x1, x2 + 1),
             (x1, x2.wrapping_sub(1)),
-        ])
+        ]
     }
 
     #[inline(always)]
-    pub fn corner_points((x1, x2): Point) -> impl Iterator<Item=Point> {
-        IntoIter::new([
+    pub const fn corner_points((x1, x2): Point) -> [Point; 4] {
+        [
             (x1 + 1, x2 + 1),
             (x1.wrapping_sub(1), x2.wrapping_sub(1)),
             (x1 + 1, x2.wrapping_sub(1)),
             (x1.wrapping_sub(1), x2 + 1),
-        ])
+        ]
     }
 }

@@ -1,14 +1,13 @@
-use crate::pieces::Set;
-use crate::pieces::stones::Color;
+use bitvec::BitArr;
 
-type SetBoardIdx = Set<usize>;
+use crate::pieces::stones::Color;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Chain {
     pub color: Color,
     pub origin: usize,
     pub last: usize,
-    pub liberties: SetBoardIdx,
+    pub liberties: BitArr!(for 361),
     pub used: bool,
     pub num_stones: u16,
 }
@@ -19,7 +18,7 @@ impl Chain {
         Self::new_with_liberties(color, stone, Default::default())
     }
 
-    pub fn new_with_liberties(color: Color, stone: usize, liberties: SetBoardIdx) -> Self {
+    pub fn new_with_liberties(color: Color, stone: usize, liberties: BitArr!(for 361)) -> Self {
         Chain {
             color,
             origin: stone,
@@ -32,44 +31,44 @@ impl Chain {
 
     #[inline]
     pub fn is_dead(&self) -> bool {
-        self.liberties.is_empty()
+        !self.liberties.any()
     }
 
     #[inline]
     pub fn number_of_liberties(&self) -> usize {
-        self.liberties.len()
+        self.liberties.count_ones()
     }
 
     /// A go string is atari if it only has one liberty
     #[inline]
     pub fn is_atari(&self) -> bool {
-        self.number_of_liberties() == 1
+        self.liberties.count_ones() == 1
     }
 
     #[inline]
     pub fn contains_liberty(&self, stone_idx: usize) -> bool {
-        self.liberties.contains(&stone_idx)
+        self.liberties[stone_idx]
     }
 
     #[inline]
     pub fn remove_liberty(&mut self, stone_idx: usize) -> &mut Self {
         debug_assert!(
-            self.liberties.contains(&stone_idx),
+            self.liberties[stone_idx],
             "Tried to remove a liberty, who isn't present. stone idx: {}",
             stone_idx
         );
-        self.liberties.remove(&stone_idx);
+        self.liberties.set(stone_idx, false);
         self
     }
 
     #[inline]
     pub fn add_liberty(&mut self, stone_idx: usize) -> &mut Self {
         debug_assert!(
-            !self.liberties.contains(&stone_idx),
+            !self.liberties[stone_idx],
             "Tried to add a liberty already present, stone idx: {}",
             stone_idx
         );
-        self.liberties.insert(stone_idx);
+        self.liberties.set(stone_idx, true);
         self
     }
 
@@ -82,8 +81,8 @@ impl Chain {
     }
 
     #[inline]
-    pub fn add_liberties_owned(&mut self, stones_idx: SetBoardIdx) -> &mut Self {
-        self.liberties.extend(stones_idx);
+    pub fn add_liberties_owned(&mut self, stones_idx: BitArr!(for 361)) -> &mut Self {
+        self.liberties |= stones_idx;
         self
     }
 }

@@ -91,5 +91,4 @@ etc...
 
 ## Waiting for
 - Const generics or maybe not (benchmark with a Goban with backed array is slightly faster)
-- Into-Iter for arrays for removing arrayvec dep
 
