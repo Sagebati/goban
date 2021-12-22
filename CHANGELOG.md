@@ -1,3 +1,13 @@
+Changelog
+==
+
+# 0.18.0-beta
+
+Release specialised in removing allocations
+- The structure chain doesn't use hashset anymore and use bitvec instead
+- optimised the push_wth_feedback method and the remove_chain method
+- this version is in beta because bitvec is also in beta
+
 # 0.17
 
 - Uses now "linked list" for storing stones in chains. Doesn't need the "thread-safe" feature anymore because we don't
