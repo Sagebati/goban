@@ -1,5 +1,7 @@
 TODO
 ==
+# Arch
+- remove getset dependency and refacto the project
 
 # Optimizing
 
