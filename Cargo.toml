@@ -1,6 +1,6 @@
 [package]
 name = "goban"
-version = "0.17.0"
+version = "0.18.0-beta"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme = "README.md"
 description = "Library for Go move generation and Go ruling."
