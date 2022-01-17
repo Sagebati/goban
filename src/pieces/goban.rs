@@ -304,15 +304,17 @@ impl Goban {
     /// Get points by their color.
     #[inline]
     pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Point> + '_ {
-        let size = self.size;
-        self.board
-            .iter()
-            .enumerate()
-            .filter(move |(_, option)| {
-                option.map(move |ren_idx| self.chains[ren_idx].color)
-                    .unwrap_or(Color::None) == color
-            })
-            .map(move |(index, _)| one_to_2dim(size, index))
+        let mut res = ArrayVec::<Point, 361>::new();
+        for board_idx in 0..(self.size.0 * self.size.1) {
+            if let Some(ren_idx) = self.board[board_idx] {
+                if self.chains[ren_idx].color == color {
+                    res.push(one_to_2dim(self.size, board_idx))
+                }
+            } else if color == Color::None {
+                res.push(one_to_2dim(self.size, board_idx))
+            }
+        }
+        res.into_iter()
     }
 
     /// Returns the "empty" stones connected to the stone
