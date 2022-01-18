@@ -728,6 +728,7 @@ pub const ZOBRIST: [u64; BOARD_SIZE * 2] = [
 ];
 
 pub const fn index_zobrist(index: usize, color: Color) -> u64 {
+    debug_assert!(color as usize <= 2);
     let page_idx = color as usize - 1;
     ZOBRIST[index + (BOARD_SIZE * page_idx)]
 }

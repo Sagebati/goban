@@ -11,7 +11,7 @@ use goban::rules::game::Game;
 use goban::rules::GobanSizes::Nineteen;
 use goban::rules::Move::Play;
 
-pub fn perft(state: &Game, depth: u8) -> u64 {
+pub fn perft<const H: usize, const W: usize>(state: &Game<H, W>, depth: u8) -> u64 {
     if depth < 1 {
         1
     } else {
@@ -31,7 +31,7 @@ pub fn perft(state: &Game, depth: u8) -> u64 {
     }
 }
 
-pub fn fast_play_random(state: &Game, thread_rng: &mut ThreadRng) -> Move {
+pub fn fast_play_random<const H: usize, const W: usize>(state: &Game<H, W>, thread_rng: &mut ThreadRng) -> Move {
     let mut v: Vec<_> = state.pseudo_legals().collect();
     v.shuffle(thread_rng);
 
@@ -51,13 +51,13 @@ pub fn fast_play_random(state: &Game, thread_rng: &mut ThreadRng) -> Move {
 
 pub fn fast_play_game(rule: Rule) {
     let mut thread_rng = thread_rng();
-    let mut g = Game::new(GobanSizes::Nineteen, rule);
+    let mut g = Game::<19, 19>::new(rule);
     while !g.is_over() {
         g.play(fast_play_random(&g, &mut thread_rng));
     }
 }
 
-pub fn play_random(state: &Game) -> Move {
+pub fn play_random<const H: usize, const W: usize>(state: &Game<H, W>) -> Move {
     let mut legals = state.legals().collect::<Vec<_>>();
     legals.shuffle(&mut thread_rng());
     for l in legals {
@@ -72,7 +72,7 @@ pub fn play_random(state: &Game) -> Move {
 }
 
 pub fn play_game() {
-    let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
+    let mut g = Game::<19, 19>::new(CHINESE);
     while !g.is_over() {
         g.play(play_random(&g));
     }
@@ -401,7 +401,7 @@ static MOVES_SGF: [Move; 318] = [
 
 fn some_plays_from_sgf() {
     let handicap = vec![(3, 3), (3, 15), (9, 3), (9, 15), (15, 3), (15, 15)];
-    let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
+    let mut g = Game::<19, 19>::new(CHINESE);
     let inv_coord: Vec<usize> = (0..19).rev().collect();
     g.put_handicap(&handicap);
     for m in MOVES_SGF {
@@ -433,7 +433,7 @@ pub fn game_play_bench(_c: &mut Criterion) {
     Criterion::default()
         .sample_size(10)
         .bench_function("perft_4", |b| {
-            b.iter(|| perft(&Game::new(Nineteen, CHINESE), 3))
+            b.iter(|| perft(&Game::<19, 19>::new(CHINESE), 3))
         });
 }
 

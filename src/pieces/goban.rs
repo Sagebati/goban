@@ -26,10 +26,6 @@ macro_rules! iter_stones {
     };
 }
 
-pub(crate) const fn mul(x:usize, y:usize) -> usize {
-    x * y
-}
-
 /// Represents a Goban. the stones are stored in ROW MAJOR (row, column)
 #[derive(Getters, Setters, CopyGetters, Debug, Clone, Eq)]
 pub struct Goban<const H: usize, const W:usize> {
@@ -313,7 +309,7 @@ impl<const H: usize, const W:usize> Goban<H,W> {
     }
 
     pub fn get_points_by_color_const<const C: u8>(&self) -> ArrayVec<Point,361> {
-        let color = u8_to_color(C);
+        let color = Color::from_u8(C);
         let mut res = ArrayVec::<Point, 361>::new_const();
         match color {
             Color::None => {
@@ -525,6 +521,14 @@ impl<const H: usize, const W:usize> Goban<H,W> {
         self.free_slots.push(ren_idx);
     }
 
+    pub const fn board_idx_to_point(idx: BoardIdx) -> Point {
+        one_to_2dim((H, W), idx)
+    }
+
+    pub const fn point_to_board_idx(point: Point) -> BoardIdx {
+        two_to_1dim((H, W), point)
+    }
+
     #[allow(dead_code)]
     #[cfg(debug_assertions)]
     fn check_integrity_ren(&self, ren_idx: ChainIdx) {
@@ -549,14 +553,6 @@ impl<const H: usize, const W:usize> Goban<H,W> {
         for ren_idx in (0..self.chains.len()).filter(|&ren_idx| self.chains[ren_idx].used) {
             self.check_integrity_ren(ren_idx);
         }
-    }
-
-    pub fn board_idx_to_point(idx:BoardIdx) -> Point {
-        one_to_2dim((H,W), idx)
-    }
-
-    pub fn point_to_board_idx(point: Point) -> BoardIdx{
-        two_to_1dim((H,W), point)
     }
 }
 

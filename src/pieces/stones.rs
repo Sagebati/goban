@@ -6,15 +6,6 @@ use std::fmt::Formatter;
 
 use crate::pieces::util::coord::Point;
 
-pub const fn u8_to_color (x: u8) -> Color{
-    match x {
-        2 => Color::White,
-        1 => Color::Black,
-        0 => Color::None,
-        _ => panic!("IS not a valid u8 for color")
-    }
-}
-
 /// Color on the goban.
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
 #[repr(u8)]
@@ -22,6 +13,21 @@ pub enum Color {
     White = 2,
     Black = 1,
     None = 0,
+}
+
+impl Color {
+    pub const fn to_u8(self) -> u8 {
+        self as u8
+    }
+
+    pub const fn from_u8(x: u8) -> Self {
+        match x {
+            2 => Color::White,
+            1 => Color::Black,
+            0 => Color::None,
+            _ => panic!("IS not a valid u8 for color")
+        }
+    }
 }
 
 /// Stone on a goban.
@@ -33,8 +39,7 @@ pub struct Stone {
 
 impl From<u8> for Color {
     fn from(x: u8) -> Self {
-        debug_assert!(x <= 2, "Error in the conversion from u8 to stone");
-        u8_to_color(x)
+        Color::from_u8(x)
     }
 }
 

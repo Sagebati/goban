@@ -1,10 +1,11 @@
+use arrayvec::ArrayVec;
 use hash_hasher::{HashBuildHasher, HashedSet};
 
 use crate::pieces::goban::*;
 use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
-use crate::pieces::util::coord::{corner_points, is_coord_valid, one_to_2dim, Point, two_to_1dim};
+use crate::pieces::util::coord::{corner_points, is_coord_valid, one_to_2dim, Point};
 use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 use crate::rules::{CHINESE, PlayError};
 use crate::rules::EndGame::{Draw, WinnerByScore};
@@ -12,12 +13,16 @@ use crate::rules::Player;
 use crate::rules::Player::{Black, White};
 use crate::rules::Rule;
 
+trait GoGame {
+    type Goban;
+}
+
 /// Most important struct of the library, it's the entry point.
 /// It represents a Game of Go.
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
-pub struct Game {
+pub struct Game<const H: usize, const W: usize> {
     #[get = "pub"]
-    pub(super) goban: Goban<19,19>,
+    pub(super) goban: Goban::<H, W>,
 
     #[get_copy = "pub"]
     pub(super) passes: u8,
@@ -50,17 +55,16 @@ pub struct Game {
     pub(super) ko_point: Option<Point>,
 }
 
-impl Game {
+impl<const H: usize, const W: usize> Game<H, W> {
     /// Crates a new game for playing Go
-    pub fn new(size: GobanSizes, rule: Rule) -> Self {
-        let (width, height) = size.into();
+    pub fn new(rule: Rule) -> Self {
         let goban = Goban::new();
         #[cfg(feature = "history")]
-            let history = Vec::with_capacity(width as usize * height as usize);
+            let history = Vec::with_capacity(H * W);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashedSet::with_capacity_and_hasher(
-            width as usize * height as usize,
+            H * W,
             HashBuildHasher::default(),
         );
         Self {
@@ -80,7 +84,7 @@ impl Game {
     }
 }
 
-impl Game {
+impl<const H: usize, const W: usize> Game<H, W> {
     /// Resume the game when to players have passed, and want to continue.
     #[inline]
     pub fn resume(&mut self) {
@@ -142,18 +146,8 @@ impl Game {
     }
 
     /// Get all moves on all empty intersections.
-    pub fn pseudo_legals_vec(&self) -> Vec<Point> {
-        let size = self.size();
-        let mut vec = Vec::with_capacity(size.0 * size.1);
-        let board = self.goban.board();
-        for i in 0..size.0 as u8 {
-            for j in 0..size.1 as u8 {
-                if board[two_to_1dim(size, (i, j))] == None {
-                    vec.push((i, j));
-                }
-            }
-        }
-        vec
+    pub fn pseudo_legals_vec(&self) -> ArrayVec<Point, 361> {
+        self.goban.get_points_by_color_const::<{ Color::None.to_u8() }>()
     }
 
     /// Returns a list with legals moves. from the rule specified in at the creation.
@@ -460,7 +454,7 @@ impl Game {
     }
 
     fn remove_captured_stones_aux(
-        goban: &mut Goban<19,19>,
+        goban: &mut Goban<H, W>,
         turn: Player,
         suicide_allowed: bool,
         prisoners: (u32, u32),
@@ -501,8 +495,8 @@ impl Game {
     }
 }
 
-impl Default for Game {
+impl<const H: usize, const W: usize> Default for Game<H, W> {
     fn default() -> Self {
-        Game::new(GobanSizes::Nineteen, CHINESE)
+        Game::new(CHINESE)
     }
 }

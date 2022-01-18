@@ -12,7 +12,6 @@
 //! let mut builder = Game::builder();
 //! let game = builder
 //!     .rule(JAPANESE)
-//!     .size((19,19))
 //!     .handicap(&[(3,3), (4,4)])
 //!     .komi(10.)
 //!     .build();
@@ -26,8 +25,7 @@ use crate::rules::{CHINESE, EndGame, Move, Player, Rule};
 use crate::rules::game::Game;
 use crate::rules::Player::White;
 
-pub struct GameBuilder {
-    size: (u32, u32),
+pub struct GameBuilder<const H: usize, const W: usize> {
     black_player: String,
     white_player: String,
     rule: Rule,
@@ -38,10 +36,9 @@ pub struct GameBuilder {
     outcome: Option<EndGame>,
 }
 
-impl GameBuilder {
-    fn new() -> GameBuilder {
+impl<const H: usize, const W: usize> GameBuilder<H, W> {
+    fn new() -> Self {
         GameBuilder {
-            size: (19, 19),
             black_player: "".to_string(),
             white_player: "".to_string(),
             handicap_points: vec![],
@@ -66,11 +63,6 @@ impl GameBuilder {
     /// Overrides the turn because it's a game with handicap. So White begins.
     pub fn handicap(&mut self, points: &[Point]) -> &mut Self {
         self.handicap_points = points.to_vec();
-        self
-    }
-
-    pub fn size(&mut self, size: (u32, u32)) -> &mut Self {
-        self.size = size;
         self
     }
 
@@ -99,8 +91,8 @@ impl GameBuilder {
         self
     }
 
-    pub fn build(&mut self) -> Result<Game, String> {
-        let mut goban: Goban<19,19> = Goban::new();
+    pub fn build(&mut self) -> Result<Game<H, W>, String> {
+        let mut goban: Goban<H, W> = Goban::new();
 
         goban.push_many(&self.handicap_points, Color::Black);
 
@@ -135,14 +127,14 @@ impl GameBuilder {
     }
 }
 
-impl Default for GameBuilder {
+impl<const H: usize, const W: usize> Default for GameBuilder<H, W> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Game {
-    pub fn builder() -> GameBuilder {
+impl<const H: usize, const W: usize> Game<H, W> {
+    pub fn builder() -> GameBuilder<H, W> {
         GameBuilder::default()
     }
 }

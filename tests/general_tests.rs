@@ -35,7 +35,7 @@ mod tests {
 
     #[test]
     fn passes() {
-        let mut g = Game::new(GobanSizes::Nine, CHINESE);
+        let mut g = Game::<9, 9>::new(CHINESE);
         g.play(Move::Play(3, 3));
         g.play(Move::Pass);
         g.play(Move::Play(4, 3));
@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn some_plays() {
-        let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
+        let mut g = Game::<19, 19>::new(CHINESE);
         let mut i = 300;
         while !g.is_over() && i != 0 {
             g.play(
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn test_eye() {
-        let g = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
+        let g = Game::<19, 19>::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         assert!(g.check_eye(Stone {
             coordinates: (0, 14),
             color: Color::White,
@@ -428,7 +428,7 @@ mod tests {
             Move::Pass,
         ];
         let handicap = vec![(3, 3), (3, 15), (9, 3), (9, 15), (15, 3), (15, 15)];
-        let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
+        let mut g = Game::<19, 19>::new(CHINESE);
         let inv_coord: Vec<usize> = (0..19).rev().collect();
         g.put_handicap(&handicap);
         for m in moves_sgf {
@@ -486,7 +486,7 @@ mod tests {
 
     #[test]
     fn atari_2() {
-        let mut g = Game::new(GobanSizes::Nine, CHINESE);
+        let mut g = Game::<9, 9>::new(CHINESE);
         g.play(Move::Play(1, 0)); // B
         println!("{}", g.goban().pretty_string());
         g.play(Move::Play(0, 0)); // W
@@ -499,7 +499,7 @@ mod tests {
 
     #[test]
     fn game_finished() {
-        let mut g = Game::new(GobanSizes::Nine, CHINESE);
+        let mut g = Game::<9, 9>::new(CHINESE);
         g.play(Move::Pass);
         g.play(Move::Pass);
 
@@ -508,7 +508,7 @@ mod tests {
 
     #[test]
     fn calculate_score() {
-        let mut g = Game::new(GobanSizes::Nine, JAPANESE);
+        let mut g = Game::<9, 9>::new(JAPANESE);
         g.play(Move::Play(4, 4));
         g.play(Move::Pass);
         g.play(Move::Pass);
@@ -519,7 +519,7 @@ mod tests {
 
     #[test]
     fn calculate_score2() {
-        let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
+        let mut g = Game::<19, 19>::new(CHINESE);
         g.set_komi(0.);
         (0..38).for_each(|x| {
             g.try_play(Play(if x % 2 == 0 { 9 } else { 8 }, x / 2))
@@ -567,7 +567,7 @@ mod tests {
 
     #[test]
     fn calculate_chinesse_score() {
-        let mut g = Game::new(GobanSizes::Nine, CHINESE);
+        let mut g = Game::<9, 9>::new(CHINESE);
         g.play(Move::Play(4, 4));
         g.play(Move::Pass);
         g.play(Move::Pass);
@@ -599,7 +599,7 @@ mod tests {
 
     #[test]
     fn ko_test() {
-        let mut game: Game = Default::default();
+        let mut game: Game<19, 19> = Default::default();
         game.play(Move::Play(0, 3)); // black
         game.display_goban();
         game.play(Move::Play(0, 2)); // white
@@ -634,7 +634,7 @@ mod tests {
     /// https://github.com/Sagebati/goban/issues/6
     #[test]
     fn ko_test_2() {
-        let mut game = Game::new(GobanSizes::Nineteen, CHINESE);
+        let mut game = Game::<19, 19>::new(CHINESE);
         // let plays = vec![(0, 2), (0, 1), (0, 3), (1, 2), (1, 4), (1, 3), (0, 5), (2, 4), (2, 5), (0, 4), (0, 3)];
         // for (x, y) in plays {
         //     game.try_play(Move::Play(x, y)).unwrap();
@@ -656,7 +656,7 @@ mod tests {
 
     #[test]
     fn suicide_test() {
-        let mut game: Game = Default::default();
+        let mut game: Game<19, 19> = Default::default();
         game.play(Move::Play(0, 2)); // black
         game.display_goban();
         game.play(Move::Play(0, 0)); // white
@@ -680,7 +680,7 @@ mod tests {
 
     #[test]
     fn sgf_test() {
-        let game = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
+        let game = Game::<19, 19>::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
         assert_eq!(
             EndGame::WinnerByScore(Player::Black, 2.0),
@@ -691,7 +691,7 @@ mod tests {
 
     #[test]
     fn sgf_test_2_2ha() {
-        let game = Game::from_sgf(include_str!("../sgf/sgf_2_2ha.sgf")).unwrap();
+        let game = Game::<19, 19>::from_sgf(include_str!("../sgf/sgf_2_2ha.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
         assert_eq!(game.prisoners(), (25, 26));
         assert_eq!(
@@ -702,7 +702,7 @@ mod tests {
 
     #[test]
     fn sgf_test_1() {
-        let game = Game::from_sgf(include_str!("../sgf/sgf_1.sgf")).unwrap();
+        let game = Game::<19, 19>::from_sgf(include_str!("../sgf/sgf_1.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
         println!("prisoners : {:?}", game.prisoners());
         assert_eq!(game.prisoners(), (2, 9));

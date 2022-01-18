@@ -6,13 +6,13 @@ use crate::rules::{CHINESE, EndGame, JAPANESE, Move, Player, Rule};
 use crate::rules::game::Game;
 use crate::rules::game_builder::GameBuilder;
 
-impl Game {
+impl<const H: usize, const W: usize> Game<H, W> {
     pub fn from_sgf(sgf_str: &str) -> Result<Self, String> {
         let game_tree = match sgf_parser::parse(sgf_str) {
             Ok(game) => Ok(game),
             Err(e) => Err(e.to_string()),
         }?;
-        let mut game_builder: GameBuilder = Default::default();
+        let mut game_builder: GameBuilder<H, W> = Default::default();
         let mut first = true;
         let mut moves = vec![];
         let mut handicap: Vec<Point> = vec![];
@@ -26,8 +26,11 @@ impl Game {
                         SgfToken::Komi(komi) => {
                             game_builder.komi(*komi);
                         }
-                        SgfToken::Size(x, y) => {
-                            game_builder.size((*x, *y));
+                        &SgfToken::Size(x, y) => {
+                            if x != 19 || y != 19 {
+                                panic!("The size argument is not handled for board different than 19x19");
+                            }
+                            //game_builder.size((x, y));
                         }
                         SgfToken::Result(o) => {
                             game_builder.outcome((*o).into());
