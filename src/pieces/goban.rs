@@ -26,31 +26,32 @@ macro_rules! iter_stones {
     };
 }
 
+pub(crate) const fn mul(x:usize, y:usize) -> usize {
+    x * y
+}
+
 /// Represents a Goban. the stones are stored in ROW MAJOR (row, column)
-#[derive(Getters, Setters, CopyGetters, Debug, Clone)]
-pub struct Goban {
+#[derive(Getters, Setters, CopyGetters, Debug, Clone, Eq)]
+pub struct Goban<const H: usize, const W:usize> {
     #[get = "pub"]
     pub(super) chains: Vec<Chain>,
     board: Vec<Option<ChainIdx>>,
     next_stone: Vec<usize>,
     free_slots: Vec<usize>,
     #[get_copy = "pub"]
-    size: (usize, usize),
-    #[get_copy = "pub"]
     zobrist_hash: u64,
 }
 
-impl Goban {
+impl<const H: usize, const W:usize> Goban<H,W> {
     /// Creates a Goban
     /// # Arguments
     ///
     /// * `(height, width)` a tuple with the height and the width of the desired goban.
-    pub fn new((height, width): (Nat, Nat)) -> Self {
+    pub fn new() -> Self {
         Goban {
-            size: (height as usize, width as usize),
             zobrist_hash: 0,
-            board: vec![None; height as usize * width as usize],
-            next_stone: vec![0; height as usize * width as usize],
+            board: vec![None; H * W],
+            next_stone: vec![0; H *W],
             chains: Vec::with_capacity(128),
             free_slots: Vec::with_capacity(32),
         }
@@ -59,7 +60,7 @@ impl Goban {
     /// Creates a Goban from an array of stones.
     pub fn from_array(stones: &[Color]) -> Self {
         let size = ((stones.len() as f32).sqrt()) as Nat;
-        let mut game = Goban::new((size, size));
+        let mut game = Goban::new();
         stones
             .iter()
             .enumerate()
@@ -82,7 +83,7 @@ impl Goban {
     /// Like vec but in a matrix shape.
     pub fn matrix(&self) -> Vec<Vec<Color>> {
         let mut mat = vec![vec![]];
-        for line in self.board.chunks_exact(self.size.1) {
+        for line in self.board.chunks_exact(W) {
             let v = line
                 .iter()
                 .map(|o| o.map_or(Color::None, |idx| self.chains[idx].color))
@@ -119,7 +120,7 @@ impl Goban {
         point: Point,
         color: Color,
     ) -> (ArrayVec<usize, 4>, ChainIdx) {
-        let pushed_stone_idx = two_to_1dim(self.size, point);
+        let pushed_stone_idx = Self::point_to_board_idx(point);
 
         let mut adjacent_same_color_str_set = ArrayVec::<_, 4>::new();
         let mut adjacent_opposite_color_str_set = ArrayVec::<_, 4>::new();
@@ -194,12 +195,12 @@ impl Goban {
     pub fn push(&mut self, point: Point, color: Color) -> &mut Self {
         assert_ne!(color, Color::None, "We can't push Empty stones");
         assert!(
-            (point.0 as usize) < self.size.0,
+            (point.0 as usize) < H,
             "Coordinate point.0 {} out of bounds",
             point.0
         );
         assert!(
-            (point.1 as usize) < self.size.1,
+            (point.1 as usize) < W,
             "Coordinate point.1 {} out of bounds",
             point.1
         );
@@ -209,7 +210,7 @@ impl Goban {
 
     /// Helper function to put a stone.
     #[inline]
-    pub fn push_stone(&mut self, stone: Stone) -> &mut Goban {
+    pub fn push_stone(&mut self, stone: Stone) -> &mut Self {
         self.push(stone.coordinates, stone.color)
     }
 
@@ -231,7 +232,7 @@ impl Goban {
     }
 
     pub fn get_chain_by_point(&self, point: Point) -> Option<&Chain> {
-        self.get_chain_by_board_idx(two_to_1dim(self.size, point))
+        self.get_chain_by_board_idx(Self::point_to_board_idx( point))
     }
 
     /// Get all the neighbors to the coordinate including empty intersections.
@@ -253,7 +254,7 @@ impl Goban {
     #[inline]
     pub fn get_neighbors_chain_indexes(&self, coord: Point) -> impl Iterator<Item=ChainIdx> + '_ {
         self.neighbor_points(coord)
-            .map(move |point| two_to_1dim(self.size, point))
+            .map(move |point| Self::point_to_board_idx(point))
             .into_iter()
             .filter_map(move |point| self.board[point])
     }
@@ -277,7 +278,7 @@ impl Goban {
     /// Function for getting the stone in the goban.
     #[inline(always)]
     pub fn get_stone(&self, point: Point) -> Color {
-        self.board[two_to_1dim(self.size, point)]
+        self.board[Self::point_to_board_idx(point)]
             .map_or(Color::None, |go_str_index| self.chains[go_str_index].color)
     }
 
@@ -286,7 +287,7 @@ impl Goban {
     pub fn get_stones(&self) -> impl Iterator<Item=Stone> + '_ {
         self.board.iter().enumerate().filter_map(move |(index, o)| {
             o.map(move |ren_index| Stone {
-                coordinates: one_to_2dim(self.size, index),
+                coordinates: Self::board_idx_to_point(index),
                 color: self.chains[ren_index].color,
             })
         })
@@ -304,17 +305,34 @@ impl Goban {
     /// Get points by their color.
     #[inline]
     pub fn get_points_by_color(&self, color: Color) -> impl Iterator<Item=Point> + '_ {
-        let mut res = ArrayVec::<Point, 361>::new();
-        for board_idx in 0..(self.size.0 * self.size.1) {
-            if let Some(ren_idx) = self.board[board_idx] {
-                if self.chains[ren_idx].color == color {
-                    res.push(one_to_2dim(self.size, board_idx))
+        match color {
+            Color::White => self.get_points_by_color_const::<2>(),
+            Color::Black => self.get_points_by_color_const::<1>(),
+            Color::None => self.get_points_by_color_const::<0>(),
+        }.into_iter()
+    }
+
+    pub fn get_points_by_color_const<const C: u8>(&self) -> ArrayVec<Point,361> {
+        let color = u8_to_color(C);
+        let mut res = ArrayVec::<Point, 361>::new_const();
+        match color {
+            Color::None => {
+                for board_idx in 0..(H * W) {
+                    if self.board[board_idx] == None {
+                            res.push(Self::board_idx_to_point(board_idx))
+                    }
                 }
-            } else if color == Color::None {
-                res.push(one_to_2dim(self.size, board_idx))
+            }
+            black_white => {
+                for ren in &self.chains {
+                    if ren.color == black_white {
+                        res.extend(iter_stones!(self,ren.origin).map(|x| Self::board_idx_to_point(x)))
+                    }
+                }
             }
         }
-        res.into_iter()
+
+        res
     }
 
     /// Returns the "empty" stones connected to the stone
@@ -332,17 +350,17 @@ impl Goban {
     /// Get a string for printing the goban in normal shape (0,0) left bottom
     pub fn pretty_string(&self) -> String {
         let mut buff = String::new();
-        for i in 0..self.size.0 as u8 {
-            for j in 0..self.size.1 as u8 {
+        for i in 0..H as u8 {
+            for j in 0..W as u8 {
                 buff.push(match self.get_stone((i, j)) {
                     Color::Black => '●',
                     Color::White => '○',
                     Color::None => {
                         match (
                             i == 0,
-                            i == self.size.0 as u8 - 1,
+                            i == H as u8 - 1,
                             j == 0,
-                            j == self.size.1 as u8 - 1,
+                            j == W as u8 - 1,
                         ) {
                             (true, _, true, _) => '┏',
                             (true, _, _, true) => '┓',
@@ -410,15 +428,13 @@ impl Goban {
     /// Get the neighbors points filtered by limits of the board.
     #[inline]
     fn neighbor_points(&self, point: Point) -> impl Iterator<Item=Point> {
-        let size = self.size;
-        neighbor_points(point).into_iter().filter(move |&p| is_coord_valid(size, p))
+        neighbor_points(point).into_iter().filter(move |&p| is_coord_valid((H,W), p))
     }
 
     #[inline]
     fn neighbor_points_indexes(&self, board_idx: BoardIdx) -> impl Iterator<Item=usize> {
-        let size = self.size;
-        self.neighbor_points(one_to_2dim(self.size, board_idx))
-            .map(move |x| two_to_1dim(size, x))
+        self.neighbor_points(Self::board_idx_to_point( board_idx))
+            .map(move |x| Self::point_to_board_idx( x))
     }
 
     pub fn get_chain_it(&self, chain_idx: ChainIdx) -> impl Iterator<Item=usize> + '_ {
@@ -534,30 +550,36 @@ impl Goban {
             self.check_integrity_ren(ren_idx);
         }
     }
+
+    pub fn board_idx_to_point(idx:BoardIdx) -> Point {
+        one_to_2dim((H,W), idx)
+    }
+
+    pub fn point_to_board_idx(point: Point) -> BoardIdx{
+        two_to_1dim((H,W), point)
+    }
 }
 
-impl Display for Goban {
+impl<const H:usize, const W:usize> Display for Goban<H,W> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "{}", self.pretty_string())
     }
 }
 
-impl PartialEq for Goban {
-    fn eq(&self, other: &Goban) -> bool {
+impl<const H:usize, const W:usize> PartialEq for Goban<H,W> {
+    fn eq(&self, other: &Self) -> bool {
         other.zobrist_hash == self.zobrist_hash
     }
 }
 
-impl Hash for Goban {
+impl<const HH:usize, const W:usize> Hash for Goban<HH,W> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.zobrist_hash.hash(state)
     }
 }
 
-impl Eq for Goban {}
-
-impl Default for Goban {
+impl<const H:usize, const W:usize> Default for Goban<H,W> {
     fn default() -> Self {
-        Goban::new((19, 19))
+        Self::new()
     }
 }

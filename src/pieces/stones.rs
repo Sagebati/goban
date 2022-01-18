@@ -1,9 +1,19 @@
 //! Module with all needed to play.
 
-use crate::pieces::util::coord::Point;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
+
+use crate::pieces::util::coord::Point;
+
+pub const fn u8_to_color (x: u8) -> Color{
+    match x {
+        2 => Color::White,
+        1 => Color::Black,
+        0 => Color::None,
+        _ => panic!("IS not a valid u8 for color")
+    }
+}
 
 /// Color on the goban.
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
@@ -24,12 +34,7 @@ pub struct Stone {
 impl From<u8> for Color {
     fn from(x: u8) -> Self {
         debug_assert!(x <= 2, "Error in the conversion from u8 to stone");
-        match x {
-            2 => Color::White,
-            1 => Color::Black,
-            0 => Color::None,
-            _ => unreachable!(),
-        }
+        u8_to_color(x)
     }
 }
 

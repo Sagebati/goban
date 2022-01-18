@@ -17,7 +17,7 @@ use crate::rules::Rule;
 #[derive(Clone, Getters, CopyGetters, Setters, Debug)]
 pub struct Game {
     #[get = "pub"]
-    pub(super) goban: Goban,
+    pub(super) goban: Goban<19,19>,
 
     #[get_copy = "pub"]
     pub(super) passes: u8,
@@ -40,7 +40,7 @@ pub struct Game {
 
     #[cfg(feature = "history")]
     #[get = "pub"]
-    pub(super) history: Vec<Goban>,
+    pub(super) history: Vec<Goban<19,19>>,
 
     #[get = "pub"]
     pub(super) last_hash: u64,
@@ -54,7 +54,7 @@ impl Game {
     /// Crates a new game for playing Go
     pub fn new(size: GobanSizes, rule: Rule) -> Self {
         let (width, height) = size.into();
-        let goban = Goban::new(size.into());
+        let goban = Goban::new();
         #[cfg(feature = "history")]
             let history = Vec::with_capacity(width as usize * height as usize);
         let prisoners = (0, 0);
@@ -99,7 +99,9 @@ impl Game {
 
     #[inline]
     pub fn size(&self) -> (usize, usize) {
-        self.goban.size()
+        //self.goban.size()
+        // FIXME Game must be generic also
+        (19,19)
     }
 
     /// True when the game is over (two passes, or no more legals moves, Resign)
@@ -136,7 +138,7 @@ impl Game {
     /// Generate all moves on all empty intersections. Lazy.
     #[inline]
     pub fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
-        self.goban.get_points_by_color(Color::None)
+        self.goban.get_points_by_color_const::<0>().into_iter()
     }
 
     /// Get all moves on all empty intersections.
@@ -327,7 +329,7 @@ impl Game {
         let mut corner_ally = 0;
         let mut corner_off_board = 0;
         for p in corner_points(point) {
-            if is_coord_valid(self.goban.size(), p) {
+            if is_coord_valid((19,19), p) {
                 if self.goban.get_stone(p) == color {
                     corner_ally += 1
                 }
@@ -370,7 +372,7 @@ impl Game {
         } else if corners == 3 || corners == 2 {
             for s in corner_points(point)
                 .into_iter()
-                .filter(move |p| is_coord_valid(self.goban.size(), *p))
+                .filter(move |p| is_coord_valid((19,19), *p))
                 .filter_map(move |p| {
                     Some(Stone {
                         coordinates: p,
@@ -458,7 +460,7 @@ impl Game {
     }
 
     fn remove_captured_stones_aux(
-        goban: &mut Goban,
+        goban: &mut Goban<19,19>,
         turn: Player,
         suicide_allowed: bool,
         prisoners: (u32, u32),
@@ -471,7 +473,7 @@ impl Game {
         for &dead_ren_idx in dead_rens_indices {
             let dead_ren = goban.get_chain_from_id(dead_ren_idx);
             if dead_ren.num_stones == 1 && only_one_ren_removed {
-                ko_point = Some(one_to_2dim(goban.size(), dead_ren.origin));
+                ko_point = Some(one_to_2dim((19,19), dead_ren.origin));
             }
             stones_removed = match turn {
                 Player::White => (

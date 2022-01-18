@@ -100,7 +100,7 @@ impl GameBuilder {
     }
 
     pub fn build(&mut self) -> Result<Game, String> {
-        let mut goban: Goban = Goban::new((self.size.0 as Nat, self.size.1 as Nat));
+        let mut goban: Goban<19,19> = Goban::new();
 
         goban.push_many(&self.handicap_points, Color::Black);
 

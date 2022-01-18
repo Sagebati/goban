@@ -17,7 +17,7 @@ mod tests {
 
     #[test]
     fn goban() {
-        let mut g = Goban::new(GobanSizes::Nineteen.into());
+        let mut g = Goban::<19,19>::new();
         g.push((1, 2), Color::White);
         println!("{}", g.pretty_string());
         assert!(true)
@@ -25,11 +25,11 @@ mod tests {
 
     #[test]
     fn goban_new_array() {
-        let mut g = Goban::new(GobanSizes::Nineteen.into());
+        let mut g = Goban::<9,9>::new();
         g.push((1, 2), Color::White);
         g.push((1, 3), Color::Black);
         let tab = g.vec();
-        let g2 = Goban::from_array(&tab);
+        let g2 = Goban::<9,9>::from_array(&tab);
         assert_eq!(g, g2)
     }
 
@@ -39,13 +39,13 @@ mod tests {
         g.play(Move::Play(3, 3));
         g.play(Move::Pass);
         g.play(Move::Play(4, 3));
-        let goban: &Goban = g.goban();
+        let goban = &g.goban();
         assert_eq!(goban.get_stone((4, 3)), Color::Black);
     }
 
     #[test]
     fn get_all_stones() {
-        let mut g = Goban::new(GobanSizes::Nineteen.into());
+        let mut g = Goban::<9,9>::new();
         g.push((1, 2), Color::White);
         g.push((0, 0), Color::Black);
 
@@ -461,7 +461,7 @@ mod tests {
 
     #[test]
     fn atari() {
-        let mut goban = Goban::new((9, 9));
+        let mut goban = Goban::<9,9>::new();
         let s = Stone {
             coordinates: (4, 4),
             color: Color::Black,
@@ -529,7 +529,7 @@ mod tests {
         g.display_goban();
         let score = g.calculate_score();
         assert_eq!(score, (10. * 19., 9. * 19.));
-        let mut goban: Goban = g.goban().clone();
+        let mut goban = g.goban().clone();
         goban.push_many(
             &{
                 let mut vec = vec![];

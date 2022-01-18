@@ -6,7 +6,7 @@ use crate::pieces::goban::Goban;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 
-impl Goban {
+impl<const H:usize, const W:usize> Goban<H,W> {
     #[inline]
     pub fn get_dead_chains_by_color(&self, color: Color) -> impl Iterator<Item=usize> + '_ {
         self.chains

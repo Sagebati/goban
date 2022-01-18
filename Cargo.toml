@@ -13,10 +13,6 @@ keywords = ["go", "game", "baduk", "igo", "move_generation"]
 gitlab = { repository = "Sabati/goban" }
 maintenance = { status = "actively-developed" }
 
-[profile.release]
-lto = "fat"
-codegen-units = 1
-
 [features]
 history = []
 deadstones = ["rand", "oxymcts"]
