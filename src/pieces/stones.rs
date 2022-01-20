@@ -1,13 +1,14 @@
 //! Module with all needed to play.
 
-use crate::pieces::util::coord::Point;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 
+use crate::pieces::util::coord::Point;
+
 /// Color on the goban.
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
-#[repr(u8)]
+#[repr(u32)]
 pub enum Color {
     White = 2,
     Black = 1,

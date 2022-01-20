@@ -119,7 +119,7 @@ impl GameBuilder {
             outcome: self.outcome,
             turn: self.turn.unwrap_or(Player::Black),
             rule: self.rule,
-            handicap: self.handicap_points.len() as u8,
+            handicap: self.handicap_points.len() as u32,
             #[cfg(feature = "history")]
             history: vec![],
             hashes: Default::default(),

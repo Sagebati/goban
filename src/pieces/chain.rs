@@ -2,7 +2,7 @@ use bitvec::BitArr;
 
 use crate::pieces::stones::Color;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub struct Chain {
     pub color: Color,
     pub origin: usize,
@@ -10,6 +10,19 @@ pub struct Chain {
     pub liberties: BitArr!(for 361),
     pub used: bool,
     pub num_stones: u16,
+}
+
+impl Default for Chain {
+    fn default() -> Self {
+        Chain {
+            color: Color::None,
+            origin: 0,
+            last: 0,
+            liberties: Default::default(),
+            used: false,
+            num_stones: 0,
+        }
+    }
 }
 
 impl Chain {
