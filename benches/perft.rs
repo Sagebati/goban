@@ -409,7 +409,7 @@ fn some_plays_from_sgf() {
             Play(x, y) => {
                 let x = x as usize;
                 let y = y as usize;
-                Play(inv_coord[x] as u8, y as u8)
+                Play(inv_coord[x] as u32, y as u32)
             }
             m => m,
         };

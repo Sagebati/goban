@@ -123,7 +123,7 @@ impl Game {
         } else {
             // two passes
             let scores = self.calculate_score();
-            if (scores.0 - scores.1).abs() < std::f32::EPSILON {
+            if (scores.0 - scores.1).abs() < f32::EPSILON {
                 Some(Draw)
             } else if scores.0 > scores.1 {
                 Some(WinnerByScore(Black, scores.0 - scores.1))
@@ -350,13 +350,7 @@ impl Game {
     /// ```
     /// This function is only used for performance checking in the rules,
     /// and not for checking is a point is really an eye !
-    pub fn check_eye(
-        &self,
-        Stone {
-            point,
-            color,
-        }: Stone,
-    ) -> bool {
+    pub fn check_eye(&self, Stone { point, color }: Stone) -> bool {
         if self.goban.get_stone(point) != Color::None {
             return false;
         }
@@ -380,11 +374,7 @@ impl Game {
                     .filter(|s| s.color == Color::None)
                 })
             {
-                if self
-                    .goban
-                    .get_neighbors(s.point)
-                    .any(|s| s.color != color)
-                {
+                if self.goban.get_neighbors(s.point).any(|s| s.color != color) {
                     return false;
                 }
                 let (ca, cof) = self.helper_check_eye(s.point, color);
@@ -458,8 +448,6 @@ impl Game {
         self.prisoners = res.0;
         self.ko_point = res.1;
     }
-
-
 }
 
 impl Default for Game {

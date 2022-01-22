@@ -351,10 +351,8 @@ impl Goban {
     /// Get stones by their color.
     #[inline]
     pub fn get_stones_by_color(&self, color: Color) -> impl Iterator<Item=Stone> + '_ {
-        self.get_points_by_color(color).map(move |c| Stone {
-            color,
-            point: c,
-        })
+        self.get_points_by_color(color)
+            .map(move |c| Stone { color, point: c })
     }
 
     /// Get points by their color.
