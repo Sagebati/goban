@@ -12,19 +12,6 @@ pub struct Chain {
     pub num_stones: u16,
 }
 
-impl Default for Chain {
-    fn default() -> Self {
-        Chain {
-            color: Color::None,
-            origin: 0,
-            last: 0,
-            liberties: Default::default(),
-            used: false,
-            num_stones: 0,
-        }
-    }
-}
-
 impl Chain {
     #[inline]
     pub fn new(color: Color, stone: usize) -> Self {

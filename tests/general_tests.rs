@@ -51,11 +51,11 @@ mod tests {
 
         let expected = vec![
             Stone {
-                coordinates: (0, 0),
+                point: (0, 0),
                 color: Color::Black,
             },
             Stone {
-                coordinates: (1, 2),
+                point: (1, 2),
                 color: Color::White,
             },
         ];
@@ -84,23 +84,23 @@ mod tests {
     fn test_eye() {
         let g = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         assert!(g.check_eye(Stone {
-            coordinates: (0, 14),
+            point: (0, 14),
             color: Color::White,
         }));
         assert!(g.check_eye(Stone {
-            coordinates: (0, 12),
+            point: (0, 12),
             color: Color::White,
         }));
         assert!(g.check_eye(Stone {
-            coordinates: (1, 11),
+            point: (1, 11),
             color: Color::White,
         }));
         assert!(!g.check_eye(Stone {
-            coordinates: (1, 8),
+            point: (1, 8),
             color: Color::Black,
         }));
         assert!(!g.check_eye(Stone {
-            coordinates: (17, 18),
+            point: (17, 18),
             color: Color::Black,
         }));
     }
@@ -429,7 +429,7 @@ mod tests {
         ];
         let handicap = vec![(3, 3), (3, 15), (9, 3), (9, 15), (15, 3), (15, 15)];
         let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
-        let inv_coord: Vec<usize> = (0..19).rev().collect();
+        let inv_coord: Vec<u32> = (0..19).rev().collect();
         g.put_handicap(&handicap);
         for m in moves_sgf {
             let to_play = match m {
@@ -442,7 +442,7 @@ mod tests {
                     if inv_coord[x] == 6 && y == 14 && g.turn() == Player::White {
                         println!("bug")
                     }
-                    Play(inv_coord[x] as u8, y as u8)
+                    Play(inv_coord[x], y as u32)
                 }
                 m => m,
             };
@@ -463,25 +463,25 @@ mod tests {
     fn atari() {
         let mut goban = Goban::new((9, 9));
         let s = Stone {
-            coordinates: (4, 4),
+            point: (4, 4),
             color: Color::Black,
         };
         goban.push_stone(s);
         println!("{}", goban.pretty_string());
         let cl = goban.clone();
-        let x = cl.get_liberties(s.coordinates);
+        let x = cl.get_liberties(s.point);
 
         x.for_each(|s| {
-            println!("{:?}", s.coordinates);
+            println!("{:?}", s.point);
             goban.push_stone(Stone {
-                coordinates: s.coordinates,
+                point: s.point,
                 color: Color::White,
             });
         });
 
         println!("{}", goban.pretty_string());
 
-        assert_eq!(goban.get_liberties(s.coordinates).count(), 0);
+        assert_eq!(goban.get_liberties(s.point).count(), 0);
     }
 
     #[test]
@@ -620,13 +620,13 @@ mod tests {
         //println!("{}", game);
         // ko
         assert!(game.check_ko(Stone {
-            coordinates: (1, 2),
+            point: (1, 2),
             color: Color::Black,
         }));
         assert!(!game.legals().any(|m| m == (1, 2)));
         assert!(game.try_play(Move::Play(1, 2)).is_err());
         assert!(game.check_superko(Stone {
-            coordinates: (1, 2),
+            point: (1, 2),
             color: Color::Black,
         }));
     }
@@ -671,7 +671,7 @@ mod tests {
         // println!("{}", game);
         // suicide
         assert!(game.check_suicide(Stone {
-            coordinates: (0, 1),
+            point: (0, 1),
             color: Color::White,
         }));
         assert!(!game.legals().any(|m| m == (0, 1)));

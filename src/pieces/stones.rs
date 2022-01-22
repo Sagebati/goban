@@ -18,7 +18,7 @@ pub enum Color {
 /// Stone on a goban.
 #[derive(PartialEq, Eq, Hash, Clone, Debug, Copy)]
 pub struct Stone {
-    pub coordinates: Point,
+    pub point: Point,
     pub color: Color,
 }
 

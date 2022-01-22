@@ -31,7 +31,7 @@ impl Goban {
         explored.insert(stone);
 
         let mut to_explore: Vec<Stone> = self
-            .get_neighbors(stone.coordinates)
+            .get_neighbors(stone.point)
             .filter(|p| p.color == stone.color)
             .collect(); // Acquiring all the neighbors
 
@@ -40,7 +40,7 @@ impl Goban {
             explored.insert(stone_to_explore);
 
             to_explore.extend(
-                self.get_neighbors(stone_to_explore.coordinates)
+                self.get_neighbors(stone_to_explore.point)
                     .filter(|p| p.color == stone.color && !explored.contains(p)),
             )
         }
@@ -78,7 +78,7 @@ impl Goban {
         for empty_string in empty_strings {
             let mut neutral = (false, false);
             for empty_intersection in &empty_string {
-                for stone in self.get_neighbors(empty_intersection.coordinates) {
+                for stone in self.get_neighbors(empty_intersection.point) {
                     if stone.color == Color::White {
                         neutral.1 = true; // found white stone
                     }

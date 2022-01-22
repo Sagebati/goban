@@ -1,12 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
-use ahash::AHashSet;
 use oxymcts::{
     DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts, LazyMctsNode,
     Num, Playout, uct_value,
 };
 use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
+
+use ahash::AHashSet;
 
 use crate::pieces::goban::Goban;
 use crate::pieces::GoStringPtr;
@@ -110,7 +111,7 @@ impl Playout<Game> for PL {
                 .filter(|&point| state.check_point(point).is_none())
             {
                 if !state.check_eye(Stone {
-                    coordinates,
+                    point: coordinates,
                     color: state.turn().stone_color(),
                 }) {
                     return coordinates.into();
@@ -141,10 +142,10 @@ impl Game {
     fn get_floating_stones(&self) -> Vec<GoStringPtr> {
         let eyes = self.pseudo_legals().filter(|&p| {
             self.check_eye(Stone {
-                coordinates: p,
+                point: p,
                 color: Color::Black,
             }) || self.check_eye(Stone {
-                coordinates: p,
+                point: p,
                 color: Color::White,
             })
         });

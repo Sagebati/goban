@@ -40,7 +40,7 @@ pub fn fast_play_random(state: &Game, thread_rng: &mut ThreadRng) -> Move {
         .filter(|&point| state.check_point(point).is_none())
     {
         if !state.check_eye(Stone {
-            coordinates,
+            point: coordinates,
             color: state.turn().stone_color(),
         }) {
             return coordinates.into();
@@ -62,7 +62,7 @@ pub fn play_random(state: &Game) -> Move {
     legals.shuffle(&mut thread_rng());
     for l in legals {
         if !state.check_eye(Stone {
-            coordinates: l,
+            point: l,
             color: state.turn().stone_color(),
         }) {
             return l.into();

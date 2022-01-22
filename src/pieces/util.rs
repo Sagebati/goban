@@ -39,21 +39,22 @@ pub mod coord {
 
     /// Defining the policy for the columns.
     pub type Point = (Nat, Nat);
+    pub type Size = Point;
 
     /// Return true if the coord is in the goban.
     #[inline]
-    pub const fn is_coord_valid((height, width): (usize, usize), coord: Point) -> bool {
-        coord.0 < height as u8 && coord.1 < width as u8
+    pub const fn is_coord_valid((height, width): Size, coord: Point) -> bool {
+        coord.0 < height && coord.1 < width
     }
 
     #[inline(always)]
-    pub const fn two_to_1dim(size: (usize, usize), point: Point) -> usize {
+    pub const fn two_to_1dim(size: Size, point: Point) -> usize {
         point.0 as usize * size.0 as usize + point.1 as usize
     }
 
     #[inline(always)]
-    pub const fn one_to_2dim(size: (usize, usize), index: usize) -> (Nat, Nat) {
-        ((index / size.0) as u8, (index % size.1) as u8)
+    pub const fn one_to_2dim(size: Size, index: usize) -> Point {
+        ((index as Nat / size.0), (index as Nat % size.1))
     }
 
     #[inline(always)]

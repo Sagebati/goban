@@ -28,7 +28,6 @@ hash_hasher = "2.0.3"
 sgf-parser = "2.6.0"
 bitvec = "1.0.0"
 arrayvec = "0.7.2"
-tinyvec = { version = "1.5.1", features = ["rustc_1_55"] }
 rand = { version = "0.8.4", optional = true }
 oxymcts = { version = "0.1.0", optional = true }
 
