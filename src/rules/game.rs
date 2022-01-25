@@ -136,7 +136,7 @@ impl Game {
     /// Generate all moves on all empty intersections. Lazy.
     #[inline]
     pub fn pseudo_legals(&self) -> impl Iterator<Item = Point> + '_ {
-        self.goban.get_points_by_color(Color::None)
+        self.goban.get_empty_points()
     }
 
     /// Get all moves on all empty intersections.
@@ -237,7 +237,7 @@ impl Game {
         } else {
             match play {
                 Move::Play(x, y) => {
-                    if self.goban.get_stone((x, y)) != Color::None {
+                    if self.goban.get_color((x, y)) != Color::Empty {
                         Err(PlayError::PointNotEmpty)
                     } else if let Some(c) = self.check_point((x as Nat, y as Nat)) {
                         Err(c)
@@ -329,7 +329,7 @@ impl Game {
         let mut corner_off_board = 0;
         for p in corner_points(point) {
             if is_coord_valid(self.goban.size(), p) {
-                if self.goban.get_stone(p) == color {
+                if self.goban.get_color(p) == color {
                     corner_ally += 1
                 }
             } else {
@@ -351,7 +351,7 @@ impl Game {
     /// This function is only used for performance checking in the rules,
     /// and not for checking is a point is really an eye !
     pub fn check_eye(&self, Stone { point, color }: Stone) -> bool {
-        if self.goban.get_stone(point) != Color::None {
+        if self.goban.get_color(point) != Color::Empty {
             return false;
         }
         if self.goban.get_neighbors(point).any(|s| s.color != color) {
@@ -369,9 +369,9 @@ impl Game {
                 .filter_map(move |p| {
                     Some(Stone {
                         point: p,
-                        color: self.goban.get_stone(p),
+                        color: self.goban.get_color(p),
                     })
-                    .filter(|s| s.color == Color::None)
+                    .filter(|s| s.color == Color::Empty)
                 })
             {
                 if self.goban.get_neighbors(s.point).any(|s| s.color != color) {

@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
-
     use rand::seq::SliceRandom;
 
     use goban::pieces::goban::Goban;
@@ -40,7 +39,7 @@ mod tests {
         g.play(Move::Pass);
         g.play(Move::Play(4, 3));
         let goban: &Goban = g.goban();
-        assert_eq!(goban.get_stone((4, 3)), Color::Black);
+        assert_eq!(goban.get_color((4, 3)), Color::Black);
     }
 
     #[test]
@@ -469,7 +468,7 @@ mod tests {
         goban.push_stone(s);
         println!("{}", goban.pretty_string());
         let cl = goban.clone();
-        let x = cl.get_liberties(s.point);
+        let x = cl.get_point_liberties(s.point);
 
         x.for_each(|s| {
             println!("{:?}", s.point);
@@ -481,7 +480,7 @@ mod tests {
 
         println!("{}", goban.pretty_string());
 
-        assert_eq!(goban.get_liberties(s.point).count(), 0);
+        assert_eq!(goban.get_point_liberties(s.point).count(), 0);
     }
 
     #[test]
@@ -494,7 +493,8 @@ mod tests {
         g.play(Move::Play(0, 1)); // B
         println!("{}", g.goban().pretty_string());
         // Atari
-        assert_eq!(g.goban().get_stone((0, 0)), Color::None);
+        assert_eq!(g.goban().get_color((0, 0)), Color::Empty);
+
     }
 
     #[test]

@@ -21,7 +21,7 @@
 use crate::pieces::goban::Goban;
 use crate::pieces::Nat;
 use crate::pieces::stones::Color;
-use crate::pieces::util::coord::Point;
+use crate::pieces::util::coord::{Point, Size};
 use crate::rules::{CHINESE, EndGame, Move, Player, Rule};
 use crate::rules::game::Game;
 use crate::rules::Player::White;
@@ -69,7 +69,7 @@ impl GameBuilder {
         self
     }
 
-    pub fn size(&mut self, size: (u32, u32)) -> &mut Self {
+    pub fn size(&mut self, size: Size) -> &mut Self {
         self.size = size;
         self
     }

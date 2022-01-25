@@ -12,7 +12,7 @@ use crate::pieces::util::coord::Point;
 pub enum Color {
     White = 2,
     Black = 1,
-    None = 0,
+    Empty = 0,
 }
 
 /// Stone on a goban.
@@ -28,7 +28,7 @@ impl From<u8> for Color {
         match x {
             2 => Color::White,
             1 => Color::Black,
-            0 => Color::None,
+            0 => Color::Empty,
             _ => unreachable!(),
         }
     }
@@ -39,7 +39,7 @@ impl Display for Color {
         let color_str = match self {
             Color::White => "White",
             Color::Black => "Black",
-            Color::None => "Empty",
+            Color::Empty => "Empty",
         };
         write!(f, "{}", color_str)
     }

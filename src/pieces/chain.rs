@@ -9,7 +9,7 @@ pub struct Chain {
     pub last: usize,
     pub liberties: BitArr!(for 361),
     pub used: bool,
-    pub num_stones: u16,
+    pub num_stones: u32,
 }
 
 impl Chain {

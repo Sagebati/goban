@@ -4,6 +4,7 @@ use std::collections::HashSet;
 
 use crate::pieces::goban::Goban;
 use crate::pieces::stones::Color;
+use crate::pieces::stones::Color::Empty;
 use crate::pieces::stones::Stone;
 
 impl Goban {
@@ -72,7 +73,7 @@ impl Goban {
     /// Get two iterators of empty stones.
     ///
     pub fn get_territories(&self) -> (impl Iterator<Item = Stone>, impl Iterator<Item = Stone>) {
-        let empty_strings = self.get_chains_from_stones(self.get_stones_by_color(Color::None));
+        let empty_strings = self.get_chains_from_stones(self.get_empty_points().map(|point| Stone {point, color: Empty}));
         let mut white_territory = Vec::with_capacity(50);
         let mut black_territory = Vec::with_capacity(50);
         for empty_string in empty_strings {
