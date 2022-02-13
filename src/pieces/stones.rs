@@ -8,11 +8,10 @@ use crate::pieces::util::coord::Point;
 
 /// Color on the goban.
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
-#[repr(u32)]
 pub enum Color {
-    White = 2,
-    Black = 1,
     Empty = 0,
+    Black = 1,
+    White = 2,
 }
 
 /// Stone on a goban.
