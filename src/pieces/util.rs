@@ -35,30 +35,32 @@ impl<'a> Iterator for CircularRenIter<'a> {
 }
 
 pub mod coord {
+    use arrayvec::ArrayVec;
+
     use crate::pieces::Nat;
 
     /// Defining the policy for the columns.
-    pub type Point = (Nat, Nat);
-    pub type Size = Point;
+    pub type Coord = (Nat, Nat);
+    pub type Size = (usize, usize);
 
     /// Return true if the coord is in the goban.
-    #[inline]
-    pub const fn is_coord_valid((height, width): Size, coord: Point) -> bool {
-        coord.0 < height && coord.1 < width
+    #[inline(always)]
+    pub const fn is_coord_valid((height, width): Size, coord: Coord) -> bool {
+        (coord.0 as usize) < height && (coord.1 as usize) < width
     }
 
     #[inline(always)]
-    pub const fn two_to_1dim(size: Size, point: Point) -> usize {
-        point.0 as usize * size.0 as usize + point.1 as usize
+    pub const fn two_to_1dim(size: Size, point: Coord) -> usize {
+        (point.0 as u32 * size.0 as u32 + point.1 as u32) as usize
     }
 
     #[inline(always)]
-    pub const fn one_to_2dim(size: Size, index: usize) -> Point {
-        ((index as Nat / size.0), (index as Nat % size.1))
+    pub const fn one_to_2dim(size: Size, index: usize) -> Coord {
+        ((index / size.0) as Nat, (index % size.1) as Nat)
     }
 
     #[inline(always)]
-    pub const fn neighbor_points((x1, x2): Point) -> [Point; 4] {
+    pub const fn neighbor_coords((x1, x2): Coord) -> [Coord; 4] {
         [
             (x1 + 1, x2),
             (x1.wrapping_sub(1), x2),
@@ -68,7 +70,14 @@ pub mod coord {
     }
 
     #[inline(always)]
-    pub const fn corner_points((x1, x2): Point) -> [Point; 4] {
+    pub fn valid_coords((x1, x2): Coord, size: Size) -> ArrayVec<Coord, 4> {
+        let mut array_vec = ArrayVec::from(neighbor_coords((x1, x2)));
+        array_vec.retain(|x| is_coord_valid(size, *x));
+        array_vec
+    }
+
+    #[inline(always)]
+    pub const fn corner_points((x1, x2): Coord) -> [Coord; 4] {
         [
             (x1 + 1, x2 + 1),
             (x1.wrapping_sub(1), x2.wrapping_sub(1)),

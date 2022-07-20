@@ -40,8 +40,8 @@ pub fn fast_play_random(state: &Game, thread_rng: &mut ThreadRng) -> Move {
         .filter(|&point| state.check_point(point).is_none())
     {
         if !state.check_eye(Stone {
-            point: coordinates,
-            color: state.turn().stone_color(),
+            coord: coordinates,
+            color: state.turn(),
         }) {
             return coordinates.into();
         }
@@ -62,8 +62,8 @@ pub fn play_random(state: &Game) -> Move {
     legals.shuffle(&mut thread_rng());
     for l in legals {
         if !state.check_eye(Stone {
-            point: l,
-            color: state.turn().stone_color(),
+            coord: l,
+            color: state.turn(),
         }) {
             return l.into();
         }
@@ -409,7 +409,7 @@ fn some_plays_from_sgf() {
             Play(x, y) => {
                 let x = x as usize;
                 let y = y as usize;
-                Play(inv_coord[x] as u32, y as u32)
+                Play(inv_coord[x] as u8, y as u8)
             }
             m => m,
         };

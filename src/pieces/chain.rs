@@ -1,5 +1,6 @@
 use bitvec::BitArr;
 
+use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
@@ -9,7 +10,7 @@ pub struct Chain {
     pub last: usize,
     pub liberties: BitArr!(for 361),
     pub used: bool,
-    pub num_stones: u32,
+    pub num_stones: Nat,
 }
 
 impl Chain {

@@ -1,12 +1,10 @@
 //! Module for ruling in the game of go.
 
-use std::fmt::{Display, Error, Formatter};
-use std::ops::Not;
 use std::str::FromStr;
 
 use crate::pieces::Nat;
 use crate::pieces::stones::Color;
-use crate::pieces::util::coord::Point;
+use crate::pieces::util::coord::{Coord, Size};
 
 #[cfg(deadstones)]
 mod dead_stones;
@@ -14,53 +12,16 @@ pub mod game;
 pub mod game_builder;
 mod sgf_bridge;
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
-pub enum Player {
-    White,
-    Black,
-}
-
-impl Not for Player {
-    type Output = Player;
-
-    fn not(self) -> Self::Output {
-        match self {
-            Player::Black => Player::White,
-            Player::White => Player::Black,
-        }
-    }
-}
-
-impl Display for Player {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        match self {
-            Player::White => write!(f, "White"),
-            Player::Black => write!(f, "Black"),
-        }
-    }
-}
-
-impl Player {
-    /// Get the stone color of the player
-    #[inline]
-    pub const fn stone_color(self) -> Color {
-        match self {
-            Player::Black => Color::Black,
-            Player::White => Color::White,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GobanSizes {
     Nineteen,
     Nine,
     Thirteen,
-    Custom(Nat, Nat),
+    Custom(usize, usize),
 }
 
-impl From<GobanSizes> for (Nat, Nat) {
-    fn from(goban_sizes: GobanSizes) -> (Nat, Nat) {
+impl From<GobanSizes> for Size {
+    fn from(goban_sizes: GobanSizes) -> Size {
         match goban_sizes {
             GobanSizes::Nine => (9, 9),
             GobanSizes::Thirteen => (13, 13),
@@ -85,29 +46,29 @@ impl From<usize> for GobanSizes {
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Move {
     Pass,
-    Resign(Player),
+    Resign(Color),
     Play(Nat, Nat),
 }
 
-impl From<Point> for Move {
-    fn from((x0, x1): Point) -> Self {
+impl From<Coord> for Move {
+    fn from((x0, x1): Coord) -> Self {
         Move::Play(x0, x1)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub enum EndGame {
-    WinnerByScore(Player, f32),
-    WinnerByResign(Player),
-    WinnerByTime(Player),
-    WinnerByForfeit(Player),
+    WinnerByScore(Color, f32),
+    WinnerByResign(Color),
+    WinnerByTime(Color),
+    WinnerByForfeit(Color),
     Draw,
 }
 
 impl EndGame {
     /// Return the winner of the game, if none the game is draw.
     #[inline]
-    pub const fn get_winner(self) -> Option<Player> {
+    pub const fn get_winner(self) -> Option<Color> {
         match self {
             EndGame::WinnerByScore(p, _)
             | EndGame::WinnerByResign(p)

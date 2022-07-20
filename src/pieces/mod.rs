@@ -2,7 +2,7 @@
 //! Module containing all the necessary for playing Go.
 //! The goban structure. The stone structure.
 //!
-pub(super) type Nat = u32;
+pub(super) type Nat = u8;
 
 pub mod chain;
 pub mod goban;

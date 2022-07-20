@@ -11,12 +11,12 @@ use ahash::AHashSet;
 
 use crate::pieces::goban::Goban;
 use crate::pieces::GoStringPtr;
-use crate::pieces::stones::{Color, Stone};
-use crate::rules::{IllegalRules, Move, Player};
+use crate::pieces::stones::{Color, Point};
+use crate::rules::{Color, IllegalRules, Move};
 use crate::rules::game::Game;
 
 impl GameTrait for Game {
-    type Player = Player;
+    type Player = Color;
     type Move = Move;
 
     fn legals_moves(&self) -> Vec<Self::Move> {
@@ -110,8 +110,8 @@ impl Playout<Game> for PL {
                 .into_iter()
                 .filter(|&point| state.check_point(point).is_none())
             {
-                if !state.check_eye(Stone {
-                    point: coordinates,
+                if !state.check_eye(Point {
+                    coord: coordinates,
                     color: state.turn().stone_color(),
                 }) {
                     return coordinates.into();
@@ -141,11 +141,11 @@ type Mcts<'a> = LazyMcts<
 impl Game {
     fn get_floating_stones(&self) -> Vec<GoStringPtr> {
         let eyes = self.pseudo_legals().filter(|&p| {
-            self.check_eye(Stone {
-                point: p,
+            self.check_eye(Point {
+                coord: p,
                 color: Color::Black,
-            }) || self.check_eye(Stone {
-                point: p,
+            }) || self.check_eye(Point {
+                coord: p,
                 color: Color::White,
             })
         });

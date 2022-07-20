@@ -4,42 +4,76 @@ use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 
-use crate::pieces::util::coord::Point;
+use crate::pieces::util::coord::Coord;
 
-/// Color on the goban.
-#[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
+#[repr(u16)]
 pub enum Color {
-    Empty = 0,
-    Black = 1,
     White = 2,
+    Black = 1,
 }
 
-/// Stone on a goban.
-#[derive(PartialEq, Eq, Hash, Clone, Debug, Copy)]
-pub struct Stone {
-    pub point: Point,
-    pub color: Color,
+pub type MaybeColor = Option<Color>;
+
+pub const EMPTY: Option<Color> = None;
+
+impl std::ops::Not for Color {
+    type Output = Color;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Color::Black => Color::White,
+            Color::White => Color::Black,
+        }
+    }
 }
 
-impl From<u8> for Color {
-    fn from(x: u8) -> Self {
-        debug_assert!(x <= 2, "Error in the conversion from u8 to stone");
+impl From<MaybeColor> for Color {
+    fn from(x: MaybeColor) -> Self {
         match x {
-            2 => Color::White,
-            1 => Color::Black,
-            0 => Color::Empty,
-            _ => unreachable!(),
+            Some(x) => x,
+            EMPTY => panic!("Cannot transform an empty point ot a color"),
         }
     }
 }
 
 impl Display for Color {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        let color_str = match self {
-            Color::White => "White",
-            Color::Black => "Black",
-            Color::Empty => "Empty",
-        };
-        write!(f, "{}", color_str)
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        match self {
+            Color::White => write!(f, "White"),
+            Color::Black => write!(f, "Black"),
+        }
+    }
+}
+
+/// Stone on a goban.
+#[derive(PartialEq, Eq, Hash, Clone, Debug, Copy)]
+pub struct Point {
+    pub coord: Coord,
+    pub color: MaybeColor,
+}
+
+impl Point {
+    #[inline]
+    pub fn is_empty(self) -> bool {
+        self.color.is_none()
+    }
+}
+
+/// Stone on a goban.
+#[derive(PartialEq, Eq, Hash, Clone, Debug, Copy)]
+pub struct Stone {
+    pub coord: Coord,
+    pub color: Color,
+}
+
+impl From<Point> for Stone {
+    fn from(x: Point) -> Self {
+        Stone {
+            coord: x.coord,
+            color: x
+                .color
+                .expect("We cannot transform an empty point to a stone"),
+        }
     }
 }

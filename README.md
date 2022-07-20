@@ -46,7 +46,7 @@ while !g.is_over() && i != 0 {
         // None if the game is not finished
         println!("{:?}", g.outcome());
         // Inner array using row policy
-        println!("{:?}", g.goban().vec());
+        println!("{:?}", g.goban().to_vec());
 
 
 }
