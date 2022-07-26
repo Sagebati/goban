@@ -1,6 +1,6 @@
 use bitvec::BitArr;
 
-use crate::pieces::Nat;
+use crate::pieces::{BoardIdx, Nat};
 use crate::pieces::stones::Color;
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
@@ -84,6 +84,13 @@ impl Chain {
     #[inline]
     pub fn add_liberties_owned(&mut self, stones_idx: BitArr!(for 361)) -> &mut Self {
         self.liberties |= stones_idx;
+        self
+    }
+
+    pub fn add_liberties_slice(&mut self, stones_idx: &[BoardIdx]) -> &mut Self {
+        for &idx in stones_idx {
+            self.liberties.set(idx, true);
+        }
         self
     }
 }

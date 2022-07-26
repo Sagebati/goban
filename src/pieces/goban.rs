@@ -20,6 +20,7 @@ pub type BoardIdx = usize;
 
 const BOARD_MAX_SIZE: (Nat, Nat) = (19, 19);
 const BOARD_MAX_LENGTH: usize = BOARD_MAX_SIZE.0 as usize * BOARD_MAX_SIZE.1 as usize;
+const MAX_CHAINS: usize = 4 * BOARD_MAX_LENGTH / 5;
 
 macro_rules! iter_stones {
     ($goban: expr, $ren_idx: expr) => {
@@ -28,11 +29,10 @@ macro_rules! iter_stones {
 }
 
 /// Represents a goban. the stones are stored in ROW MAJOR (row, column)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Goban {
-    pub(super) chains: Vec<Chain>,
-    free_slots: Vec<ChainIdx>,
-
+    pub(super) chains: ArrayVec<Chain, MAX_CHAINS>,
+    free_slots: BitArr!(for MAX_CHAINS),
     board: ArrayVec<Option<ChainIdx>, BOARD_MAX_LENGTH>,
     next_stone: ArrayVec<usize, BOARD_MAX_LENGTH>,
     size: Size,
@@ -47,15 +47,15 @@ impl Goban {
     pub fn new((height, width): Size) -> Self {
         assert!(
             height <= 19 && width <= 19,
-            "Cannot create a goban with the size > 19"
+
         );
         Goban {
             size: (height, width),
             zobrist_hash: 0,
             board: ArrayVec::from([None; BOARD_MAX_LENGTH]),
             next_stone: ArrayVec::from([0; BOARD_MAX_LENGTH]),
-            chains: Vec::with_capacity(128),
-            free_slots: Vec::with_capacity(128),
+            chains: ArrayVec::new_const(),
+            free_slots: Default::default(),
         }
     }
 
@@ -133,21 +133,19 @@ impl Goban {
 
         let mut adjacent_same_color_str_set = ArrayVec::<usize, 4>::new();
         let mut adjacent_opposite_color_str_set = ArrayVec::<usize, 4>::new();
-        let mut liberties = bitarr!(0;BOARD_MAX_LENGTH);
+        let mut liberties = ArrayVec::<usize, 4>::new();
 
         for neighbor_idx in self.neighbors_idx(pushed_stone_idx) {
             match self.board[neighbor_idx] {
-                Some(adj_ren_index) => {
-                    if self.chains[adj_ren_index].color == color {
-                        if !adjacent_same_color_str_set.contains(&adj_ren_index) {
-                            adjacent_same_color_str_set.push(adj_ren_index);
-                        }
-                    } else if !adjacent_opposite_color_str_set.contains(&adj_ren_index) {
-                        adjacent_opposite_color_str_set.push(adj_ren_index);
+                Some(adj_ren_index) => if self.chains[adj_ren_index].color == color {
+                    if !adjacent_same_color_str_set.contains(&adj_ren_index) {
+                        adjacent_same_color_str_set.push(adj_ren_index);
                     }
-                }
+                } else if !adjacent_opposite_color_str_set.contains(&adj_ren_index) {
+                    adjacent_opposite_color_str_set.push(adj_ren_index);
+                },
                 None => {
-                    liberties.set(neighbor_idx, true);
+                    liberties.push(neighbor_idx);
                 }
             }
         }
@@ -164,19 +162,19 @@ impl Goban {
 
         let number_of_neighbors_strings = adjacent_same_color_str_set.len();
         let updated_ren_index = match number_of_neighbors_strings {
-            0 => self.create_chain(pushed_stone_idx, color, liberties),
+            0 => self.create_chain(pushed_stone_idx, color, &liberties),
             1 => {
                 let only_ren_idx = adjacent_same_color_str_set.into_iter().next().unwrap();
 
                 self.chains[only_ren_idx]
                     .remove_liberty(pushed_stone_idx)
-                    .add_liberties_owned(liberties);
+                    .add_liberties_slice(&liberties);
                 self.add_stone_to_chain(only_ren_idx, pushed_stone_idx);
                 self.board[pushed_stone_idx] = Some(only_ren_idx);
                 only_ren_idx
             }
             _ => {
-                let mut to_merge = self.create_chain(pushed_stone_idx, color, liberties);
+                let mut to_merge = self.create_chain(pushed_stone_idx, color, &liberties);
                 for adj_ren in adjacent_same_color_str_set {
                     if self.chains[adj_ren].number_of_liberties()
                         < self.chains[to_merge].number_of_liberties()
@@ -519,11 +517,15 @@ impl Goban {
         &mut self,
         origin: usize,
         color: Color,
-        liberties: BitArr!(for BOARD_MAX_LENGTH),
+        liberties: &[BoardIdx],
     ) -> ChainIdx {
-        let chain_to_place = Chain::new_with_liberties(color, origin, liberties);
+        let mut biterties = bitarr!(0 ;BOARD_MAX_LENGTH);
+        for &board_idx in liberties {
+            biterties.set(board_idx, true);
+        }
+        let chain_to_place = Chain::new_with_liberties(color, origin, biterties);
         self.next_stone[origin] = origin;
-        let chain_idx = if let Some(free_slot_idx) = self.free_slots.pop() {
+        let chain_idx = if let Some(free_slot_idx) = self.free_slots.first_one() {
             self.chains[free_slot_idx] = chain_to_place;
             free_slot_idx
         } else {
@@ -594,7 +596,7 @@ impl Goban {
     #[inline]
     fn put_chain_in_bin(&mut self, ren_idx: ChainIdx) {
         self.chains[ren_idx].used = false;
-        self.free_slots.push(ren_idx);
+        self.free_slots.set(ren_idx, true);
     }
 
     #[allow(dead_code)]
