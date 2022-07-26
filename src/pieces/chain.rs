@@ -6,20 +6,20 @@ use crate::pieces::stones::Color;
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub struct Chain {
     pub color: Color,
-    pub origin: usize,
-    pub last: usize,
+    pub origin: BoardIdx,
+    pub last: BoardIdx,
     pub liberties: BitArr!(for 361),
     pub used: bool,
-    pub num_stones: Nat,
+    pub num_stones: u16,
 }
 
 impl Chain {
     #[inline]
-    pub fn new(color: Color, stone: usize) -> Self {
+    pub fn new(color: Color, stone: BoardIdx) -> Self {
         Self::new_with_liberties(color, stone, Default::default())
     }
 
-    pub fn new_with_liberties(color: Color, stone: usize, liberties: BitArr!(for 361)) -> Self {
+    pub fn new_with_liberties(color: Color, stone: BoardIdx, liberties: BitArr!(for 361)) -> Self {
         Chain {
             color,
             origin: stone,
@@ -47,12 +47,12 @@ impl Chain {
     }
 
     #[inline]
-    pub fn contains_liberty(&self, stone_idx: usize) -> bool {
+    pub fn contains_liberty(&self, stone_idx: BoardIdx) -> bool {
         self.liberties[stone_idx]
     }
 
     #[inline]
-    pub fn remove_liberty(&mut self, stone_idx: usize) -> &mut Self {
+    pub fn remove_liberty(&mut self, stone_idx: BoardIdx) -> &mut Self {
         debug_assert!(
             self.liberties[stone_idx],
             "Tried to remove a liberty, who isn't present. stone idx: {}",
@@ -63,7 +63,7 @@ impl Chain {
     }
 
     #[inline]
-    pub fn add_liberty(&mut self, stone_idx: usize) -> &mut Self {
+    pub fn add_liberty(&mut self, stone_idx: BoardIdx) -> &mut Self {
         debug_assert!(
             !self.liberties[stone_idx],
             "Tried to add a liberty already present, stone idx: {}",
@@ -74,7 +74,7 @@ impl Chain {
     }
 
     #[inline]
-    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item=usize>) -> &mut Self {
+    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item=BoardIdx>) -> &mut Self {
         for idx in stones_idx {
             self.add_liberty(idx);
         }

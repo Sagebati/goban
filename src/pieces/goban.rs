@@ -15,8 +15,8 @@ use crate::pieces::util::CircularRenIter;
 use crate::pieces::util::coord::{Coord, is_coord_valid, neighbor_coords, one_to_2dim, Size, two_to_1dim};
 use crate::pieces::zobrist::*;
 
-pub type ChainIdx = usize;
-pub type BoardIdx = usize;
+pub type ChainIdx = u16;
+pub type BoardIdx = u16;
 
 const BOARD_MAX_SIZE: (Nat, Nat) = (19, 19);
 const BOARD_MAX_LENGTH: usize = BOARD_MAX_SIZE.0 as usize * BOARD_MAX_SIZE.1 as usize;
@@ -131,9 +131,9 @@ impl Goban {
     ) -> (ArrayVec<usize, 4>, ChainIdx) {
         let pushed_stone_idx = two_to_1dim(self.size, point);
 
-        let mut adjacent_same_color_str_set = ArrayVec::<usize, 4>::new();
-        let mut adjacent_opposite_color_str_set = ArrayVec::<usize, 4>::new();
-        let mut liberties = ArrayVec::<usize, 4>::new();
+        let mut adjacent_same_color_str_set = ArrayVec::<BoardIdx, 4>::new();
+        let mut adjacent_opposite_color_str_set = ArrayVec::<BoardIdx, 4>::new();
+        let mut liberties = ArrayVec::<BoardIdx, 4>::new();
 
         for neighbor_idx in self.neighbors_idx(pushed_stone_idx) {
             match self.board[neighbor_idx] {
@@ -150,7 +150,7 @@ impl Goban {
             }
         }
 
-        let mut dead_ren = ArrayVec::<usize, 4>::new();
+        let mut dead_ren = ArrayVec::<BoardIdx, 4>::new();
         // for every string of opposite color remove a liberty and update the string.
         for ren_idx in adjacent_opposite_color_str_set {
             let ren = &mut self.chains[ren_idx];
@@ -312,16 +312,16 @@ impl Goban {
     #[inline]
     pub fn get_neighbors_chains(&self, coord: Coord) -> impl Iterator<Item=&Chain> + '_ {
         self.get_neighbors_chain_indexes(coord)
-            .map(move |chain_idx| &self.chains[chain_idx])
+            .map(move |chain_idx| &self.chains[chain_idx] as usize)
     }
 
     #[inline]
     pub fn get_neighbors_chains_ids_by_board_idx(
         &self,
-        index: usize,
+        index: BoardIdx,
     ) -> impl Iterator<Item=ChainIdx> + '_ {
         self.neighbors_idx(index)
-            .filter_map(move |idx| self.board[idx])
+            .filter_map(move |idx| self.board[idx as usize])
     }
 
     /// Function for getting the stone in the goban.
@@ -330,12 +330,12 @@ impl Goban {
         Point {
             coord,
             color: self.board[two_to_1dim(self.size, coord)]
-                .map(|chain_idx| self.chains[chain_idx].color),
+                .map(|chain_idx| self.chains[chain_idx as usize].color),
         }
     }
 
     pub fn get_color(&self, coord: Coord) -> MaybeColor {
-        self.board[two_to_1dim(self.size, coord)].map(|chain_id| self.chains[chain_id].color)
+        self.board[two_to_1dim(self.size, coord)].map(|chain_id| self.chains[chain_id as usize].color)
     }
 
     pub fn get_stone_color(&self, coord: Coord) -> Color {
@@ -348,7 +348,7 @@ impl Goban {
         self.board.iter().enumerate().filter_map(move |(index, o)| {
             o.map(move |chain_idx| Stone {
                 coord: one_to_2dim(self.size, index),
-                color: self.chains[chain_idx].color,
+                color: self.chains[chain_idx as usize].color,
             })
         })
     }
@@ -384,7 +384,7 @@ impl Goban {
             match color {
                 EMPTY => res.push(one_to_2dim(self.size, board_idx)),
                 Some(c) => self.board[board_idx]
-                    .filter(|&chain_idx| self.chains[chain_idx].color == c)
+                    .filter(|&chain_idx| self.chains[chain_idx as usize].color == c)
                     .map(|_| res.push(one_to_2dim(self.size, board_idx)))
                     .unwrap_or(()),
             }
@@ -444,7 +444,7 @@ impl Goban {
     /// adjacent chains that aren't the same color.
     pub fn remove_chain(&mut self, ren_to_remove_idx: ChainIdx) {
         let color_of_the_string = self.chains[ren_to_remove_idx].color;
-        let mut neighbors = ArrayVec::<usize, 4>::new();
+        let mut neighbors = ArrayVec::<BoardIdx, 4>::new();
 
         for point_idx in iter_stones!(self, ren_to_remove_idx) {
             for neighbor_str_idx in self.get_neighbors_chains_ids_by_board_idx(point_idx) {
@@ -498,7 +498,7 @@ impl Goban {
             .map(move |coord| two_to_1dim(size, coord))
     }
 
-    pub fn get_chain_it(&self, chain_idx: ChainIdx) -> impl Iterator<Item = usize> + '_ {
+    pub fn get_chain_it(&self, chain_idx: ChainIdx) -> impl Iterator<Item=BoardIdx> + '_ {
         CircularRenIter::new(self.chains[chain_idx].origin, &self.next_stone)
     }
 
@@ -506,7 +506,7 @@ impl Goban {
     pub fn get_chain_it_by_board_idx(
         &self,
         board_idx: BoardIdx,
-    ) -> impl Iterator<Item = usize> + '_ {
+    ) -> impl Iterator<Item=BoardIdx> + '_ {
         self.board[board_idx]
             .map(|chain_idx| self.get_chain_it(chain_idx))
             .unwrap_or_else(|| panic!("The board index: {} was out of bounds", board_idx))
@@ -515,7 +515,7 @@ impl Goban {
     #[inline]
     fn create_chain(
         &mut self,
-        origin: usize,
+        origin: BoardIdx,
         color: Color,
         liberties: &[BoardIdx],
     ) -> ChainIdx {
@@ -527,6 +527,7 @@ impl Goban {
         self.next_stone[origin] = origin;
         let chain_idx = if let Some(free_slot_idx) = self.free_slots.first_one() {
             self.chains[free_slot_idx] = chain_to_place;
+            self.free_slots.set(free_slot_idx, false);
             free_slot_idx
         } else {
             self.chains.push(chain_to_place);
@@ -536,7 +537,7 @@ impl Goban {
         chain_idx
     }
 
-    fn add_stone_to_chain(&mut self, chain_idx: ChainIdx, stone: usize) {
+    fn add_stone_to_chain(&mut self, chain_idx: ChainIdx, stone: BoardIdx) {
         let chain = &mut self.chains[chain_idx];
         if stone < chain.origin {
             // replace origin
@@ -612,7 +613,7 @@ impl Goban {
             self.chains[ren_idx].last,
             "The last doesn't match"
         );
-        if iter_stones!(self, ren_idx).count() as Nat != self.chains[ren_idx].num_stones {
+        if iter_stones!(self, ren_idx).count() as u16 != self.chains[ren_idx].num_stones {
             panic!("The number of stones don't match")
         }
     }
