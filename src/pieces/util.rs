@@ -1,11 +1,11 @@
 pub struct CircularRenIter<'a> {
-    next_stone: &'a [usize],
+    next_stone: &'a [u16],
     origin: usize,
     next: Option<usize>,
 }
 
 impl<'a> CircularRenIter<'a> {
-    pub fn new(origin: usize, next_stone: &'a [usize]) -> Self {
+    pub fn new(origin: usize, next_stone: &'a [u16]) -> Self {
         Self {
             next_stone,
             origin,
@@ -22,7 +22,7 @@ impl<'a> Iterator for CircularRenIter<'a> {
         let ret = self.next;
         self.next = self
             .next
-            .map(|stone_idx| self.next_stone[stone_idx])
+            .map(|stone_idx| self.next_stone[stone_idx] as usize)
             .filter(move |&o| o != origin);
 
         #[cfg(debug_assertions)]
@@ -41,12 +41,12 @@ pub mod coord {
 
     /// Defining the policy for the columns.
     pub type Coord = (Nat, Nat);
-    pub type Size = (usize, usize);
+    pub type Size = (u8, u8);
 
     /// Return true if the coord is in the goban.
     #[inline(always)]
     pub const fn is_coord_valid((height, width): Size, coord: Coord) -> bool {
-        (coord.0 as usize) < height && (coord.1 as usize) < width
+        (coord.0) < height && (coord.1) < width
     }
 
     #[inline(always)]
@@ -56,7 +56,7 @@ pub mod coord {
 
     #[inline(always)]
     pub const fn one_to_2dim(size: Size, index: usize) -> Coord {
-        ((index / size.0) as Nat, (index % size.1) as Nat)
+        ((index as u8 / size.0), (index as u8 % size.1))
     }
 
     #[inline(always)]

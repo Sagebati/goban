@@ -17,8 +17,8 @@ mod tests {
 
     #[test]
     fn sizes() {
-        assert_eq!(mem::size_of::<Point>(), 4);
-        assert_eq!(mem::size_of::<Stone>(), 4);
+        assert_eq!(mem::size_of::<Point>(), 3);
+        assert_eq!(mem::size_of::<Stone>(), 3);
     }
 
     #[test]
@@ -607,21 +607,21 @@ mod tests {
     #[test]
     fn ko_test() {
         let mut game: Game = Default::default();
-        game.play(Move::Play(0, 3)); // black
+        game.play(Play(0, 3)); // black
         game.display_goban();
-        game.play(Move::Play(0, 2)); // white
+        game.play(Play(0, 2)); // white
         game.display_goban();
-        game.play(Move::Play(1, 4)); // black
+        game.play(Play(1, 4)); // black
         game.display_goban();
-        game.play(Move::Play(2, 2)); // white
+        game.play(Play(2, 2)); // white
         game.display_goban();
-        game.play(Move::Play(2, 3)); // black
+        game.play(Play(2, 3)); // black
         game.display_goban();
-        game.play(Move::Play(1, 1)); // white
+        game.play(Play(1, 1)); // white
         game.display_goban();
-        game.play(Move::Play(1, 2)); // black
+        game.play(Play(1, 2)); // black
         game.display_goban();
-        game.play(Move::Play(1, 3)); // white takes
+        game.play(Play(1, 3)); // white takes
         game.display_goban();
         //game.play(Move::Play(1, 2)); // black takes back
         //println!("{}", game);

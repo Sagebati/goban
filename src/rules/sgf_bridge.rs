@@ -30,7 +30,7 @@ impl Game {
                             game_builder.komi(*komi);
                         }
                         SgfToken::Size(x, y) => {
-                            game_builder.size((*x as usize, *y as usize));
+                            game_builder.size((*x as u8, *y as u8));
                         }
                         SgfToken::Result(o) => {
                             game_builder.outcome((*o).into());

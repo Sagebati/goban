@@ -6,17 +6,19 @@ use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 
 use arrayvec::ArrayVec;
-use bitvec::{bitarr, BitArr};
+use bitvec::bitbox;
 
 use crate::pieces::chain::Chain;
 use crate::pieces::Nat;
 use crate::pieces::stones::*;
 use crate::pieces::util::CircularRenIter;
-use crate::pieces::util::coord::{Coord, is_coord_valid, neighbor_coords, one_to_2dim, Size, two_to_1dim};
+use crate::pieces::util::coord::{
+    Coord, is_coord_valid, neighbor_coords, one_to_2dim, Size, two_to_1dim,
+};
 use crate::pieces::zobrist::*;
 
-pub type ChainIdx = u16;
-pub type BoardIdx = u16;
+pub type ChainIdx = usize;
+pub type BoardIdx = usize;
 
 const BOARD_MAX_SIZE: (Nat, Nat) = (19, 19);
 const BOARD_MAX_LENGTH: usize = BOARD_MAX_SIZE.0 as usize * BOARD_MAX_SIZE.1 as usize;
@@ -24,17 +26,17 @@ const MAX_CHAINS: usize = 4 * BOARD_MAX_LENGTH / 5;
 
 macro_rules! iter_stones {
     ($goban: expr, $ren_idx: expr) => {
-        CircularRenIter::new($goban.chains[$ren_idx].origin, &$goban.next_stone)
+        CircularRenIter::new($goban.chains[$ren_idx as usize].origin as usize, &$goban.next_stone)
     };
 }
 
 /// Represents a goban. the stones are stored in ROW MAJOR (row, column)
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Goban {
-    pub(super) chains: ArrayVec<Chain, MAX_CHAINS>,
-    free_slots: BitArr!(for MAX_CHAINS),
-    board: ArrayVec<Option<ChainIdx>, BOARD_MAX_LENGTH>,
-    next_stone: ArrayVec<usize, BOARD_MAX_LENGTH>,
+    pub(super) chains: Vec<Chain>,
+    //free_slots: BitArr!(for MAX_CHAINS),
+    board: Vec<Option<u16>>,
+    next_stone: Vec<u16>,
     size: Size,
     zobrist_hash: u64,
 }
@@ -45,23 +47,20 @@ impl Goban {
     ///
     /// * `(height, width)` a tuple with the height and the width of the desired goban.
     pub fn new((height, width): Size) -> Self {
-        assert!(
-            height <= 19 && width <= 19,
-
-        );
+        assert!(height <= 19 && width <= 19,);
         Goban {
             size: (height, width),
             zobrist_hash: 0,
-            board: ArrayVec::from([None; BOARD_MAX_LENGTH]),
-            next_stone: ArrayVec::from([0; BOARD_MAX_LENGTH]),
-            chains: ArrayVec::new_const(),
-            free_slots: Default::default(),
+            board: vec![None; BOARD_MAX_LENGTH],
+            next_stone: vec![0; BOARD_MAX_LENGTH],
+            chains: Vec::with_capacity(MAX_CHAINS),
+            //free_slots: Default::default(),
         }
     }
 
     /// Creates a Goban from an array of stones.
     pub fn from_array(stones: &[MaybeColor]) -> Self {
-        let size = ((stones.len() as f32).sqrt()) as usize;
+        let size = ((stones.len() as f32).sqrt()) as u8;
         let mut game = Goban::new((size, size));
         stones
             .iter()
@@ -86,7 +85,11 @@ impl Goban {
     pub fn to_vec(&self) -> Vec<MaybeColor> {
         self.board
             .iter()
-            .map(|point| point.map_or(EMPTY, |go_str_ptr| self.chains[go_str_ptr].color.into()))
+            .map(|point| {
+                point.map_or(EMPTY, |go_str_ptr| {
+                    self.chains[go_str_ptr as usize].color.into()
+                })
+            })
             .collect()
     }
 
@@ -96,7 +99,7 @@ impl Goban {
         for line in self.board.chunks_exact(self.size.1 as usize) {
             let v = line
                 .iter()
-                .map(|o| o.map_or(EMPTY, |idx| self.chains[idx].color.into()))
+                .map(|o| o.map_or(EMPTY, |idx| self.chains[idx as usize].color.into()))
                 .collect();
             mat.push(v);
         }
@@ -114,7 +117,7 @@ impl Goban {
     }
 
     #[inline]
-    pub(crate) fn board(&self) -> &[Option<ChainIdx>] {
+    pub(crate) fn board(&self) -> &[Option<u16>] {
         &self.board
     }
 
@@ -137,26 +140,31 @@ impl Goban {
 
         for neighbor_idx in self.neighbors_idx(pushed_stone_idx) {
             match self.board[neighbor_idx] {
-                Some(adj_ren_index) => if self.chains[adj_ren_index].color == color {
-                    if !adjacent_same_color_str_set.contains(&adj_ren_index) {
-                        adjacent_same_color_str_set.push(adj_ren_index);
+                Some(adj_ren_index) => {
+                    let adj_ren_index = adj_ren_index as usize;
+                    if self.chains[adj_ren_index].color == color {
+                        if !adjacent_same_color_str_set.contains(&adj_ren_index) {
+                            adjacent_same_color_str_set.push(adj_ren_index);
+                        }
+                    } else if !adjacent_opposite_color_str_set.contains(&adj_ren_index) {
+                        adjacent_opposite_color_str_set.push(adj_ren_index);
                     }
-                } else if !adjacent_opposite_color_str_set.contains(&adj_ren_index) {
-                    adjacent_opposite_color_str_set.push(adj_ren_index);
-                },
+                }
                 None => {
                     liberties.push(neighbor_idx);
                 }
             }
         }
-
         let mut dead_ren = ArrayVec::<BoardIdx, 4>::new();
         // for every string of opposite color remove a liberty and update the string.
         for ren_idx in adjacent_opposite_color_str_set {
             let ren = &mut self.chains[ren_idx];
-            ren.remove_liberty(pushed_stone_idx);
-            if ren.is_dead() {
-                dead_ren.push(ren_idx);
+            dbg!(ren.liberties());
+            if ren.used {
+                ren.remove_liberty(pushed_stone_idx);
+                if ren.is_dead() {
+                    dead_ren.push(ren_idx);
+                }
             }
         }
 
@@ -170,7 +178,7 @@ impl Goban {
                     .remove_liberty(pushed_stone_idx)
                     .add_liberties_slice(&liberties);
                 self.add_stone_to_chain(only_ren_idx, pushed_stone_idx);
-                self.board[pushed_stone_idx] = Some(only_ren_idx);
+                self.board[pushed_stone_idx] = Some(only_ren_idx as u16);
                 only_ren_idx
             }
             _ => {
@@ -209,7 +217,7 @@ impl Goban {
         for &dead_ren_idx in dead_rens_indices {
             let dead_ren = &self.chains[dead_ren_idx];
             if dead_ren.num_stones == 1 && only_one_ren_removed {
-                ko_point = Some(one_to_2dim(self.size(), dead_ren.origin));
+                ko_point = Some(one_to_2dim(self.size(), dead_ren.origin as usize));
             }
             stones_removed = match color {
                 Color::White => (
@@ -223,11 +231,11 @@ impl Goban {
             };
             self.remove_chain(dead_ren_idx);
         }
-        let chain = self.chains[added_ren];
-        if suicide_allowed && chain.num_stones == 0 {
+        let &mut Chain { num_stones, .. } = &mut self.chains[added_ren];
+        if suicide_allowed && num_stones == 0 {
             self.remove_chain(added_ren);
             ko_point = None;
-            let num_stones = chain.num_stones as u32;
+            let num_stones = num_stones as u32;
             stones_removed = match color {
                 Color::Black => (stones_removed.0, stones_removed.1 + num_stones),
                 Color::White => (stones_removed.0 + num_stones, stones_removed.1),
@@ -244,12 +252,12 @@ impl Goban {
     /// if the point is out of bounds
     pub fn push(&mut self, point: Coord, color: Color) -> &mut Self {
         debug_assert!(
-            (point.0 as usize) < self.size.0,
+            (point.0) < self.size.0,
             "Coordinate point.0 {} out of bounds",
             point.0
         );
         debug_assert!(
-            (point.1 as usize) < self.size.1,
+            (point.1) < self.size.1,
             "Coordinate point.1 {} out of bounds",
             point.1
         );
@@ -272,7 +280,7 @@ impl Goban {
     }
 
     pub fn get_chain_by_board_idx(&self, board_idx: BoardIdx) -> Option<&Chain> {
-        self.board[board_idx].map(|chain| &self.chains[chain])
+        self.board[board_idx].map(|chain| &self.chains[chain as usize])
     }
 
     pub fn get_chain_by_point(&self, point: Coord) -> Option<&Chain> {
@@ -305,14 +313,14 @@ impl Goban {
     pub fn get_neighbors_chain_indexes(&self, coord: Coord) -> impl Iterator<Item=ChainIdx> + '_ {
         self.neighbors_coords(coord)
             .map(move |point| two_to_1dim(self.size, point))
-            .filter_map(move |point| self.board[point])
+            .filter_map(move |point| self.board[point].map(|idx| idx as usize))
     }
 
     /// Get all the chains adjacent to the point. The result iterator can contains duplicates.
     #[inline]
     pub fn get_neighbors_chains(&self, coord: Coord) -> impl Iterator<Item=&Chain> + '_ {
         self.get_neighbors_chain_indexes(coord)
-            .map(move |chain_idx| &self.chains[chain_idx] as usize)
+            .map(move |chain_idx| &self.chains[chain_idx])
     }
 
     #[inline]
@@ -321,7 +329,7 @@ impl Goban {
         index: BoardIdx,
     ) -> impl Iterator<Item=ChainIdx> + '_ {
         self.neighbors_idx(index)
-            .filter_map(move |idx| self.board[idx as usize])
+            .filter_map(move |idx| self.board[idx].map(|idx| idx as usize))
     }
 
     /// Function for getting the stone in the goban.
@@ -335,7 +343,8 @@ impl Goban {
     }
 
     pub fn get_color(&self, coord: Coord) -> MaybeColor {
-        self.board[two_to_1dim(self.size, coord)].map(|chain_id| self.chains[chain_id as usize].color)
+        self.board[two_to_1dim(self.size, coord)]
+            .map(|chain_id| self.chains[chain_id as usize].color)
     }
 
     pub fn get_stone_color(&self, coord: Coord) -> Color {
@@ -356,10 +365,8 @@ impl Goban {
     /// Get stones by their color.
     #[inline]
     pub fn get_stones_by_color(&self, color: MaybeColor) -> impl Iterator<Item=Point> + '_ {
-        self.get_coords_by_color(color).map(move |c| Point {
-            color,
-            coord: c,
-        })
+        self.get_coords_by_color(color)
+            .map(move |c| Point { color, coord: c })
     }
 
     pub fn get_empty_coords(&self) -> impl Iterator<Item=Coord> + '_ {
@@ -446,7 +453,7 @@ impl Goban {
         let color_of_the_string = self.chains[ren_to_remove_idx].color;
         let mut neighbors = ArrayVec::<BoardIdx, 4>::new();
 
-        for point_idx in iter_stones!(self, ren_to_remove_idx) {
+        for point_idx in iter_stones!(self, ren_to_remove_idx as u16) {
             for neighbor_str_idx in self.get_neighbors_chains_ids_by_board_idx(point_idx) {
                 if ren_to_remove_idx != neighbor_str_idx {
                     #[cfg(debug_assertions)]
@@ -463,7 +470,7 @@ impl Goban {
             }
             neighbors.clear();
             self.zobrist_hash ^= index_zobrist(point_idx, color_of_the_string);
-            self.board[point_idx] = Option::None;
+            self.board[point_idx] = None;
         }
         self.put_chain_in_bin(ren_to_remove_idx);
     }
@@ -471,12 +478,12 @@ impl Goban {
     /// Updates the indexes to match actual goban. must use after we put a stone.
     fn update_chain_indexes_in_board(&mut self, ren_idx: ChainIdx) {
         debug_assert_eq!(
-            iter_stones!(self, ren_idx).last().unwrap(),
+            iter_stones!(self, ren_idx).last().unwrap() as u16,
             self.chains[ren_idx].last
         );
         for point in iter_stones!(self, ren_idx) {
             unsafe {
-                *self.board.get_unchecked_mut(point) = Some(ren_idx);
+                *self.board.get_unchecked_mut(point) = Some(ren_idx as u16);
             }
         }
     }
@@ -493,13 +500,14 @@ impl Goban {
     #[inline]
     fn neighbors_idx(&self, board_idx: BoardIdx) -> impl Iterator<Item=BoardIdx> {
         let size = self.size;
-        neighbor_coords(one_to_2dim(size, board_idx)).into_iter()
+        neighbor_coords(one_to_2dim(size, board_idx))
+            .into_iter()
             .filter(move |&coord| is_coord_valid(size, coord))
             .map(move |coord| two_to_1dim(size, coord))
     }
 
     pub fn get_chain_it(&self, chain_idx: ChainIdx) -> impl Iterator<Item=BoardIdx> + '_ {
-        CircularRenIter::new(self.chains[chain_idx].origin, &self.next_stone)
+        CircularRenIter::new(self.chains[chain_idx].origin as usize, &self.next_stone)
     }
 
     #[inline]
@@ -508,50 +516,45 @@ impl Goban {
         board_idx: BoardIdx,
     ) -> impl Iterator<Item=BoardIdx> + '_ {
         self.board[board_idx]
-            .map(|chain_idx| self.get_chain_it(chain_idx))
+            .map(|chain_idx| self.get_chain_it(chain_idx as ChainIdx))
             .unwrap_or_else(|| panic!("The board index: {} was out of bounds", board_idx))
     }
 
     #[inline]
-    fn create_chain(
-        &mut self,
-        origin: BoardIdx,
-        color: Color,
-        liberties: &[BoardIdx],
-    ) -> ChainIdx {
-        let mut biterties = bitarr!(0 ;BOARD_MAX_LENGTH);
+    fn create_chain(&mut self, origin: BoardIdx, color: Color, liberties: &[BoardIdx]) -> ChainIdx {
+        let mut literties = bitbox!(0 ;BOARD_MAX_LENGTH);
         for &board_idx in liberties {
-            biterties.set(board_idx, true);
+            literties.set(board_idx, true);
         }
-        let chain_to_place = Chain::new_with_liberties(color, origin, biterties);
-        self.next_stone[origin] = origin;
-        let chain_idx = if let Some(free_slot_idx) = self.free_slots.first_one() {
-            self.chains[free_slot_idx] = chain_to_place;
-            self.free_slots.set(free_slot_idx, false);
-            free_slot_idx
-        } else {
-            self.chains.push(chain_to_place);
-            self.chains.len() - 1
-        };
+        let chain_to_place = Chain::new_with_liberties(color, origin, literties);
+        self.next_stone[origin] = origin as u16;
+        //let chain_idx = if let Some(free_slot_idx) = self.chains.iter().position(| x| !x.used) {
+        //    self.chains[free_slot_idx] = chain_to_place;
+        //self.free_slots.set(free_slot_idx, false);
+        //    free_slot_idx
+        //} else {
+        self.chains.push(chain_to_place);
+        let chain_idx = self.chains.len() - 1;
+        //};
         self.update_chain_indexes_in_board(chain_idx);
         chain_idx
     }
 
     fn add_stone_to_chain(&mut self, chain_idx: ChainIdx, stone: BoardIdx) {
         let chain = &mut self.chains[chain_idx];
-        if stone < chain.origin {
+        if stone < chain.origin as usize {
             // replace origin
             self.next_stone[stone] = chain.origin;
-            self.next_stone[chain.last] = stone;
-            chain.origin = stone;
+            self.next_stone[chain.last as usize] = stone as u16;
+            chain.origin = stone as u16;
         } else {
-            self.next_stone[chain.last] = stone;
+            self.next_stone[chain.last as usize] = stone as u16;
             self.next_stone[stone] = chain.origin;
-            chain.last = stone;
+            chain.last = stone as u16;
         }
         chain.num_stones += 1;
         debug_assert_eq!(
-            iter_stones!(self, chain_idx).last().unwrap(),
+            iter_stones!(self, chain_idx).last().unwrap() as u16,
             self.chains[chain_idx].last
         );
     }
@@ -574,7 +577,7 @@ impl Goban {
                 &mut contains_chain2[chain2_idx],
             )
         };
-        chain1.liberties |= chain2.liberties;
+        chain1.liberties |= chain2.liberties.clone();
 
         let chain1_last = chain1.last;
         let chain2_last = chain2.last;
@@ -587,7 +590,7 @@ impl Goban {
         } else {
             chain1.last = chain2_last;
         }
-        self.next_stone.swap(chain1_last, chain2_last);
+        self.next_stone.swap(chain1_last as usize, chain2_last as usize);
         chain1.num_stones += chain2.num_stones;
 
         self.update_chain_indexes_in_board(chain1_idx);
@@ -597,19 +600,19 @@ impl Goban {
     #[inline]
     fn put_chain_in_bin(&mut self, ren_idx: ChainIdx) {
         self.chains[ren_idx].used = false;
-        self.free_slots.set(ren_idx, true);
+        //self.free_slots.set(ren_idx, true);
     }
 
     #[allow(dead_code)]
     #[cfg(debug_assertions)]
     fn check_integrity_ren(&self, ren_idx: ChainIdx) {
         assert_eq!(
-            iter_stones!(self, ren_idx).next().unwrap(),
+            iter_stones!(self, ren_idx).next().unwrap() as u16,
             self.chains[ren_idx].origin,
             "The origin doesn't match"
         );
         assert_eq!(
-            iter_stones!(self, ren_idx).last().unwrap(),
+            iter_stones!(self, ren_idx).last().unwrap() as u16,
             self.chains[ren_idx].last,
             "The last doesn't match"
         );

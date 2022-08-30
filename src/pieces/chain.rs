@@ -1,14 +1,14 @@
-use bitvec::BitArr;
+use bitvec::prelude::*;
 
-use crate::pieces::{BoardIdx, Nat};
+use crate::pieces::BoardIdx;
 use crate::pieces::stones::Color;
 
-#[derive(Clone, Debug, PartialEq, Eq, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Chain {
     pub color: Color,
-    pub origin: BoardIdx,
-    pub last: BoardIdx,
-    pub liberties: BitArr!(for 361),
+    pub origin: u16,
+    pub last: u16,
+    pub liberties: BitBox,
     pub used: bool,
     pub num_stones: u16,
 }
@@ -16,14 +16,14 @@ pub struct Chain {
 impl Chain {
     #[inline]
     pub fn new(color: Color, stone: BoardIdx) -> Self {
-        Self::new_with_liberties(color, stone, Default::default())
+        Self::new_with_liberties(color, stone, bitvec![0,361].into_boxed_bitslice())
     }
 
-    pub fn new_with_liberties(color: Color, stone: BoardIdx, liberties: BitArr!(for 361)) -> Self {
+    pub fn new_with_liberties(color: Color, stone: BoardIdx, liberties: BitBox) -> Self {
         Chain {
             color,
-            origin: stone,
-            last: stone,
+            origin: stone as u16,
+            last: stone as u16,
             liberties,
             used: true,
             num_stones: 1,
@@ -82,8 +82,8 @@ impl Chain {
     }
 
     #[inline]
-    pub fn add_liberties_owned(&mut self, stones_idx: BitArr!(for 361)) -> &mut Self {
-        self.liberties |= stones_idx;
+    pub fn add_liberties_owned(&mut self, liberties_idx: BitBox) -> &mut Self {
+        self.liberties |= liberties_idx;
         self
     }
 
@@ -92,5 +92,13 @@ impl Chain {
             self.liberties.set(idx, true);
         }
         self
+    }
+
+    pub fn liberties(&self) -> Vec<usize> {
+        let mut v = vec![];
+        for i in self.liberties.iter_ones() {
+            v.push(i);
+        }
+        v
     }
 }

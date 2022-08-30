@@ -26,7 +26,7 @@ impl From<GobanSizes> for Size {
             GobanSizes::Nine => (9, 9),
             GobanSizes::Thirteen => (13, 13),
             GobanSizes::Nineteen => (19, 19),
-            GobanSizes::Custom(height, width) => (height, width),
+            GobanSizes::Custom(height, width) => (height as u8, width as u8),
         }
     }
 }

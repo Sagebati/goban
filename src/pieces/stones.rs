@@ -7,7 +7,7 @@ use std::fmt::Formatter;
 use crate::pieces::util::coord::Coord;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
-#[repr(u16)]
+#[repr(u8)]
 pub enum Color {
     White = 2,
     Black = 1,

@@ -53,7 +53,7 @@ impl Game {
     pub fn new(size: GobanSizes, rule: Rule) -> Self {
         let (h, w) = size.into();
         let goban = Goban::new(size.into());
-        let length = h * w;
+        let length = h as usize * w as usize;
         #[cfg(feature = "history")]
             let history = Vec::with_capacity(length);
         let prisoners = (0, 0);
@@ -306,7 +306,9 @@ impl Game {
             coord: point,
             color: self.turn,
         };
-        if illegal_rules.contains(IllegalRules::KO) && self.check_ko(stone) {
+        if !self.goban.get_point(point).is_empty() {
+            Some(PlayError::PointNotEmpty)
+        } else if illegal_rules.contains(IllegalRules::KO) && self.check_ko(stone) {
             Some(PlayError::Ko)
         } else if illegal_rules.contains(IllegalRules::SUICIDE) && self.check_suicide(stone) {
             Some(PlayError::Suicide)
