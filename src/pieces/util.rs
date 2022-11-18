@@ -56,7 +56,14 @@ pub mod coord {
 
     #[inline(always)]
     pub const fn one_to_2dim(size: Size, index: usize) -> Coord {
-        ((index as u8 / size.0), (index as u8 % size.1))
+        ((index / size.0 as usize) as u8, (index % size.1 as usize) as u8)
+    }
+
+    #[macro_export]
+    macro_rules! one2dim {
+        ($size: expr, $index: expr) => {
+            (($index / $size.0 as usize)  as u8, ($index % $size.1 as usize) as u8)
+        };
     }
 
     #[inline(always)]

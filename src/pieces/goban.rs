@@ -6,9 +6,10 @@ use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 
 use arrayvec::ArrayVec;
-use bitvec::bitbox;
+use bitvec::{bitarr, bitbox};
 
-use crate::pieces::chain::Chain;
+use crate::one2dim;
+use crate::pieces::chain::{Chain, Liberties, merge, set};
 use crate::pieces::Nat;
 use crate::pieces::stones::*;
 use crate::pieces::util::CircularRenIter;
@@ -26,7 +27,10 @@ const MAX_CHAINS: usize = 4 * BOARD_MAX_LENGTH / 5;
 
 macro_rules! iter_stones {
     ($goban: expr, $ren_idx: expr) => {
-        CircularRenIter::new($goban.chains[$ren_idx as usize].origin as usize, &$goban.next_stone)
+        CircularRenIter::new(
+            $goban.chains[$ren_idx as usize].origin as usize,
+            &$goban.next_stone,
+        )
     };
 }
 
@@ -159,7 +163,6 @@ impl Goban {
         // for every string of opposite color remove a liberty and update the string.
         for ren_idx in adjacent_opposite_color_str_set {
             let ren = &mut self.chains[ren_idx];
-            dbg!(ren.liberties());
             if ren.used {
                 ren.remove_liberty(pushed_stone_idx);
                 if ren.is_dead() {
@@ -172,11 +175,11 @@ impl Goban {
         let updated_ren_index = match number_of_neighbors_strings {
             0 => self.create_chain(pushed_stone_idx, color, &liberties),
             1 => {
-                let only_ren_idx = adjacent_same_color_str_set.into_iter().next().unwrap();
+                let only_ren_idx = adjacent_same_color_str_set[0];
 
                 self.chains[only_ren_idx]
                     .remove_liberty(pushed_stone_idx)
-                    .add_liberties_slice(&liberties);
+                    .union_liberties_slice(&liberties);
                 self.add_stone_to_chain(only_ren_idx, pushed_stone_idx);
                 self.board[pushed_stone_idx] = Some(only_ren_idx as u16);
                 only_ren_idx
@@ -198,6 +201,8 @@ impl Goban {
             }
         };
         self.zobrist_hash ^= index_zobrist(pushed_stone_idx, color);
+        #[cfg(debug_assertions)]
+        self.check_integrity_all();
         (dead_ren, updated_ren_index)
     }
 
@@ -369,6 +374,13 @@ impl Goban {
             .map(move |c| Point { color, coord: c })
     }
 
+    pub fn get_empty_idx(&self) -> impl Iterator<Item=BoardIdx> + '_ {
+        self.board
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, chain)| chain.map(|_| idx))
+    }
+
     pub fn get_empty_coords(&self) -> impl Iterator<Item=Coord> + '_ {
         let board_length = self.size.0 as usize * self.size.1 as usize;
         self.board[..board_length]
@@ -376,7 +388,7 @@ impl Goban {
             .enumerate()
             .filter_map(|x| {
                 if x.1.is_none() {
-                    Some(one_to_2dim(self.size, x.0))
+                    Some(one2dim!(self.size, x.0))
                 } else {
                     None
                 }
@@ -403,7 +415,6 @@ impl Goban {
     #[inline]
     pub fn get_liberties(&self, coord: Coord) -> impl Iterator<Item=Coord> + '_ {
         self.neighbors_coords(coord)
-            .filter(move |&s| self.get_color(s).is_none())
     }
 
     /// Returns true if the stone has liberties.
@@ -414,7 +425,7 @@ impl Goban {
 
     /// Get a string for printing the goban in normal shape (0,0) left bottom
     pub fn pretty_string(&self) -> String {
-        let mut buff = String::new();
+        let mut buff = String::with_capacity(361);
         for i in 0..self.size.0 as Nat {
             for j in 0..self.size.1 as Nat {
                 buff.push(match self.get_color((i, j)) {
@@ -522,11 +533,17 @@ impl Goban {
 
     #[inline]
     fn create_chain(&mut self, origin: BoardIdx, color: Color, liberties: &[BoardIdx]) -> ChainIdx {
-        let mut literties = bitbox!(0 ;BOARD_MAX_LENGTH);
+        let mut lib_bitvec: Liberties = Default::default();
         for &board_idx in liberties {
-            literties.set(board_idx, true);
+            //literties.set(board_idx, true);
+            set::<true>(board_idx, &mut lib_bitvec);
         }
-        let chain_to_place = Chain::new_with_liberties(color, origin, literties);
+        let chain_to_place = Chain::new_with_liberties(color, origin, lib_bitvec);
+        let mut a = chain_to_place.liberties();
+        let mut b = liberties.to_owned();
+        a.sort();
+        b.sort();
+        assert_eq!(a, b);
         self.next_stone[origin] = origin as u16;
         //let chain_idx = if let Some(free_slot_idx) = self.chains.iter().position(| x| !x.used) {
         //    self.chains[free_slot_idx] = chain_to_place;
@@ -577,7 +594,7 @@ impl Goban {
                 &mut contains_chain2[chain2_idx],
             )
         };
-        chain1.liberties |= chain2.liberties.clone();
+        merge(&mut chain1.liberties, &chain2.liberties);
 
         let chain1_last = chain1.last;
         let chain2_last = chain2.last;
@@ -590,7 +607,8 @@ impl Goban {
         } else {
             chain1.last = chain2_last;
         }
-        self.next_stone.swap(chain1_last as usize, chain2_last as usize);
+        self.next_stone
+            .swap(chain1_last as usize, chain2_last as usize);
         chain1.num_stones += chain2.num_stones;
 
         self.update_chain_indexes_in_board(chain1_idx);
