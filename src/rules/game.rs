@@ -6,7 +6,7 @@ use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Stone;
 use crate::pieces::util::coord::{corner_points, is_coord_valid, one_to_2dim, Point};
-use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
+use crate::rules::{EndGame, IllegalRules, Move, ScoreRules};
 use crate::rules::{CHINESE, PlayError};
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::Player;
@@ -45,7 +45,7 @@ pub struct Game<const H: usize, const W: usize> {
 
     #[cfg(feature = "history")]
     #[get = "pub"]
-    pub(super) history: Vec<Goban<19,19>>,
+    pub(super) history: Vec<Goban<H, W>>,
 
     #[get = "pub"]
     pub(super) last_hash: u64,

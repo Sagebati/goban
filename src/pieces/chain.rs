@@ -2,7 +2,7 @@ use bitvec::BitArr;
 
 use crate::pieces::stones::Color;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub struct Chain {
     pub color: Color,
     pub origin: usize,
