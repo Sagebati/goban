@@ -1,5 +1,3 @@
-use bitvec::prelude::*;
-
 use crate::pieces::BoardIdx;
 use crate::pieces::stones::Color;
 

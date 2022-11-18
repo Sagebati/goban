@@ -6,7 +6,6 @@ use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 
 use arrayvec::ArrayVec;
-use bitvec::{bitarr, bitbox};
 
 use crate::one2dim;
 use crate::pieces::chain::{Chain, Liberties, merge, set};
@@ -414,7 +413,7 @@ impl Goban {
     /// Returns the "empty" stones connected to the stone
     #[inline]
     pub fn get_liberties(&self, coord: Coord) -> impl Iterator<Item=Coord> + '_ {
-        self.neighbors_coords(coord)
+        self.neighbors_coords(coord).filter(|&x| self.get_color(x).is_none())
     }
 
     /// Returns true if the stone has liberties.
@@ -511,8 +510,7 @@ impl Goban {
     #[inline]
     fn neighbors_idx(&self, board_idx: BoardIdx) -> impl Iterator<Item=BoardIdx> {
         let size = self.size;
-        neighbor_coords(one_to_2dim(size, board_idx))
-            .into_iter()
+        self.neighbors_coords(one_to_2dim(size, board_idx))
             .filter(move |&coord| is_coord_valid(size, coord))
             .map(move |coord| two_to_1dim(size, coord))
     }
