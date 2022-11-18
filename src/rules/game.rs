@@ -145,7 +145,7 @@ impl Game {
         let board = self.goban.board();
         for i in 0..size.0 as Nat {
             for j in 0..size.1 as Nat {
-                if board[two_to_1dim(size, (i, j))] == None {
+                if board[two_to_1dim(size, (i, j))].is_none() {
                     vec.push((i, j));
                 }
             }
