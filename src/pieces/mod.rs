@@ -3,6 +3,7 @@
 //! The goban structure. The stone structure.
 //!
 pub(super) type Nat = u8;
+pub(super) type BoardIdx = usize;
 
 pub mod chain;
 pub mod goban;

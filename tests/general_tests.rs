@@ -1,19 +1,25 @@
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
+    use std::mem;
 
     use rand::seq::SliceRandom;
 
     use goban::pieces::goban::Goban;
-    use goban::pieces::stones::Color;
+    use goban::pieces::stones::{Color, EMPTY, Point, Stone};
     use goban::pieces::stones::Color::Black;
-    use goban::pieces::stones::Stone;
     use goban::pieces::util::CircularRenIter;
     use goban::pieces::zobrist::index_zobrist;
-    use goban::rules::{EndGame, GobanSizes, Move, Player};
+    use goban::rules::{EndGame, GobanSizes, Move};
     use goban::rules::{CHINESE, JAPANESE};
     use goban::rules::game::Game;
     use goban::rules::Move::Play;
+
+    #[test]
+    fn sizes() {
+        assert_eq!(mem::size_of::<Point>(), 3);
+        assert_eq!(mem::size_of::<Stone>(), 3);
+    }
 
     #[test]
     fn goban() {
@@ -28,7 +34,7 @@ mod tests {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
         g.push((1, 2), Color::White);
         g.push((1, 3), Color::Black);
-        let tab = g.vec();
+        let tab = g.to_vec();
         let g2 = Goban::from_array(&tab);
         assert_eq!(g, g2)
     }
@@ -40,7 +46,7 @@ mod tests {
         g.play(Move::Pass);
         g.play(Move::Play(4, 3));
         let goban: &Goban = g.goban();
-        assert_eq!(goban.get_stone((4, 3)), Color::Black);
+        assert_eq!(goban.get_color((4, 3)), Some(Color::Black));
     }
 
     #[test]
@@ -51,15 +57,15 @@ mod tests {
 
         let expected = vec![
             Stone {
-                coordinates: (0, 0),
+                coord: (0, 0),
                 color: Color::Black,
             },
             Stone {
-                coordinates: (1, 2),
+                coord: (1, 2),
                 color: Color::White,
             },
         ];
-        let vec: Vec<Stone> = g.get_stones().collect();
+        let vec: Vec<_> = g.get_stones().collect();
         assert_eq!(expected, vec)
     }
 
@@ -70,7 +76,7 @@ mod tests {
         while !g.is_over() && i != 0 {
             g.play(
                 *g.legals()
-                    .map(|coord| Move::Play(coord.0, coord.1))
+                    .map(|coord| Play(coord.0, coord.1))
                     .collect::<Vec<Move>>()
                     .choose(&mut rand::thread_rng())
                     .unwrap(),
@@ -83,24 +89,25 @@ mod tests {
     #[test]
     fn test_eye() {
         let g = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
+        g.display_goban();
         assert!(g.check_eye(Stone {
-            coordinates: (0, 14),
+            coord: (0, 14),
             color: Color::White,
         }));
         assert!(g.check_eye(Stone {
-            coordinates: (0, 12),
+            coord: (0, 12),
             color: Color::White,
         }));
         assert!(g.check_eye(Stone {
-            coordinates: (1, 11),
+            coord: (1, 11),
             color: Color::White,
         }));
         assert!(!g.check_eye(Stone {
-            coordinates: (1, 8),
+            coord: (1, 8),
             color: Color::Black,
         }));
         assert!(!g.check_eye(Stone {
-            coordinates: (17, 18),
+            coord: (17, 18),
             color: Color::Black,
         }));
     }
@@ -429,7 +436,7 @@ mod tests {
         ];
         let handicap = vec![(3, 3), (3, 15), (9, 3), (9, 15), (15, 3), (15, 15)];
         let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
-        let inv_coord: Vec<usize> = (0..19).rev().collect();
+        let inv_coord: Vec<u8> = (0..19).rev().collect();
         g.put_handicap(&handicap);
         for m in moves_sgf {
             let to_play = match m {
@@ -439,10 +446,10 @@ mod tests {
                     println!("({},{})", x, y);
                     println!("({},{})", inv_coord[x], y);
                     println!("({},{})", inv_coord[x] + 1, y + 1);
-                    if inv_coord[x] == 6 && y == 14 && g.turn() == Player::White {
+                    if inv_coord[x] == 6 && y == 14 && g.turn() == Color::White {
                         println!("bug")
                     }
-                    Play(inv_coord[x] as u8, y as u8)
+                    Play(inv_coord[x], y as u8)
                 }
                 m => m,
             };
@@ -463,25 +470,25 @@ mod tests {
     fn atari() {
         let mut goban = Goban::new((9, 9));
         let s = Stone {
-            coordinates: (4, 4),
+            coord: (4, 4),
             color: Color::Black,
         };
         goban.push_stone(s);
         println!("{}", goban.pretty_string());
         let cl = goban.clone();
-        let x = cl.get_liberties(s.coordinates);
+        let x = cl.get_liberties(s.coord);
 
-        x.for_each(|s| {
-            println!("{:?}", s.coordinates);
+        x.for_each(|coord| {
+            println!("{:?}", coord);
             goban.push_stone(Stone {
-                coordinates: s.coordinates,
+                coord,
                 color: Color::White,
             });
         });
 
         println!("{}", goban.pretty_string());
 
-        assert_eq!(goban.get_liberties(s.coordinates).count(), 0);
+        assert_eq!(goban.get_liberties(s.coord).count(), 0);
     }
 
     #[test]
@@ -494,7 +501,7 @@ mod tests {
         g.play(Move::Play(0, 1)); // B
         println!("{}", g.goban().pretty_string());
         // Atari
-        assert_eq!(g.goban().get_stone((0, 0)), Color::None);
+        assert_eq!(g.goban().get_color((0, 0)), EMPTY);
     }
 
     #[test]
@@ -539,16 +546,14 @@ mod tests {
             Color::Black,
         );
         goban.push_many(
-            &vec![
-                (11, 6),
+            &[(11, 6),
                 (11, 7),
                 (11, 8),
                 (12, 6),
                 (12, 8),
                 (13, 6),
                 (13, 7),
-                (13, 8),
-            ],
+                (13, 8)],
             Color::White,
         );
 
@@ -556,7 +561,7 @@ mod tests {
         assert_eq!(terr, (27, 8 * 19 + 1));
 
         goban.push_many(
-            &vec![(17, 18), (18, 17), (18, 15), (17, 16), (16, 17), (15, 18)],
+            &[(17, 18), (18, 17), (18, 15), (17, 16), (16, 17), (15, 18)],
             Black,
         );
 
@@ -581,7 +586,7 @@ mod tests {
         assert_eq!(white, g.komi());
         assert_eq!(
             outcome,
-            EndGame::WinnerByScore(Player::Black, 81. - g.komi())
+            EndGame::WinnerByScore(Color::Black, 81. - g.komi())
         )
     }
 
@@ -600,33 +605,33 @@ mod tests {
     #[test]
     fn ko_test() {
         let mut game: Game = Default::default();
-        game.play(Move::Play(0, 3)); // black
+        game.play(Play(0, 3)); // black
         game.display_goban();
-        game.play(Move::Play(0, 2)); // white
+        game.play(Play(0, 2)); // white
         game.display_goban();
-        game.play(Move::Play(1, 4)); // black
+        game.play(Play(1, 4)); // black
         game.display_goban();
-        game.play(Move::Play(2, 2)); // white
+        game.play(Play(2, 2)); // white
         game.display_goban();
-        game.play(Move::Play(2, 3)); // black
+        game.play(Play(2, 3)); // black
         game.display_goban();
-        game.play(Move::Play(1, 1)); // white
+        game.play(Play(1, 1)); // white
         game.display_goban();
-        game.play(Move::Play(1, 2)); // black
+        game.play(Play(1, 2)); // black
         game.display_goban();
-        game.play(Move::Play(1, 3)); // white takes
+        game.play(Play(1, 3)); // white takes
         game.display_goban();
         //game.play(Move::Play(1, 2)); // black takes back
         //println!("{}", game);
         // ko
         assert!(game.check_ko(Stone {
-            coordinates: (1, 2),
+            coord: (1, 2),
             color: Color::Black,
         }));
         assert!(!game.legals().any(|m| m == (1, 2)));
         assert!(game.try_play(Move::Play(1, 2)).is_err());
         assert!(game.check_superko(Stone {
-            coordinates: (1, 2),
+            coord: (1, 2),
             color: Color::Black,
         }));
     }
@@ -671,7 +676,7 @@ mod tests {
         // println!("{}", game);
         // suicide
         assert!(game.check_suicide(Stone {
-            coordinates: (0, 1),
+            coord: (0, 1),
             color: Color::White,
         }));
         assert!(!game.legals().any(|m| m == (0, 1)));
@@ -683,7 +688,7 @@ mod tests {
         let game = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         println!("score : {:?}", game.calculate_score());
         assert_eq!(
-            EndGame::WinnerByScore(Player::Black, 2.0),
+            EndGame::WinnerByScore(Color::Black, 2.0),
             game.outcome().unwrap()
         );
         assert_eq!(game.prisoners(), (31, 29));
@@ -695,7 +700,7 @@ mod tests {
         println!("score : {:?}", game.calculate_score());
         assert_eq!(game.prisoners(), (25, 26));
         assert_eq!(
-            EndGame::WinnerByScore(Player::Black, 1.0),
+            EndGame::WinnerByScore(Color::Black, 1.0),
             game.outcome().unwrap()
         );
     }
@@ -707,7 +712,7 @@ mod tests {
         println!("prisoners : {:?}", game.prisoners());
         assert_eq!(game.prisoners(), (2, 9));
         assert_eq!(
-            EndGame::WinnerByResign(Player::White),
+            EndGame::WinnerByResign(Color::White),
             game.outcome().unwrap()
         )
     }

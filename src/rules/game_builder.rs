@@ -19,21 +19,20 @@
 //! ```
 
 use crate::pieces::goban::Goban;
-use crate::pieces::Nat;
 use crate::pieces::stones::Color;
-use crate::pieces::util::coord::Point;
-use crate::rules::{CHINESE, EndGame, Move, Player, Rule};
+use crate::pieces::stones::Color::White;
+use crate::pieces::util::coord::{Coord, Size};
+use crate::rules::{CHINESE, EndGame, Move, Rule};
 use crate::rules::game::Game;
-use crate::rules::Player::White;
 
 pub struct GameBuilder {
-    size: (u32, u32),
+    size: Size,
     black_player: String,
     white_player: String,
     rule: Rule,
     komi: Option<f32>,
-    handicap_points: Vec<Point>,
-    turn: Option<Player>,
+    handicap_points: Vec<Coord>,
+    turn: Option<Color>,
     moves: Vec<Move>,
     outcome: Option<EndGame>,
 }
@@ -64,12 +63,12 @@ impl GameBuilder {
     }
 
     /// Overrides the turn because it's a game with handicap. So White begins.
-    pub fn handicap(&mut self, points: &[Point]) -> &mut Self {
+    pub fn handicap(&mut self, points: &[Coord]) -> &mut Self {
         self.handicap_points = points.to_vec();
         self
     }
 
-    pub fn size(&mut self, size: (u32, u32)) -> &mut Self {
+    pub fn size(&mut self, size: Size) -> &mut Self {
         self.size = size;
         self
     }
@@ -79,7 +78,7 @@ impl GameBuilder {
         self
     }
 
-    pub fn turn(&mut self, turn: Player) -> &mut Self {
+    pub fn turn(&mut self, turn: Color) -> &mut Self {
         self.turn = Some(turn);
         self
     }
@@ -100,7 +99,7 @@ impl GameBuilder {
     }
 
     pub fn build(&mut self) -> Result<Game, String> {
-        let mut goban: Goban = Goban::new((self.size.0 as Nat, self.size.1 as Nat));
+        let mut goban: Goban = Goban::new(self.size);
 
         goban.push_many(&self.handicap_points, Color::Black);
 
@@ -117,9 +116,9 @@ impl GameBuilder {
             passes: 0,
             prisoners: (0, 0),
             outcome: self.outcome,
-            turn: self.turn.unwrap_or(Player::Black),
+            turn: self.turn.unwrap_or(Color::Black),
             rule: self.rule,
-            handicap: self.handicap_points.len() as u8,
+            handicap: self.handicap_points.len() as u32,
             #[cfg(feature = "history")]
             history: vec![],
             hashes: Default::default(),
