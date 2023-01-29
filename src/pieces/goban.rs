@@ -526,7 +526,7 @@ impl Goban {
     ) -> impl Iterator<Item=BoardIdx> + '_ {
         self.board[board_idx]
             .map(|chain_idx| self.get_chain_it(chain_idx as ChainIdx))
-            .unwrap_or_else(|| panic!("The board index: {} was out of bounds", board_idx))
+            .unwrap_or_else(|| panic!("The board index: {board_idx} was out of bounds"))
     }
 
     #[inline]

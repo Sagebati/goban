@@ -1,13 +1,21 @@
+use std::ops::BitOrAssign;
+
 use crate::pieces::BoardIdx;
 use crate::pieces::stones::Color;
 
 //pub type Liberties = BitArr![for 361, in usize];
-pub type Liberties = [u64; 6];
+
+type Bucket = u32;
+
+const SIZE: usize = 361 / Bucket::BITS as usize + 1;
+const BITS: usize = Bucket::BITS as usize;
+
+pub type Liberties = [Bucket; SIZE];
 
 #[inline(always)]
 pub fn set<const VAL: bool>(index: usize, lib: &mut Liberties) {
-    let chunk = index / u64::BITS as usize;
-    let bit_index = index % u64::BITS as usize;
+    let chunk = index / BITS;
+    let bit_index = index % BITS;
     let mask = 1 << bit_index;
     if VAL {
         lib[chunk] |= mask;
@@ -18,12 +26,7 @@ pub fn set<const VAL: bool>(index: usize, lib: &mut Liberties) {
 
 #[inline(always)]
 pub fn merge(lib: &mut Liberties, o: &Liberties) {
-    lib[0] |= o[0];
-    lib[1] |= o[1];
-    lib[2] |= o[2];
-    lib[3] |= o[3];
-    lib[4] |= o[4];
-    lib[5] |= o[5];
+    lib.iter_mut().zip(o).for_each(|(x, o)| x.bitor_assign(o))
 }
 
 #[inline(always)]
@@ -32,25 +35,18 @@ fn any(lib: &Liberties) -> bool {
 }
 
 fn count_ones(lib: &Liberties) -> usize {
-    let mut sum = 0;
-    sum += lib[0].count_ones();
-    sum += lib[1].count_ones();
-    sum += lib[2].count_ones();
-    sum += lib[3].count_ones();
-    sum += lib[4].count_ones();
-    sum += lib[5].count_ones();
-    sum as usize
+    lib.iter().map(|x| x.count_ones() as usize).sum()
 }
 
 fn iter_ones(lib: &Liberties) -> Vec<usize> {
-    let mut ones = Vec::with_capacity(64 * 6);
-    for i in 0..6 {
+    let mut ones = Vec::with_capacity(BITS * SIZE);
+    for i in 0..SIZE {
         let mut chunk = lib[i];
         let mut index = 0;
         while chunk != 0 {
             let zeros = chunk.trailing_zeros();
             index += zeros as usize + 1;
-            ones.push(index - 1 + 64 * i);
+            ones.push(index - 1 + BITS * i);
             chunk = chunk.checked_shr(zeros + 1).unwrap_or(0);
         }
     }
@@ -58,8 +54,8 @@ fn iter_ones(lib: &Liberties) -> Vec<usize> {
 }
 
 fn get(index: usize, lib: &Liberties) -> bool {
-    let chunk = index / 64;
-    let bit_index = index as u64 % 64;
+    let chunk = index / BITS;
+    let bit_index = index % BITS;
     (lib[chunk] & (1 << bit_index)) != 0
 }
 
