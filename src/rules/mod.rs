@@ -185,7 +185,7 @@ impl FromStr for Rule {
         match s {
             "JAP" => Ok(JAPANESE),
             "CHI" => Ok(CHINESE),
-            _ => Err(format!("The rule {} is not implemented yet.", s)),
+            _ => Err(format!("The rule {s} is not implemented yet.")),
         }
     }
 }

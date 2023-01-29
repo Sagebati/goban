@@ -61,7 +61,7 @@ impl<const H: usize, const W:usize> Goban<H,W> {
             .iter()
             .enumerate()
             .map(|(index, color)| (one_to_2dim((size as usize, size as usize), index), color))
-            .filter(|s| *(*s).1 != Color::None)
+            .filter(|s| *s.1 != Color::None)
             .for_each(|coord_color| {
                 game.push(coord_color.0, *coord_color.1);
             });
@@ -250,7 +250,7 @@ impl<const H: usize, const W:usize> Goban<H,W> {
     #[inline]
     pub fn get_neighbors_chain_indexes(&self, coord: Point) -> impl Iterator<Item=ChainIdx> + '_ {
         self.neighbor_points(coord)
-            .map(move |point| Self::point_to_board_idx(point))
+            .map(Self::point_to_board_idx)
             .into_iter()
             .filter_map(move |point| self.board[point])
     }
@@ -314,15 +314,15 @@ impl<const H: usize, const W:usize> Goban<H,W> {
         match color {
             Color::None => {
                 for board_idx in 0..(H * W) {
-                    if self.board[board_idx] == None {
-                            res.push(Self::board_idx_to_point(board_idx))
+                    if self.board[board_idx].is_none() {
+                        res.push(Self::board_idx_to_point(board_idx))
                     }
                 }
             }
             black_white => {
                 for ren in &self.chains {
                     if ren.color == black_white {
-                        res.extend(iter_stones!(self,ren.origin).map(|x| Self::board_idx_to_point(x)))
+                        res.extend(iter_stones!(self,ren.origin).map(Self::board_idx_to_point))
                     }
                 }
             }
@@ -429,8 +429,8 @@ impl<const H: usize, const W:usize> Goban<H,W> {
 
     #[inline]
     fn neighbor_points_indexes(&self, board_idx: BoardIdx) -> impl Iterator<Item=usize> {
-        self.neighbor_points(Self::board_idx_to_point( board_idx))
-            .map(move |x| Self::point_to_board_idx( x))
+        self.neighbor_points(Self::board_idx_to_point(board_idx))
+            .map(Self::point_to_board_idx)
     }
 
     pub fn get_chain_it(&self, chain_idx: ChainIdx) -> impl Iterator<Item=usize> + '_ {
@@ -439,7 +439,7 @@ impl<const H: usize, const W:usize> Goban<H,W> {
 
     #[inline]
     pub fn get_chain_it_by_board_idx(&self, board_idx: BoardIdx) -> impl Iterator<Item=usize> + '_ {
-        self.board[board_idx].map(|chain_idx| self.get_chain_it(chain_idx)).unwrap_or_else(|| panic!("The board index: {} was out of bounds", board_idx))
+        self.board[board_idx].map(|chain_idx| self.get_chain_it(chain_idx)).unwrap_or_else(|| panic!("The board index: {board_idx} was out of bounds"))
     }
 
     #[inline]

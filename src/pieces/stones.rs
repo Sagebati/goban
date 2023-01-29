@@ -50,6 +50,6 @@ impl Display for Color {
             Color::Black => "Black",
             Color::None => "Empty",
         };
-        write!(f, "{}", color_str)
+        write!(f, "{color_str}")
     }
 }

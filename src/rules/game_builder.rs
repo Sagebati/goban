@@ -7,7 +7,7 @@
 //! use goban::rules::game::Game;
 //! use goban::rules::JAPANESE;
 //!
-//! let mut builder = GameBuilder::default();
+//! let mut builder = GameBuilder::<19,19>::default();
 //! // or
 //! let mut builder = Game::builder();
 //! let game = builder
@@ -18,7 +18,6 @@
 //! ```
 
 use crate::pieces::goban::Goban;
-use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Point;
 use crate::rules::{CHINESE, EndGame, Move, Player, Rule};

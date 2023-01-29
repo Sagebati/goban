@@ -54,8 +54,7 @@ impl Chain {
     pub fn remove_liberty(&mut self, stone_idx: usize) -> &mut Self {
         debug_assert!(
             self.liberties[stone_idx],
-            "Tried to remove a liberty, who isn't present. stone idx: {}",
-            stone_idx
+            "Tried to remove a liberty, who isn't present. stone idx: {stone_idx}"
         );
         self.liberties.set(stone_idx, false);
         self
@@ -65,8 +64,7 @@ impl Chain {
     pub fn add_liberty(&mut self, stone_idx: usize) -> &mut Self {
         debug_assert!(
             !self.liberties[stone_idx],
-            "Tried to add a liberty already present, stone idx: {}",
-            stone_idx
+            "Tried to add a liberty already present, stone idx: {stone_idx}"
         );
         self.liberties.set(stone_idx, true);
         self

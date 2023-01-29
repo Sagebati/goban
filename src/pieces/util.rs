@@ -48,7 +48,7 @@ pub mod coord {
 
     #[inline(always)]
     pub const fn two_to_1dim(size: (usize, usize), point: Point) -> usize {
-        point.0 as usize * size.0 as usize + point.1 as usize
+        point.0 as usize * size.0 + point.1 as usize
     }
 
     #[inline(always)]
