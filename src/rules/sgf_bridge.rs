@@ -1,21 +1,24 @@
-use sgf_parser::{Action, Color, Outcome, RuleSet, SgfToken};
+use sgf_parser::{Action, Outcome, RuleSet, SgfToken};
 
 use crate::pieces::Nat;
-use crate::pieces::util::coord::Point;
-use crate::rules::{CHINESE, EndGame, JAPANESE, Move, Player, Rule};
+use crate::pieces::stones::Color;
+use crate::pieces::util::coord::Coord;
+use crate::rules::{CHINESE, EndGame, JAPANESE, Move, Rule};
 use crate::rules::game::Game;
 use crate::rules::game_builder::GameBuilder;
 
-impl<const H: usize, const W: usize> Game<H, W> {
+type SgfColor = sgf_parser::Color;
+
+impl Game {
     pub fn from_sgf(sgf_str: &str) -> Result<Self, String> {
         let game_tree = match sgf_parser::parse(sgf_str) {
             Ok(game) => Ok(game),
             Err(e) => Err(e.to_string()),
         }?;
-        let mut game_builder: GameBuilder<H, W> = Default::default();
+        let mut game_builder: GameBuilder = Default::default();
         let mut first = true;
         let mut moves = vec![];
-        let mut handicap: Vec<Point> = vec![];
+        let mut handicap: Vec<Coord> = vec![];
 
         for node in game_tree.iter() {
             if first {
@@ -26,11 +29,8 @@ impl<const H: usize, const W: usize> Game<H, W> {
                         SgfToken::Komi(komi) => {
                             game_builder.komi(*komi);
                         }
-                        &SgfToken::Size(x, y) => {
-                            if x != 19 || y != 19 {
-                                panic!("The size argument is not handled for board different than 19x19");
-                            }
-                            //game_builder.size((x, y));
+                        SgfToken::Size(x, y) => {
+                            game_builder.size((*x as u8, *y as u8));
                         }
                         SgfToken::Result(o) => {
                             game_builder.outcome((*o).into());
@@ -38,7 +38,7 @@ impl<const H: usize, const W: usize> Game<H, W> {
                         SgfToken::Add {
                             color,
                             coordinate: (x, y),
-                        } if *color == Color::Black => {
+                        } if *color == SgfColor::Black => {
                             handicap.push(((*x - 1) as Nat, (*y - 1) as Nat));
                         }
                         SgfToken::Rule(rule) => {
@@ -72,6 +72,15 @@ impl From<RuleSet> for Rule {
     }
 }
 
+impl From<SgfColor> for Color {
+    fn from(x: sgf_parser::Color) -> Self {
+        match x {
+            SgfColor::Black => Self::Black,
+            SgfColor::White => Self::White,
+        }
+    }
+}
+
 impl From<Outcome> for EndGame {
     fn from(o: Outcome) -> Self {
         match o {
@@ -80,15 +89,6 @@ impl From<Outcome> for EndGame {
             Outcome::WinnerByPoints(c, p) => EndGame::WinnerByScore(c.into(), p),
             Outcome::WinnerByTime(c) => EndGame::WinnerByTime(c.into()),
             Outcome::Draw => EndGame::Draw,
-        }
-    }
-}
-
-impl From<Color> for Player {
-    fn from(c: Color) -> Self {
-        match c {
-            Color::Black => Player::Black,
-            Color::White => Player::White,
         }
     }
 }

@@ -7,11 +7,12 @@
 //! use goban::rules::game::Game;
 //! use goban::rules::JAPANESE;
 //!
-//! let mut builder = GameBuilder::<19,19>::default();
+//! let mut builder = GameBuilder::default();
 //! // or
 //! let mut builder = Game::builder();
 //! let game = builder
 //!     .rule(JAPANESE)
+//!     .size((19,19))
 //!     .handicap(&[(3,3), (4,4)])
 //!     .komi(10.)
 //!     .build();
@@ -19,25 +20,27 @@
 
 use crate::pieces::goban::Goban;
 use crate::pieces::stones::Color;
-use crate::pieces::util::coord::Point;
-use crate::rules::{CHINESE, EndGame, Move, Player, Rule};
+use crate::pieces::stones::Color::White;
+use crate::pieces::util::coord::{Coord, Size};
+use crate::rules::{CHINESE, EndGame, Move, Rule};
 use crate::rules::game::Game;
-use crate::rules::Player::White;
 
-pub struct GameBuilder<const H: usize, const W: usize> {
+pub struct GameBuilder {
+    size: Size,
     black_player: String,
     white_player: String,
     rule: Rule,
     komi: Option<f32>,
-    handicap_points: Vec<Point>,
-    turn: Option<Player>,
+    handicap_points: Vec<Coord>,
+    turn: Option<Color>,
     moves: Vec<Move>,
     outcome: Option<EndGame>,
 }
 
-impl<const H: usize, const W: usize> GameBuilder<H, W> {
-    fn new() -> Self {
+impl GameBuilder {
+    fn new() -> GameBuilder {
         GameBuilder {
+            size: (19, 19),
             black_player: "".to_string(),
             white_player: "".to_string(),
             handicap_points: vec![],
@@ -60,8 +63,13 @@ impl<const H: usize, const W: usize> GameBuilder<H, W> {
     }
 
     /// Overrides the turn because it's a game with handicap. So White begins.
-    pub fn handicap(&mut self, points: &[Point]) -> &mut Self {
+    pub fn handicap(&mut self, points: &[Coord]) -> &mut Self {
         self.handicap_points = points.to_vec();
+        self
+    }
+
+    pub fn size(&mut self, size: Size) -> &mut Self {
+        self.size = size;
         self
     }
 
@@ -70,7 +78,7 @@ impl<const H: usize, const W: usize> GameBuilder<H, W> {
         self
     }
 
-    pub fn turn(&mut self, turn: Player) -> &mut Self {
+    pub fn turn(&mut self, turn: Color) -> &mut Self {
         self.turn = Some(turn);
         self
     }
@@ -90,8 +98,8 @@ impl<const H: usize, const W: usize> GameBuilder<H, W> {
         self
     }
 
-    pub fn build(&mut self) -> Result<Game<H, W>, String> {
-        let mut goban: Goban<H, W> = Goban::new();
+    pub fn build(&mut self) -> Result<Game, String> {
+        let mut goban: Goban = Goban::new(self.size);
 
         goban.push_many(&self.handicap_points, Color::Black);
 
@@ -108,9 +116,9 @@ impl<const H: usize, const W: usize> GameBuilder<H, W> {
             passes: 0,
             prisoners: (0, 0),
             outcome: self.outcome,
-            turn: self.turn.unwrap_or(Player::Black),
+            turn: self.turn.unwrap_or(Color::Black),
             rule: self.rule,
-            handicap: self.handicap_points.len() as u8,
+            handicap: self.handicap_points.len() as u32,
             #[cfg(feature = "history")]
             history: vec![],
             hashes: Default::default(),
@@ -126,14 +134,14 @@ impl<const H: usize, const W: usize> GameBuilder<H, W> {
     }
 }
 
-impl<const H: usize, const W: usize> Default for GameBuilder<H, W> {
+impl Default for GameBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<const H: usize, const W: usize> Game<H, W> {
-    pub fn builder() -> GameBuilder<H, W> {
+impl Game {
+    pub fn builder() -> GameBuilder {
         GameBuilder::default()
     }
 }

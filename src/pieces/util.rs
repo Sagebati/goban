@@ -1,11 +1,11 @@
 pub struct CircularRenIter<'a> {
-    next_stone: &'a [usize],
+    next_stone: &'a [u16],
     origin: usize,
     next: Option<usize>,
 }
 
 impl<'a> CircularRenIter<'a> {
-    pub fn new(origin: usize, next_stone: &'a [usize]) -> Self {
+    pub fn new(origin: usize, next_stone: &'a [u16]) -> Self {
         Self {
             next_stone,
             origin,
@@ -22,7 +22,7 @@ impl<'a> Iterator for CircularRenIter<'a> {
         let ret = self.next;
         self.next = self
             .next
-            .map(|stone_idx| self.next_stone[stone_idx])
+            .map(|stone_idx| self.next_stone[stone_idx] as usize)
             .filter(move |&o| o != origin);
 
         #[cfg(debug_assertions)]
@@ -35,29 +35,39 @@ impl<'a> Iterator for CircularRenIter<'a> {
 }
 
 pub mod coord {
+    use arrayvec::ArrayVec;
+
     use crate::pieces::Nat;
 
     /// Defining the policy for the columns.
-    pub type Point = (Nat, Nat);
+    pub type Coord = (Nat, Nat);
+    pub type Size = (u8, u8);
 
     /// Return true if the coord is in the goban.
-    #[inline]
-    pub const fn is_coord_valid((height, width): (usize, usize), coord: Point) -> bool {
-        coord.0 < height as u8 && coord.1 < width as u8
+    #[inline(always)]
+    pub const fn is_coord_valid((height, width): Size, coord: Coord) -> bool {
+        (coord.0) < height && (coord.1) < width
     }
 
     #[inline(always)]
-    pub const fn two_to_1dim(size: (usize, usize), point: Point) -> usize {
-        point.0 as usize * size.0 + point.1 as usize
+    pub const fn two_to_1dim(size: Size, point: Coord) -> usize {
+        (point.0 as u32 * size.0 as u32 + point.1 as u32) as usize
     }
 
     #[inline(always)]
-    pub const fn one_to_2dim(size: (usize, usize), index: usize) -> (Nat, Nat) {
-        ((index / size.0) as u8, (index % size.1) as u8)
+    pub const fn one_to_2dim(size: Size, index: usize) -> Coord {
+        ((index / size.0 as usize) as u8, (index % size.1 as usize) as u8)
+    }
+
+    #[macro_export]
+    macro_rules! one2dim {
+        ($size: expr, $index: expr) => {
+            (($index / $size.0 as usize)  as u8, ($index % $size.1 as usize) as u8)
+        };
     }
 
     #[inline(always)]
-    pub const fn neighbor_points((x1, x2): Point) -> [Point; 4] {
+    pub const fn neighbor_coords((x1, x2): Coord) -> [Coord; 4] {
         [
             (x1 + 1, x2),
             (x1.wrapping_sub(1), x2),
@@ -67,7 +77,14 @@ pub mod coord {
     }
 
     #[inline(always)]
-    pub const fn corner_points((x1, x2): Point) -> [Point; 4] {
+    pub fn valid_coords((x1, x2): Coord, size: Size) -> ArrayVec<Coord, 4> {
+        let mut array_vec = ArrayVec::from(neighbor_coords((x1, x2)));
+        array_vec.retain(|x| is_coord_valid(size, *x));
+        array_vec
+    }
+
+    #[inline(always)]
+    pub const fn corner_points((x1, x2): Coord) -> [Coord; 4] {
         [
             (x1 + 1, x2 + 1),
             (x1.wrapping_sub(1), x2.wrapping_sub(1)),

@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use ahash::AHashSet;
 use oxymcts::{
     DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts, LazyMctsNode,
     Num, Playout, uct_value,
@@ -8,14 +7,16 @@ use oxymcts::{
 use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
 
+use ahash::AHashSet;
+
 use crate::pieces::goban::Goban;
 use crate::pieces::GoStringPtr;
-use crate::pieces::stones::{Color, Stone};
-use crate::rules::{IllegalRules, Move, Player};
+use crate::pieces::stones::{Color, Point};
+use crate::rules::{Color, IllegalRules, Move};
 use crate::rules::game::Game;
 
 impl GameTrait for Game {
-    type Player = Player;
+    type Player = Color;
     type Move = Move;
 
     fn legals_moves(&self) -> Vec<Self::Move> {
@@ -109,8 +110,8 @@ impl Playout<Game> for PL {
                 .into_iter()
                 .filter(|&point| state.check_point(point).is_none())
             {
-                if !state.check_eye(Stone {
-                    coordinates,
+                if !state.check_eye(Point {
+                    coord: coordinates,
                     color: state.turn().stone_color(),
                 }) {
                     return coordinates.into();
@@ -140,11 +141,11 @@ type Mcts<'a> = LazyMcts<
 impl Game {
     fn get_floating_stones(&self) -> Vec<GoStringPtr> {
         let eyes = self.pseudo_legals().filter(|&p| {
-            self.check_eye(Stone {
-                coordinates: p,
+            self.check_eye(Point {
+                coord: p,
                 color: Color::Black,
-            }) || self.check_eye(Stone {
-                coordinates: p,
+            }) || self.check_eye(Point {
+                coord: p,
                 color: Color::White,
             })
         });
@@ -152,7 +153,7 @@ impl Game {
         for eye in eyes {
             let string_connected_eye = self
                 .goban
-                .get_neighbors_strings_indices_by_idx(eye)
+                .get_neighbors_chains_ids_by_board_idx(eye)
                 .collect::<HashSet<_>>();
             for x in string_connected_eye {
                 strings_wth_eye

@@ -8,10 +8,8 @@ use rand::thread_rng;
 use goban::pieces::stones::Stone;
 use goban::rules::{CHINESE, GobanSizes, JAPANESE, Move, Rule};
 use goban::rules::game::Game;
-use goban::rules::GobanSizes::Nineteen;
-use goban::rules::Move::Play;
 
-pub fn perft<const H: usize, const W: usize>(state: &Game<H, W>, depth: u8) -> u64 {
+pub fn perft(state: &Game, depth: u8) -> u64 {
     if depth < 1 {
         1
     } else {
@@ -31,7 +29,7 @@ pub fn perft<const H: usize, const W: usize>(state: &Game<H, W>, depth: u8) -> u
     }
 }
 
-pub fn fast_play_random<const H: usize, const W: usize>(state: &Game<H, W>, thread_rng: &mut ThreadRng) -> Move {
+pub fn fast_play_random(state: &Game, thread_rng: &mut ThreadRng) -> Move {
     let mut v: Vec<_> = state.pseudo_legals().collect();
     v.shuffle(thread_rng);
 
@@ -40,8 +38,8 @@ pub fn fast_play_random<const H: usize, const W: usize>(state: &Game<H, W>, thre
         .filter(|&point| state.check_point(point).is_none())
     {
         if !state.check_eye(Stone {
-            coordinates,
-            color: state.turn().stone_color(),
+            coord: coordinates,
+            color: state.turn(),
         }) {
             return coordinates.into();
         }
@@ -51,19 +49,19 @@ pub fn fast_play_random<const H: usize, const W: usize>(state: &Game<H, W>, thre
 
 pub fn fast_play_game(rule: Rule) {
     let mut thread_rng = thread_rng();
-    let mut g = Game::<19, 19>::new(rule);
+    let mut g = Game::new(GobanSizes::Nineteen, rule);
     while !g.is_over() {
         g.play(fast_play_random(&g, &mut thread_rng));
     }
 }
 
-pub fn play_random<const H: usize, const W: usize>(state: &Game<H, W>) -> Move {
+pub fn play_random(state: &Game) -> Move {
     let mut legals = state.legals().collect::<Vec<_>>();
     legals.shuffle(&mut thread_rng());
     for l in legals {
         if !state.check_eye(Stone {
-            coordinates: l,
-            color: state.turn().stone_color(),
+            coord: l,
+            color: state.turn(),
         }) {
             return l.into();
         }
@@ -72,7 +70,7 @@ pub fn play_random<const H: usize, const W: usize>(state: &Game<H, W>) -> Move {
 }
 
 pub fn play_game() {
-    let mut g = Game::<19, 19>::new(CHINESE);
+    let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
     while !g.is_over() {
         g.play(play_random(&g));
     }
@@ -401,15 +399,15 @@ static MOVES_SGF: [Move; 318] = [
 
 fn some_plays_from_sgf() {
     let handicap = vec![(3, 3), (3, 15), (9, 3), (9, 15), (15, 3), (15, 15)];
-    let mut g = Game::<19, 19>::new(CHINESE);
+    let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
     let inv_coord: Vec<usize> = (0..19).rev().collect();
     g.put_handicap(&handicap);
     for m in MOVES_SGF {
         let to_play = match m {
-            Play(x, y) => {
+            Move::Play(x, y) => {
                 let x = x as usize;
                 let y = y as usize;
-                Play(inv_coord[x] as u8, y as u8)
+                Move::Play(inv_coord[x] as u8, y as u8)
             }
             m => m,
         };
@@ -428,12 +426,12 @@ pub fn game_play_bench(_c: &mut Criterion) {
             b.iter(|| fast_play_game(JAPANESE))
         })
         .bench_function("play_sgf_game", |b| {
-            b.iter(|| some_plays_from_sgf());
+            b.iter(some_plays_from_sgf);
         });
     Criterion::default()
         .sample_size(10)
         .bench_function("perft_4", |b| {
-            b.iter(|| perft(&Game::<19, 19>::new(CHINESE), 3))
+            b.iter(|| perft(&Game::new(GobanSizes::Nineteen, CHINESE), 3))
         });
 }
 
