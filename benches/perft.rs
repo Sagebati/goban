@@ -8,8 +8,6 @@ use rand::thread_rng;
 use goban::pieces::stones::Stone;
 use goban::rules::{CHINESE, GobanSizes, JAPANESE, Move, Rule};
 use goban::rules::game::Game;
-use goban::rules::GobanSizes::Nineteen;
-use goban::rules::Move::Play;
 
 pub fn perft(state: &Game, depth: u8) -> u64 {
     if depth < 1 {
@@ -406,10 +404,10 @@ fn some_plays_from_sgf() {
     g.put_handicap(&handicap);
     for m in MOVES_SGF {
         let to_play = match m {
-            Play(x, y) => {
+            Move::Play(x, y) => {
                 let x = x as usize;
                 let y = y as usize;
-                Play(inv_coord[x] as u8, y as u8)
+                Move::Play(inv_coord[x] as u8, y as u8)
             }
             m => m,
         };
@@ -428,12 +426,12 @@ pub fn game_play_bench(_c: &mut Criterion) {
             b.iter(|| fast_play_game(JAPANESE))
         })
         .bench_function("play_sgf_game", |b| {
-            b.iter(|| some_plays_from_sgf());
+            b.iter(some_plays_from_sgf);
         });
     Criterion::default()
         .sample_size(10)
         .bench_function("perft_4", |b| {
-            b.iter(|| perft(&Game::new(Nineteen, CHINESE), 3))
+            b.iter(|| perft(&Game::new(GobanSizes::Nineteen, CHINESE), 3))
         });
 }
 

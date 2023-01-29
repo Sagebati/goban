@@ -205,9 +205,7 @@ impl Goban {
         (dead_ren, updated_ren_index)
     }
 
-    /// # Safety
-    /// Must be called with a color Black or White and not None
-    pub(crate) unsafe fn remove_captured_stones_aux(
+    pub(crate) fn remove_captured_stones_aux(
         &mut self,
         color: Color,
         suicide_allowed: bool,

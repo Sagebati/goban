@@ -115,11 +115,9 @@ impl Chain {
     #[inline]
     pub fn remove_liberty(&mut self, stone_idx: BoardIdx) -> &mut Self {
         debug_assert!(
-            //self.liberties[stone_idx],
             get(stone_idx, &self.liberties),
             "Tried to remove a liberty, who isn't present. stone idx: {stone_idx}"
         );
-        //self.liberties.set(stone_idx, false);
         set::<false>(stone_idx, &mut self.liberties);
         self
     }
