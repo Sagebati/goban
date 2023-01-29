@@ -531,7 +531,6 @@ impl Goban {
     fn create_chain(&mut self, origin: BoardIdx, color: Color, liberties: &[BoardIdx]) -> ChainIdx {
         let mut lib_bitvec: Liberties = Default::default();
         for &board_idx in liberties {
-            //literties.set(board_idx, true);
             set::<true>(board_idx, &mut lib_bitvec);
         }
         let chain_to_place = Chain::new_with_liberties(color, origin, lib_bitvec);
