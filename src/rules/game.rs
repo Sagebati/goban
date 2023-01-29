@@ -58,10 +58,7 @@ impl Game {
             let history = Vec::with_capacity(length);
         let prisoners = (0, 0);
         let handicap = 0;
-        let hashes = HashedSet::with_capacity_and_hasher(
-            length,
-            HashBuildHasher::default(),
-        );
+        let hashes = HashedSet::with_capacity_and_hasher(length, HashBuildHasher::default());
         Self {
             goban,
             turn: Color::Black,
@@ -207,15 +204,13 @@ impl Game {
     pub fn play_for_verification(&self, (x, y): Coord) -> u64 {
         let mut test_goban = self.goban.clone();
         let (dead_go_strings, added_ren) = test_goban.push_wth_feedback((x, y), self.turn);
-        unsafe {
-            test_goban.remove_captured_stones_aux(
-                self.turn,
-                !self.rule.flag_illegal.contains(IllegalRules::SUICIDE),
-                self.prisoners,
-                &dead_go_strings,
-                added_ren,
-            );
-        }
+        test_goban.remove_captured_stones_aux(
+            self.turn,
+            !self.rule.flag_illegal.contains(IllegalRules::SUICIDE),
+            self.prisoners,
+            &dead_go_strings,
+            added_ren,
+        );
         test_goban.zobrist_hash()
     }
 
@@ -373,10 +368,7 @@ impl Game {
             for s in corner_points(coord)
                 .into_iter()
                 .filter(move |p| is_coord_valid(self.goban.size(), *p))
-                .filter_map(move |c| {
-                    Some(self.goban.get_point(c))
-                        .filter(|p| p.is_empty())
-                })
+                .filter_map(move |c| Some(self.goban.get_point(c)).filter(|p| p.is_empty()))
             {
                 if self
                     .goban
@@ -442,15 +434,13 @@ impl Game {
 
     #[inline]
     fn remove_captured_stones(&mut self, dead_chains: &[ChainIdx], added_chain: ChainIdx) {
-        let res = unsafe {
-            self.goban.remove_captured_stones_aux(
-                self.turn,
-                !self.rule.flag_illegal.contains(IllegalRules::SUICIDE),
-                self.prisoners,
-                dead_chains,
-                added_chain,
-            )
-        };
+        let res = self.goban.remove_captured_stones_aux(
+            self.turn,
+            !self.rule.flag_illegal.contains(IllegalRules::SUICIDE),
+            self.prisoners,
+            dead_chains,
+            added_chain,
+        );
         self.prisoners = res.0;
         self.ko_point = res.1;
     }

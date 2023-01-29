@@ -205,9 +205,7 @@ impl Goban {
         (dead_ren, updated_ren_index)
     }
 
-    /// # Safety
-    /// Must be called with a color Black or White and not None
-    pub(crate) unsafe fn remove_captured_stones_aux(
+    pub(crate) fn remove_captured_stones_aux(
         &mut self,
         color: Color,
         suicide_allowed: bool,
@@ -526,31 +524,19 @@ impl Goban {
     ) -> impl Iterator<Item=BoardIdx> + '_ {
         self.board[board_idx]
             .map(|chain_idx| self.get_chain_it(chain_idx as ChainIdx))
-            .unwrap_or_else(|| panic!("The board index: {} was out of bounds", board_idx))
+            .unwrap_or_else(|| panic!("The board index: {board_idx} was out of bounds"))
     }
 
     #[inline]
     fn create_chain(&mut self, origin: BoardIdx, color: Color, liberties: &[BoardIdx]) -> ChainIdx {
         let mut lib_bitvec: Liberties = Default::default();
         for &board_idx in liberties {
-            //literties.set(board_idx, true);
             set::<true>(board_idx, &mut lib_bitvec);
         }
         let chain_to_place = Chain::new_with_liberties(color, origin, lib_bitvec);
-        let mut a = chain_to_place.liberties();
-        let mut b = liberties.to_owned();
-        a.sort();
-        b.sort();
-        assert_eq!(a, b);
         self.next_stone[origin] = origin as u16;
-        //let chain_idx = if let Some(free_slot_idx) = self.chains.iter().position(| x| !x.used) {
-        //    self.chains[free_slot_idx] = chain_to_place;
-        //self.free_slots.set(free_slot_idx, false);
-        //    free_slot_idx
-        //} else {
         self.chains.push(chain_to_place);
         let chain_idx = self.chains.len() - 1;
-        //};
         self.update_chain_indexes_in_board(chain_idx);
         chain_idx
     }

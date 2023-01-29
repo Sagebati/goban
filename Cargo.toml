@@ -1,6 +1,6 @@
 [package]
 name = "goban"
-version = "0.18.0"
+version = "0.18.1"
 authors = ["Samuel Batissou <samuelbatissou@gmail.com>"]
 readme = "README.md"
 description = "Library for Go move generation and Go ruling."
@@ -31,8 +31,6 @@ criterion = "0.4.0"
 rand = "0.8.5"
 
 [profile.bench]
-lto = "fat"
-codegen-units = 1
 debug = true
 debug-assertions = false
 

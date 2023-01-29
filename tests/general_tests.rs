@@ -7,13 +7,11 @@ mod tests {
 
     use goban::pieces::goban::Goban;
     use goban::pieces::stones::{Color, EMPTY, Point, Stone};
-    use goban::pieces::stones::Color::Black;
     use goban::pieces::util::CircularRenIter;
     use goban::pieces::zobrist::index_zobrist;
     use goban::rules::{EndGame, GobanSizes, Move};
     use goban::rules::{CHINESE, JAPANESE};
     use goban::rules::game::Game;
-    use goban::rules::Move::Play;
 
     #[test]
     fn sizes() {
@@ -26,7 +24,6 @@ mod tests {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
         g.push((1, 2), Color::White);
         println!("{}", g.pretty_string());
-        assert!(true)
     }
 
     #[test]
@@ -76,7 +73,7 @@ mod tests {
         while !g.is_over() && i != 0 {
             g.play(
                 *g.legals()
-                    .map(|coord| Play(coord.0, coord.1))
+                    .map(|coord| Move::Play(coord.0, coord.1))
                     .collect::<Vec<Move>>()
                     .choose(&mut rand::thread_rng())
                     .unwrap(),
@@ -440,16 +437,16 @@ mod tests {
         g.put_handicap(&handicap);
         for m in moves_sgf {
             let to_play = match m {
-                Play(x, y) => {
+                Move::Play(x, y) => {
                     let x = x as usize;
                     let y = y as usize;
-                    println!("({},{})", x, y);
+                    println!("({x},{y})");
                     println!("({},{})", inv_coord[x], y);
                     println!("({},{})", inv_coord[x] + 1, y + 1);
                     if inv_coord[x] == 6 && y == 14 && g.turn() == Color::White {
                         println!("bug")
                     }
-                    Play(inv_coord[x], y as u8)
+                    Move::Play(inv_coord[x], y as u8)
                 }
                 m => m,
             };
@@ -460,7 +457,7 @@ mod tests {
         assert!(g.is_over());
         let (black_score, white_score) = g.calculate_score();
         let (b_prisoners, w_prisoners) = g.prisoners();
-        println!("score  b:{} w:{}", black_score, white_score);
+        println!("score  b:{black_score} w:{white_score}");
         assert_eq!(w_prisoners, 35);
         assert_eq!(b_prisoners, 16);
         assert_eq!(w_prisoners, 35);
@@ -479,7 +476,7 @@ mod tests {
         let x = cl.get_liberties(s.coord);
 
         x.for_each(|coord| {
-            println!("{:?}", coord);
+            println!("{coord:?}");
             goban.push_stone(Stone {
                 coord,
                 color: Color::White,
@@ -510,7 +507,7 @@ mod tests {
         g.play(Move::Pass);
         g.play(Move::Pass);
 
-        assert_eq!(g.is_over(), true)
+        assert!(g.is_over())
     }
 
     #[test]
@@ -529,7 +526,7 @@ mod tests {
         let mut g = Game::new(GobanSizes::Nineteen, CHINESE);
         g.set_komi(0.);
         (0..38).for_each(|x| {
-            g.try_play(Play(if x % 2 == 0 { 9 } else { 8 }, x / 2))
+            g.try_play(Move::Play(if x % 2 == 0 { 9 } else { 8 }, x / 2))
                 .unwrap();
         });
 
@@ -546,14 +543,16 @@ mod tests {
             Color::Black,
         );
         goban.push_many(
-            &[(11, 6),
+            &[
+                (11, 6),
                 (11, 7),
                 (11, 8),
                 (12, 6),
                 (12, 8),
                 (13, 6),
                 (13, 7),
-                (13, 8)],
+                (13, 8),
+            ],
             Color::White,
         );
 
@@ -562,16 +561,16 @@ mod tests {
 
         goban.push_many(
             &[(17, 18), (18, 17), (18, 15), (17, 16), (16, 17), (15, 18)],
-            Black,
+            Color::Black,
         );
 
         let terr = goban.calculate_territories();
-        println!("{}", goban);
+        println!("{goban}");
         assert_eq!(terr, (27 + 4, 8 * 19 + 1));
     }
 
     #[test]
-    fn calculate_chinesse_score() {
+    fn calculate_chinese_score() {
         let mut g = Game::new(GobanSizes::Nine, CHINESE);
         g.play(Move::Play(4, 4));
         g.play(Move::Pass);
@@ -594,7 +593,7 @@ mod tests {
     fn zobrist_test() {
         let mut set = HashSet::new();
         for i in 0..(19 * 19) {
-            for c in vec![Color::Black, Color::White] {
+            for c in [Color::Black, Color::White] {
                 let x = index_zobrist(i, c);
                 assert!(!set.contains(&x));
                 set.insert(x);
@@ -605,24 +604,19 @@ mod tests {
     #[test]
     fn ko_test() {
         let mut game: Game = Default::default();
-        game.play(Play(0, 3)); // black
-        game.display_goban();
-        game.play(Play(0, 2)); // white
-        game.display_goban();
-        game.play(Play(1, 4)); // black
-        game.display_goban();
-        game.play(Play(2, 2)); // white
-        game.display_goban();
-        game.play(Play(2, 3)); // black
-        game.display_goban();
-        game.play(Play(1, 1)); // white
-        game.display_goban();
-        game.play(Play(1, 2)); // black
-        game.display_goban();
-        game.play(Play(1, 3)); // white takes
-        game.display_goban();
-        //game.play(Move::Play(1, 2)); // black takes back
-        //println!("{}", game);
+        for (x, y) in [
+            (0, 3),
+            (0, 2),
+            (1, 4),
+            (2, 2),
+            (2, 3),
+            (1, 1),
+            (1, 2),
+            (1, 3),
+        ] {
+            game.play(Move::Play(x, y));
+            game.display_goban();
+        }
         // ko
         assert!(game.check_ko(Stone {
             coord: (1, 2),
