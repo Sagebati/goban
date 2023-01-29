@@ -6,4 +6,3 @@ extern crate getset;
 
 pub mod pieces;
 pub mod rules;
-pub mod game_tree;
