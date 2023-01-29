@@ -1,5 +1,7 @@
 use std::ops::BitOrAssign;
 
+use arrayvec::ArrayVec;
+
 use crate::pieces::BoardIdx;
 use crate::pieces::stones::Color;
 
@@ -38,19 +40,19 @@ fn count_ones(lib: &Liberties) -> usize {
     lib.iter().map(|x| x.count_ones() as usize).sum()
 }
 
-fn iter_ones(lib: &Liberties) -> Vec<usize> {
-    let mut ones = Vec::with_capacity(BITS * SIZE);
-    for i in 0..SIZE {
-        let mut chunk = lib[i];
+fn iter_ones(lib: &Liberties) -> impl Iterator<Item=usize> + '_ {
+    lib.iter().enumerate().flat_map(|(ix, chunk)| {
+        let mut chunk = *chunk;
+        let mut ixs = ArrayVec::<usize, BITS>::new();
         let mut index = 0;
         while chunk != 0 {
             let zeros = chunk.trailing_zeros();
             index += zeros as usize + 1;
-            ones.push(index - 1 + BITS * i);
+            ixs.push(index - 1 + BITS * ix);
             chunk = chunk.checked_shr(zeros + 1).unwrap_or(0);
         }
-    }
-    ones
+        ixs.into_iter()
+    })
 }
 
 fn get(index: usize, lib: &Liberties) -> bool {
@@ -115,8 +117,7 @@ impl Chain {
         debug_assert!(
             //self.liberties[stone_idx],
             get(stone_idx, &self.liberties),
-            "Tried to remove a liberty, who isn't present. stone idx: {}",
-            stone_idx
+            "Tried to remove a liberty, who isn't present. stone idx: {stone_idx}"
         );
         //self.liberties.set(stone_idx, false);
         set::<false>(stone_idx, &mut self.liberties);
@@ -134,8 +135,7 @@ impl Chain {
         debug_assert!(
             //self.liberties[stone_idx],
             !get(stone_idx, &self.liberties),
-            "Tried to add a liberty already present, stone idx: {}",
-            stone_idx
+            "Tried to add a liberty already present, stone idx: {stone_idx}"
         );
         //self.liberties.set(stone_idx, true);
         self.add_liberty_unchecked(stone_idx)
@@ -164,6 +164,6 @@ impl Chain {
     }
 
     pub fn liberties(&self) -> Vec<usize> {
-        iter_ones(&self.liberties)
+        iter_ones(&self.liberties).collect()
     }
 }
