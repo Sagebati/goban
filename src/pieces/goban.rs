@@ -537,20 +537,9 @@ impl Goban {
             set::<true>(board_idx, &mut lib_bitvec);
         }
         let chain_to_place = Chain::new_with_liberties(color, origin, lib_bitvec);
-        let mut a = chain_to_place.liberties();
-        let mut b = liberties.to_owned();
-        a.sort();
-        b.sort();
-        assert_eq!(a, b);
         self.next_stone[origin] = origin as u16;
-        //let chain_idx = if let Some(free_slot_idx) = self.chains.iter().position(| x| !x.used) {
-        //    self.chains[free_slot_idx] = chain_to_place;
-        //self.free_slots.set(free_slot_idx, false);
-        //    free_slot_idx
-        //} else {
         self.chains.push(chain_to_place);
         let chain_idx = self.chains.len() - 1;
-        //};
         self.update_chain_indexes_in_board(chain_idx);
         chain_idx
     }
