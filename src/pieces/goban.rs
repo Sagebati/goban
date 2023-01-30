@@ -25,9 +25,10 @@ const BOARD_MAX_LENGTH: usize = BOARD_MAX_SIZE.0 as usize * BOARD_MAX_SIZE.1 as 
 const MAX_CHAINS: usize = 4 * BOARD_MAX_LENGTH / 5;
 
 macro_rules! iter_stones {
-    ($goban: expr, $ren_idx: expr) => {
+    ($goban: expr,  $ren_idx: expr) => {
         CircularRenIter::new(
             $goban.chains[$ren_idx as usize].origin as usize,
+            $goban.chains[$ren_idx as usize].num_stones as usize,
             &$goban.next_stone,
         )
     };
@@ -36,8 +37,7 @@ macro_rules! iter_stones {
 /// Represents a goban. the stones are stored in ROW MAJOR (row, column)
 #[derive(Debug, Clone)]
 pub struct Goban {
-    pub(super) chains: Vec<Chain>,
-    //free_slots: BitArr!(for MAX_CHAINS),
+    chains: Vec<Chain>,
     board: Vec<Option<u16>>,
     next_stone: Vec<u16>,
     size: Size,
@@ -57,7 +57,6 @@ impl Goban {
             board: vec![None; BOARD_MAX_LENGTH],
             next_stone: vec![0; BOARD_MAX_LENGTH],
             chains: Vec::with_capacity(MAX_CHAINS),
-            //free_slots: Default::default(),
         }
     }
 
@@ -82,6 +81,18 @@ impl Goban {
 
     pub fn zobrist_hash(&self) -> u64 {
         self.zobrist_hash
+    }
+
+    pub fn chain(&self, ix: ChainIdx) -> &Chain {
+        &self.chains[ix]
+    }
+
+    pub fn chain_stones(&self, ix: ChainIdx) -> impl Iterator<Item=Stone> + '_ {
+        let color = self.chains[ix].color;
+        iter_stones!(self, ix).map(move |idx| Stone {
+            coord: one_to_2dim(self.size, idx as usize),
+            color,
+        })
     }
 
     /// Returns the underlying goban in a vector with a RowMajor Policy, calculated on the fly.
@@ -122,6 +133,10 @@ impl Goban {
     #[inline]
     pub(crate) fn board(&self) -> &[Option<u16>] {
         &self.board
+    }
+
+    pub fn chains(&self) -> &[Chain] {
+        &self.chains
     }
 
     /// pushes the stone
@@ -411,7 +426,8 @@ impl Goban {
     /// Returns the "empty" stones connected to the stone
     #[inline]
     pub fn get_liberties(&self, coord: Coord) -> impl Iterator<Item=Coord> + '_ {
-        self.neighbors_coords(coord).filter(|&x| self.get_color(x).is_none())
+        self.neighbors_coords(coord)
+            .filter(|&x| self.get_color(x).is_none())
     }
 
     /// Returns true if the stone has liberties.
@@ -514,7 +530,7 @@ impl Goban {
     }
 
     pub fn get_chain_it(&self, chain_idx: ChainIdx) -> impl Iterator<Item=BoardIdx> + '_ {
-        CircularRenIter::new(self.chains[chain_idx].origin as usize, &self.next_stone)
+        CircularRenIter::new(self.chains[chain_idx].origin as usize, self.chains[chain_idx].num_stones as usize, &self.next_stone)
     }
 
     #[inline]

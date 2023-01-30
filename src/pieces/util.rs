@@ -1,16 +1,30 @@
+use std::iter::FusedIterator;
+
 pub struct CircularRenIter<'a> {
     next_stone: &'a [u16],
     origin: usize,
     next: Option<usize>,
+    size: usize,
+    counter: usize,
 }
 
 impl<'a> CircularRenIter<'a> {
-    pub fn new(origin: usize, next_stone: &'a [u16]) -> Self {
+    pub fn new(origin: usize, number_of_stones: usize, next_stone: &'a [u16]) -> Self {
         Self {
             next_stone,
             origin,
             next: Some(origin),
+            size: number_of_stones,
+            counter: 0,
         }
+    }
+}
+
+impl<'a> FusedIterator for CircularRenIter<'a> {}
+
+impl<'a> ExactSizeIterator for CircularRenIter<'a> {
+    fn len(&self) -> usize {
+        self.size - self.counter
     }
 }
 
@@ -56,13 +70,19 @@ pub mod coord {
 
     #[inline(always)]
     pub const fn one_to_2dim(size: Size, index: usize) -> Coord {
-        ((index / size.0 as usize) as u8, (index % size.1 as usize) as u8)
+        (
+            (index / size.0 as usize) as u8,
+            (index % size.1 as usize) as u8,
+        )
     }
 
     #[macro_export]
     macro_rules! one2dim {
         ($size: expr, $index: expr) => {
-            (($index / $size.0 as usize)  as u8, ($index % $size.1 as usize) as u8)
+            (
+                ($index / $size.0 as usize) as u8,
+                ($index % $size.1 as usize) as u8,
+            )
         };
     }
 

@@ -712,8 +712,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
-    #[cfg(deadstones)]
+    #[cfg(feature = "deadstones")]
     fn dead_stones() {
         let game = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         game.display_goban();
@@ -721,22 +720,22 @@ mod tests {
         for string in game.dead_stones_wth_simulations(20) {
             goban.remove_chain(string);
         }
-        println!("{}", goban);
+        println!("{goban}");
     }
 
     #[test]
     fn circular_ren_iter_test() {
         let a = vec![0, 0, 4, 0, 6, 0, 2, 0, 8, 0, 0, 0];
-        let mut iter = CircularRenIter::new(2, &a);
+        let mut iter = CircularRenIter::new(2, 3, &a);
         assert_eq!(2, iter.next().unwrap());
         assert_eq!(4, iter.next().unwrap());
         assert_eq!(6, iter.next().unwrap());
         assert_eq!(None, iter.next());
 
-        let iter = CircularRenIter::new(2, &a);
+        let iter = CircularRenIter::new(2, 1, &a);
         assert_eq!(6, iter.last().unwrap());
 
-        let mut iter = CircularRenIter::new(8, &a);
+        let mut iter = CircularRenIter::new(8, 1, &a);
         assert_eq!(8, iter.next().unwrap());
         assert_eq!(None, iter.next());
     }

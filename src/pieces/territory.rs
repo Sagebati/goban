@@ -9,7 +9,7 @@ use crate::pieces::stones::Point;
 impl Goban {
     #[inline]
     pub fn get_dead_chains_by_color(&self, color: Color) -> impl Iterator<Item=usize> + '_ {
-        self.chains
+        self.chains()
             .iter()
             .enumerate()
             .filter(move |(_, go_string)| {

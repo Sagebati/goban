@@ -7,12 +7,10 @@ use oxymcts::{
 use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
 
-use ahash::AHashSet;
-
-use crate::pieces::goban::Goban;
-use crate::pieces::GoStringPtr;
-use crate::pieces::stones::{Color, Point};
-use crate::rules::{Color, IllegalRules, Move};
+use crate::pieces::goban::ChainIdx;
+use crate::pieces::stones::{Color, Stone};
+use crate::pieces::util::coord::two_to_1dim;
+use crate::rules::{IllegalRules, Move};
 use crate::rules::game::Game;
 
 impl GameTrait for Game {
@@ -21,7 +19,7 @@ impl GameTrait for Game {
 
     fn legals_moves(&self) -> Vec<Self::Move> {
         let moves = self
-            .legals_by(self.rule.illegal_flag() | IllegalRules::FILLEYE)
+            .legals_by(self.rule.flag_illegal | IllegalRules::FILLEYE)
             .map(Move::from)
             .collect::<Vec<_>>();
         if moves.is_empty() {
@@ -60,13 +58,6 @@ impl GameTrait for Game {
 }
 
 struct Eval;
-
-#[derive(Clone)]
-struct EvalR {
-    reward: u32,
-    last_board: Goban,
-}
-
 type Reward = u64;
 
 impl Evaluator<Game, Reward, ()> for Eval {
@@ -110,9 +101,9 @@ impl Playout<Game> for PL {
                 .into_iter()
                 .filter(|&point| state.check_point(point).is_none())
             {
-                if !state.check_eye(Point {
+                if !state.check_eye(Stone {
                     coord: coordinates,
-                    color: state.turn().stone_color(),
+                    color: state.turn,
                 }) {
                     return coordinates.into();
                 }
@@ -139,12 +130,12 @@ type Mcts<'a> = LazyMcts<
 >;
 
 impl Game {
-    fn get_floating_stones(&self) -> Vec<GoStringPtr> {
+    fn get_floating_stones(&self) -> Vec<ChainIdx> {
         let eyes = self.pseudo_legals().filter(|&p| {
-            self.check_eye(Point {
+            self.check_eye(Stone {
                 coord: p,
                 color: Color::Black,
-            }) || self.check_eye(Point {
+            }) || self.check_eye(Stone {
                 coord: p,
                 color: Color::White,
             })
@@ -153,7 +144,7 @@ impl Game {
         for eye in eyes {
             let string_connected_eye = self
                 .goban
-                .get_neighbors_chains_ids_by_board_idx(eye)
+                .get_neighbors_chain_indexes(eye)
                 .collect::<HashSet<_>>();
             for x in string_connected_eye {
                 strings_wth_eye
@@ -164,10 +155,10 @@ impl Game {
         }
         let all_strings = self
             .goban
-            .go_strings()
+            .chains()
             .iter()
-            .cloned()
-            .filter_map(|x| x)
+            .enumerate()
+            .map(|x| x.0)
             .collect::<HashSet<_>>();
         let string_with_2eyes = strings_wth_eye
             .into_iter()
@@ -181,8 +172,8 @@ impl Game {
             .collect()
     }
 
-    pub fn dead_stones_wth_simulations(&self, nb_simulations: usize) -> AHashSet<GoStringPtr> {
-        let mut game = self.branch();
+    pub fn dead_stones_wth_simulations(&self, nb_simulations: usize) -> HashSet<ChainIdx> {
+        let mut game = self.clone();
         let floating_stones = self.get_floating_stones();
         while !game.is_over() {
             let m = {
@@ -194,14 +185,15 @@ impl Game {
             };
             game.play(m);
         }
-        let final_state_raw = game.goban().raw();
-        let mut dead_ren = AHashSet::new();
-        for ren_ptr in floating_stones {
-            for &stone in ren_ptr.stones() {
+        let final_state_raw = game.goban().to_vec();
+        let mut dead_ren = HashSet::new();
+        for chain_ix in floating_stones {
+            let chain = self.goban.chain(chain_ix);
+            for stone in self.goban.chain_stones(chain_ix) {
                 // If some stones of the string arent in the final goban then it's plausible that
                 // this string is dead.
-                if final_state_raw[stone] != ren_ptr.color() {
-                    dead_ren.insert(ren_ptr);
+                if final_state_raw[two_to_1dim(self.size(), stone.coord)] != Some(chain.color) {
+                    dead_ren.insert(chain_ix);
                     break;
                 }
             }
@@ -212,7 +204,7 @@ impl Game {
     /// Return an array of dead stones, works better if the game if ended.
     /// the "dead" stones are only potentially dead.
     #[inline]
-    pub fn dead_stones(&self) -> AHashSet<GoStringPtr> {
+    pub fn dead_stones(&self) -> HashSet<ChainIdx> {
         self.dead_stones_wth_simulations(600)
     }
 }
