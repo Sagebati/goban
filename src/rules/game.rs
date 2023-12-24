@@ -286,17 +286,17 @@ impl Game {
 
     /// Test if a point is legal or not for the current player,
     #[inline]
-    pub fn check_point(&self, point: Coord) -> Option<PlayError> {
-        self.check_point_by(point, self.rule.flag_illegal)
+    pub fn check_point(&self, coord: Coord) -> Option<PlayError> {
+        self.check_point_by(coord, self.rule.flag_illegal)
     }
 
     /// Test if a point is legal or not by the rule passed in parameter.
-    pub fn check_point_by(&self, point: Coord, illegal_rules: IllegalRules) -> Option<PlayError> {
+    pub fn check_point_by(&self, coord: Coord, illegal_rules: IllegalRules) -> Option<PlayError> {
         let stone = Stone {
-            coord: point,
+            coord,
             color: self.turn,
         };
-        if self.goban.get_color(point).is_some() {
+        if self.goban.get_color(coord).is_some() {
             Some(PlayError::PointNotEmpty)
         } else if illegal_rules.contains(IllegalRules::KO) && self.check_ko(stone) {
             Some(PlayError::Ko)

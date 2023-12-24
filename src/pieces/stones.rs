@@ -67,13 +67,19 @@ pub struct Stone {
     pub color: Color,
 }
 
-impl From<Point> for Stone {
-    fn from(x: Point) -> Self {
-        Stone {
-            coord: x.coord,
-            color: x
-                .color
-                .expect("We cannot transform an empty point to a stone"),
+impl TryFrom<Point> for Stone {
+    type Error = &'static str;
+
+    fn try_from(value: Point) -> Result<Self, Self::Error> {
+        if let Some(color) = value.color {
+            Ok(
+                Stone {
+                    coord: value.coord,
+                    color,
+                }
+            )
+        } else {
+            Err("We cannot transform an empty point to a stone")
         }
     }
 }

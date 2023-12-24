@@ -314,7 +314,7 @@ impl Goban {
     #[inline]
     pub fn get_neighbors_stones(&self, point: Coord) -> impl Iterator<Item = Stone> + '_ {
         self.get_neighbors_points(point)
-            .filter_map(|x| Some(x.into()).filter(|_| x.is_empty()))
+            .filter_map(|x| x.try_into().ok())
     }
 
     /// Get all the chains adjacent to the point. The result iterator can contains duplicates.
