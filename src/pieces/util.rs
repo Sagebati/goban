@@ -7,7 +7,7 @@ pub struct CircularRenIter<'a> {
 }
 
 impl<'a> CircularRenIter<'a> {
-    pub fn new(origin: usize,next_stone: &'a [u16]) -> Self {
+    pub fn new(origin: usize, next_stone: &'a [u16]) -> Self {
         Self {
             next_stone,
             origin,
@@ -37,7 +37,7 @@ impl<'a> Iterator for CircularRenIter<'a> {
     }
 }
 
-impl<'a> FusedIterator for CircularRenIter<'a> { }
+impl<'a> FusedIterator for CircularRenIter<'a> {}
 
 pub mod coord {
     use arrayvec::ArrayVec;
@@ -61,13 +61,19 @@ pub mod coord {
 
     #[inline(always)]
     pub const fn one_to_2dim(size: Size, index: usize) -> Coord {
-        ((index / size.0 as usize) as u8, (index % size.1 as usize) as u8)
+        (
+            (index / size.0 as usize) as u8,
+            (index % size.1 as usize) as u8,
+        )
     }
 
     #[macro_export]
     macro_rules! one2dim {
         ($size: expr, $index: expr) => {
-            (($index / $size.0 as usize)  as u8, ($index % $size.1 as usize) as u8)
+            (
+                ($index / $size.0 as usize) as u8,
+                ($index % $size.1 as usize) as u8,
+            )
         };
     }
 

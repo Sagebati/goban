@@ -3,12 +3,12 @@
 use std::collections::HashSet;
 
 use crate::pieces::goban::Goban;
-use crate::pieces::stones::{Color, EMPTY};
 use crate::pieces::stones::Point;
+use crate::pieces::stones::{Color, EMPTY};
 
 impl Goban {
     #[inline]
-    pub fn get_dead_chains_by_color(&self, color: Color) -> impl Iterator<Item=usize> + '_ {
+    pub fn get_dead_chains_by_color(&self, color: Color) -> impl Iterator<Item = usize> + '_ {
         self.chains
             .iter()
             .enumerate()
@@ -55,7 +55,7 @@ impl Goban {
     ///
     pub fn get_chains_from_stones(
         &self,
-        stones: impl Iterator<Item=Point>,
+        stones: impl Iterator<Item = Point>,
     ) -> Vec<HashSet<Point>> {
         let mut groups_of_stones: Vec<HashSet<Point>> = Default::default();
         for s in stones {
@@ -71,7 +71,7 @@ impl Goban {
     ///
     /// Get two iterators of empty stones.
     ///
-    pub fn get_territories(&self) -> (impl Iterator<Item=Point>, impl Iterator<Item=Point>) {
+    pub fn get_territories(&self) -> (impl Iterator<Item = Point>, impl Iterator<Item = Point>) {
         let empty_chains =
             self.get_chains_from_stones(self.get_empty_coords().map(|coord| Point {
                 coord,

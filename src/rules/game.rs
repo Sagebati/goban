@@ -1,14 +1,14 @@
 use hash_hasher::{HashBuildHasher, HashedSet};
 
 use crate::pieces::goban::*;
-use crate::pieces::Nat;
-use crate::pieces::stones::{Color, EMPTY, Stone};
 use crate::pieces::stones::Color::{Black, White};
-use crate::pieces::util::coord::{Coord, corner_points, is_coord_valid, Size, two_to_1dim};
-use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
-use crate::rules::{CHINESE, PlayError};
+use crate::pieces::stones::{Color, Stone, EMPTY};
+use crate::pieces::util::coord::{corner_points, is_coord_valid, two_to_1dim, Coord, Size};
+use crate::pieces::Nat;
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::Rule;
+use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
+use crate::rules::{PlayError, CHINESE};
 
 /// Most important struct of the library, it's the entry point.
 /// It represents a Game of Go.
@@ -36,7 +36,7 @@ impl Game {
         let goban = Goban::new(size.into());
         let length = h as usize * w as usize;
         #[cfg(feature = "history")]
-            let history = Vec::with_capacity(length);
+        let history = Vec::with_capacity(length);
         let prisoners = (0, 0);
         let handicap = 0;
         let hashes = HashedSet::with_capacity_and_hasher(length, HashBuildHasher::default());
@@ -79,7 +79,7 @@ impl Game {
         self.goban.size()
     }
 
-    pub fn prisoners(&self) -> (u32,u32) {
+    pub fn prisoners(&self) -> (u32, u32) {
         self.prisoners
     }
 
@@ -89,6 +89,11 @@ impl Game {
 
     pub fn turn(&self) -> Color {
         self.turn
+    }
+
+    #[cfg(history)]
+    pub fn history(&self) -> &[Goban] {
+        &self.history
     }
 
     /// True when the game is over (two passes, or no more legals moves, Resign)
@@ -124,7 +129,7 @@ impl Game {
 
     /// Generate all moves on all empty intersections. Lazy.
     #[inline]
-    pub fn pseudo_legals(&self) -> impl Iterator<Item=Coord> + '_ {
+    pub fn pseudo_legals(&self) -> impl Iterator<Item = Coord> + '_ {
         self.goban.get_empty_coords()
     }
 
@@ -145,14 +150,14 @@ impl Game {
 
     /// Returns a list with legals moves. from the rule specified in at the creation.
     #[inline]
-    pub fn legals(&self) -> impl Iterator<Item=Coord> + '_ {
+    pub fn legals(&self) -> impl Iterator<Item = Coord> + '_ {
         self.legals_by(self.rule.flag_illegal)
     }
 
     /// Return a list with the legals moves. doesn't take the rule specified in the game but take
     /// the one passed on parameter.
     #[inline]
-    pub fn legals_by(&self, legals_rules: IllegalRules) -> impl Iterator<Item=Coord> + '_ {
+    pub fn legals_by(&self, legals_rules: IllegalRules) -> impl Iterator<Item = Coord> + '_ {
         self.pseudo_legals()
             .filter(move |&s| self.check_point_by(s, legals_rules).is_none())
     }
@@ -356,11 +361,13 @@ impl Game {
 
         if corners == 3 || corners == 2 {
             // For each corner we keep only the ones on the board and that are filled
-            for coord in corner_points(coord)
-                .into_iter()
-                .filter(move |p| is_coord_valid(self.goban.size(), *p) && self.goban.get_color(coord).is_none())
-            {
-                if self.goban.get_neighbors_stones(coord).any(move |s| s.color != color)
+            for coord in corner_points(coord).into_iter().filter(move |p| {
+                is_coord_valid(self.goban.size(), *p) && self.goban.get_color(coord).is_none()
+            }) {
+                if self
+                    .goban
+                    .get_neighbors_stones(coord)
+                    .any(move |s| s.color != color)
                 {
                     return false;
                 }
@@ -387,8 +394,8 @@ impl Game {
         } else {
             self.check_ko(stone)
                 || self
-                .hashes
-                .contains(&self.play_for_verification(stone.coord))
+                    .hashes
+                    .contains(&self.play_for_verification(stone.coord))
         }
     }
 
@@ -400,7 +407,8 @@ impl Game {
         } else {
             !self
                 .goban
-                .get_neighbors_chains(stone.coord).into_iter()
+                .get_neighbors_chains(stone.coord)
+                .into_iter()
                 .any(|neighbor_go_string| {
                     if neighbor_go_string.color == stone.color {
                         // Connecting with an other string which is not in danger

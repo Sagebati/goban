@@ -8,14 +8,14 @@ use std::hash::{Hash, Hasher};
 use arrayvec::ArrayVec;
 
 use crate::one2dim;
-use crate::pieces::chain::{Chain, Liberties, merge, set};
-use crate::pieces::{Nat, Neighbors};
+use crate::pieces::chain::{merge, set, Chain, Liberties};
 use crate::pieces::stones::*;
-use crate::pieces::util::CircularRenIter;
 use crate::pieces::util::coord::{
-    Coord, is_coord_valid, neighbor_coords, one_to_2dim, Size, two_to_1dim,
+    is_coord_valid, neighbor_coords, one_to_2dim, two_to_1dim, Coord, Size,
 };
+use crate::pieces::util::CircularRenIter;
 use crate::pieces::zobrist::*;
+use crate::pieces::{Nat, Neighbors};
 
 pub type ChainIdx = usize;
 pub type BoardIdx = usize;
@@ -67,7 +67,10 @@ impl Goban {
     ///
     /// * `(height, width)` a tuple with the height and the width of the desired goban.
     pub fn new((height, width): Size) -> Self {
-        assert!(height <= 19 && width <= 19, "We don't handle board > 19 for the moment");
+        assert!(
+            height <= 19 && width <= 19,
+            "We don't handle board > 19 for the moment"
+        );
         Goban {
             size: (height, width),
             zobrist_hash: 0,
@@ -120,8 +123,12 @@ impl Goban {
         for chain in &self.chains {
             if !chain.is_dead() {
                 match chain.color {
-                    Color::White => { white_stones += chain.num_stones as u32; }
-                    Color::Black => { black_stones += chain.num_stones as u32; }
+                    Color::White => {
+                        white_stones += chain.num_stones as u32;
+                    }
+                    Color::Black => {
+                        black_stones += chain.num_stones as u32;
+                    }
                 }
             }
         }
@@ -233,8 +240,12 @@ impl Goban {
                 ko_point = Some(one_to_2dim(self.size(), dead_chain.origin as usize));
             }
             match dead_chain.color {
-                Color::White => { stones_removed.0 += dead_chain.num_stones as u32; }
-                Color::Black => { stones_removed.1 += dead_chain.num_stones as u32; }
+                Color::White => {
+                    stones_removed.0 += dead_chain.num_stones as u32;
+                }
+                Color::Black => {
+                    stones_removed.1 += dead_chain.num_stones as u32;
+                }
             }
             self.remove_chain(dead_ren_idx);
         }
@@ -242,8 +253,12 @@ impl Goban {
         let maybe_dead_chain = &self.chains[added_chain];
         if suicide_allowed && maybe_dead_chain.is_dead() {
             match maybe_dead_chain.color {
-                Color::White => { stones_removed.0 += maybe_dead_chain.num_stones as u32; }
-                Color::Black => { stones_removed.1 += maybe_dead_chain.num_stones as u32; }
+                Color::White => {
+                    stones_removed.0 += maybe_dead_chain.num_stones as u32;
+                }
+                Color::Black => {
+                    stones_removed.1 += maybe_dead_chain.num_stones as u32;
+                }
             }
             ko_point = None;
             self.remove_chain(added_chain);
@@ -288,7 +303,7 @@ impl Goban {
 
     /// Get all the neighbors to the coordinate including empty intersections.
     #[inline]
-    pub fn get_neighbors_points(&self, point: Coord) -> impl Iterator<Item=Point> + '_ {
+    pub fn get_neighbors_points(&self, point: Coord) -> impl Iterator<Item = Point> + '_ {
         self.neighbors_coords(point).map(move |p| Point {
             coord: p,
             color: self.get_color(p),
@@ -297,21 +312,22 @@ impl Goban {
 
     /// Get all the stones that are neighbor to the coord except empty intersections.
     #[inline]
-    pub fn get_neighbors_stones(&self, point: Coord) -> impl Iterator<Item=Stone> + '_ {
-        self.get_neighbors_points(point).filter_map(|x| Some(x.into()).filter(|_| x.is_empty()))
+    pub fn get_neighbors_stones(&self, point: Coord) -> impl Iterator<Item = Stone> + '_ {
+        self.get_neighbors_points(point)
+            .filter_map(|x| Some(x.into()).filter(|_| x.is_empty()))
     }
 
     /// Get all the chains adjacent to the point. The result iterator can contains duplicates.
     #[inline]
     pub fn get_neighbors_chains(&self, coord: Coord) -> Neighbors<&Chain> {
-        self.get_neighbors_chains_idx(two_to_1dim(self.size,coord)).into_iter().map(|chain_idx| &self.chains[chain_idx]).collect()
+        self.get_neighbors_chains_idx(two_to_1dim(self.size, coord))
+            .into_iter()
+            .map(|chain_idx| &self.chains[chain_idx])
+            .collect()
     }
 
     #[inline]
-    pub fn get_neighbors_chains_idx(
-        &self,
-        index: BoardIdx,
-    ) -> Neighbors<ChainIdx> {
+    pub fn get_neighbors_chains_idx(&self, index: BoardIdx) -> Neighbors<ChainIdx> {
         let mut array_vec: ArrayVec<ChainIdx, 4> = ArrayVec::new_const();
         for idx in self.neighbors_idx(index) {
             if let Some(idx) = self.board[idx] {
@@ -329,12 +345,13 @@ impl Goban {
     }
 
     pub fn get_stone_color(&self, coord: Coord) -> Color {
-        self.get_color(coord).expect("Tried to unwrap an empty point")
+        self.get_color(coord)
+            .expect("Tried to unwrap an empty point")
     }
 
     /// Get all the stones except "EMPTY stones"
     #[inline]
-    pub fn get_stones(&self) -> impl Iterator<Item=Stone> + '_ {
+    pub fn get_stones(&self) -> impl Iterator<Item = Stone> + '_ {
         self.board.iter().enumerate().filter_map(move |(index, o)| {
             o.map(move |chain_idx| Stone {
                 coord: one_to_2dim(self.size, index),
@@ -345,19 +362,19 @@ impl Goban {
 
     /// Get stones by their color.
     #[inline]
-    pub fn get_stones_by_color(&self, color: MaybeColor) -> impl Iterator<Item=Point> + '_ {
+    pub fn get_stones_by_color(&self, color: MaybeColor) -> impl Iterator<Item = Point> + '_ {
         self.get_coords_by_color(color)
             .map(move |c| Point { color, coord: c })
     }
 
-    pub fn get_empty_idx(&self) -> impl Iterator<Item=BoardIdx> + '_ {
+    pub fn get_empty_idx(&self) -> impl Iterator<Item = BoardIdx> + '_ {
         self.board
             .iter()
             .enumerate()
             .filter_map(|(idx, chain)| chain.map(|_| idx))
     }
 
-    pub fn get_empty_coords(&self) -> impl Iterator<Item=Coord> + '_ {
+    pub fn get_empty_coords(&self) -> impl Iterator<Item = Coord> + '_ {
         let board_length = self.size.0 as usize * self.size.1 as usize;
         self.board[..board_length]
             .iter()
@@ -373,7 +390,7 @@ impl Goban {
 
     /// Get points by their color.
     #[inline]
-    pub fn get_coords_by_color(&self, color: MaybeColor) -> impl Iterator<Item=Coord> + '_ {
+    pub fn get_coords_by_color(&self, color: MaybeColor) -> impl Iterator<Item = Coord> + '_ {
         let mut res = ArrayVec::<Coord, BOARD_MAX_LENGTH>::new();
         for board_idx in 0..(self.size.0 * self.size.1) as usize {
             match color {
@@ -389,8 +406,9 @@ impl Goban {
 
     /// Returns the "empty" stones connected to the stone
     #[inline]
-    pub fn get_liberties(&self, coord: Coord) -> impl Iterator<Item=Coord> + '_ {
-        self.neighbors_coords(coord).filter(|&x| self.get_color(x).is_none())
+    pub fn get_liberties(&self, coord: Coord) -> impl Iterator<Item = Coord> + '_ {
+        self.neighbors_coords(coord)
+            .filter(|&x| self.get_color(x).is_none())
     }
 
     /// Returns true if the stone has liberties.
@@ -467,7 +485,7 @@ impl Goban {
 
     /// Get the neighbors points of a point.
     #[inline]
-    fn neighbors_coords(&self, coord: Coord) -> impl Iterator<Item=Coord> {
+    fn neighbors_coords(&self, coord: Coord) -> impl Iterator<Item = Coord> {
         let size = self.size;
         neighbor_coords(coord)
             .into_iter()
@@ -475,7 +493,7 @@ impl Goban {
     }
 
     #[inline]
-    fn neighbors_idx(&self, board_idx: BoardIdx) -> impl Iterator<Item=BoardIdx> {
+    fn neighbors_idx(&self, board_idx: BoardIdx) -> impl Iterator<Item = BoardIdx> {
         let size = self.size;
         self.neighbors_coords(one_to_2dim(size, board_idx))
             .map(move |coord| two_to_1dim(size, coord))

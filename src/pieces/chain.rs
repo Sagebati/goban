@@ -2,8 +2,8 @@ use std::ops::BitOrAssign;
 
 use arrayvec::ArrayVec;
 
-use crate::pieces::BoardIdx;
 use crate::pieces::stones::Color;
+use crate::pieces::BoardIdx;
 
 //pub type Liberties = BitArr![for 361, in usize];
 
@@ -40,7 +40,7 @@ fn count_ones(lib: &Liberties) -> usize {
     lib.into_iter().map(|x| x.count_ones() as usize).sum()
 }
 
-fn iter_ones(lib: &Liberties) -> impl Iterator<Item=usize> + '_ {
+fn iter_ones(lib: &Liberties) -> impl Iterator<Item = usize> + '_ {
     lib.into_iter().enumerate().flat_map(|(ix, chunk)| {
         let mut chunk = *chunk;
         let mut ixs = ArrayVec::<usize, BITS>::new();
@@ -140,7 +140,7 @@ impl Chain {
     }
 
     #[inline]
-    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item=BoardIdx>) -> &mut Self {
+    pub fn add_liberties(&mut self, stones_idx: impl Iterator<Item = BoardIdx>) -> &mut Self {
         for idx in stones_idx {
             self.add_liberty(idx);
         }

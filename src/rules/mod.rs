@@ -2,9 +2,9 @@
 
 use std::str::FromStr;
 
-use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::{Coord, Size};
+use crate::pieces::Nat;
 
 #[cfg(deadstones)]
 mod dead_stones;

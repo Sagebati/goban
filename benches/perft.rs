@@ -6,8 +6,8 @@ use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
 
 use goban::pieces::stones::Stone;
-use goban::rules::{CHINESE, GobanSizes, JAPANESE, Move, Rule};
 use goban::rules::game::Game;
+use goban::rules::{GobanSizes, Move, Rule, CHINESE, JAPANESE};
 
 pub fn perft(state: &Game, depth: u8) -> u64 {
     if depth < 1 {

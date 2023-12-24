@@ -6,12 +6,12 @@ mod tests {
     use rand::seq::SliceRandom;
 
     use goban::pieces::goban::Goban;
-    use goban::pieces::stones::{Color, EMPTY, Point, Stone};
+    use goban::pieces::stones::{Color, Point, Stone, EMPTY};
     use goban::pieces::util::CircularRenIter;
     use goban::pieces::zobrist::index_zobrist;
+    use goban::rules::game::Game;
     use goban::rules::{EndGame, GobanSizes, Move};
     use goban::rules::{CHINESE, JAPANESE};
-    use goban::rules::game::Game;
 
     #[test]
     fn sizes() {
@@ -580,7 +580,7 @@ mod tests {
             Some(endgame) => Ok(endgame),
             _ => Err("Game not finished"),
         }
-            .expect("Game finished");
+        .expect("Game finished");
         let (black, white) = g.calculate_score();
         assert_eq!(black, 81.);
         assert_eq!(white, g.komi());

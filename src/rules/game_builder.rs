@@ -22,8 +22,8 @@ use crate::pieces::goban::Goban;
 use crate::pieces::stones::Color;
 use crate::pieces::stones::Color::White;
 use crate::pieces::util::coord::{Coord, Size};
-use crate::rules::{CHINESE, EndGame, Move, Rule};
 use crate::rules::game::Game;
+use crate::rules::{EndGame, Move, Rule, CHINESE};
 
 pub struct GameBuilder {
     size: Size,

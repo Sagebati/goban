@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use oxymcts::{
-    DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts, LazyMctsNode,
-    Num, Playout, uct_value,
+    uct_value, DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts,
+    LazyMctsNode, Num, Playout,
 };
 use rand::prelude::{SliceRandom, ThreadRng};
 use rand::thread_rng;
@@ -10,10 +10,10 @@ use rand::thread_rng;
 use ahash::AHashSet;
 
 use crate::pieces::goban::Goban;
+use crate::pieces::stones::Point;
 use crate::pieces::GoStringPtr;
-use crate::pieces::stones::{Point};
-use crate::rules::{Color, IllegalRules, Move};
 use crate::rules::game::Game;
+use crate::rules::{Color, IllegalRules, Move};
 
 impl GameTrait for Game {
     type Player = Color;
@@ -110,7 +110,7 @@ impl Playout<Game> for PL {
                 .into_iter()
                 .filter(|&point| state.check_point(point).is_none())
             {
-                if !state.check_eye( Stone {
+                if !state.check_eye(Stone {
                     coord: coordinates,
                     color: state.turn().stone_color(),
                 }) {
@@ -151,9 +151,7 @@ impl Game {
         });
         let mut strings_wth_eye = HashMap::new();
         for eye in eyes {
-            let string_connected_eye = self
-                .goban
-                .get_neighbors_chains_idx(eye);
+            let string_connected_eye = self.goban.get_neighbors_chains_idx(eye);
             for x in string_connected_eye {
                 strings_wth_eye
                     .entry(x)

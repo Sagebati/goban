@@ -1,11 +1,11 @@
 use sgf_parser::{Action, Outcome, RuleSet, SgfToken};
 
-use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::Coord;
-use crate::rules::{CHINESE, EndGame, JAPANESE, Move, Rule};
+use crate::pieces::Nat;
 use crate::rules::game::Game;
 use crate::rules::game_builder::GameBuilder;
+use crate::rules::{EndGame, Move, Rule, CHINESE, JAPANESE};
 
 type SgfColor = sgf_parser::Color;
 
