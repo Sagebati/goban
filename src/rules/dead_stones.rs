@@ -11,7 +11,7 @@ use ahash::AHashSet;
 
 use crate::pieces::goban::Goban;
 use crate::pieces::GoStringPtr;
-use crate::pieces::stones::{Color, Point};
+use crate::pieces::stones::{Point};
 use crate::rules::{Color, IllegalRules, Move};
 use crate::rules::game::Game;
 
@@ -110,7 +110,7 @@ impl Playout<Game> for PL {
                 .into_iter()
                 .filter(|&point| state.check_point(point).is_none())
             {
-                if !state.check_eye(Point {
+                if !state.check_eye( Stone {
                     coord: coordinates,
                     color: state.turn().stone_color(),
                 }) {
@@ -153,8 +153,7 @@ impl Game {
         for eye in eyes {
             let string_connected_eye = self
                 .goban
-                .get_neighbors_chains_idx(eye)
-                .collect::<HashSet<_>>();
+                .get_neighbors_chains_idx(eye);
             for x in string_connected_eye {
                 strings_wth_eye
                     .entry(x)

@@ -1,4 +1,3 @@
-use std::ops::Not;
 use hash_hasher::{HashBuildHasher, HashedSet};
 
 use crate::pieces::goban::*;
@@ -401,7 +400,7 @@ impl Game {
         } else {
             !self
                 .goban
-                .get_neighbors_chains(stone.coord)
+                .get_neighbors_chains(stone.coord).into_iter()
                 .any(|neighbor_go_string| {
                     if neighbor_go_string.color == stone.color {
                         // Connecting with an other string which is not in danger
