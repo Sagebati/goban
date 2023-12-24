@@ -17,22 +17,23 @@ mod tests {
     fn sizes() {
         assert_eq!(mem::size_of::<Point>(), 3);
         assert_eq!(mem::size_of::<Stone>(), 3);
+        assert_eq!(mem::size_of::<Option<Color>>(), 1);
     }
 
     #[test]
     fn goban() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push((1, 2), Color::White);
+        g.put((1, 2), Color::White);
         println!("{}", g.pretty_string());
     }
 
     #[test]
     fn goban_new_array() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push((1, 2), Color::White);
-        g.push((1, 3), Color::Black);
+        g.put((1, 2), Color::White);
+        g.put((1, 3), Color::Black);
         let tab = g.to_vec();
-        let g2 = Goban::from_array(&tab);
+        let g2: Goban = tab.as_slice().into();
         assert_eq!(g, g2)
     }
 
@@ -49,8 +50,8 @@ mod tests {
     #[test]
     fn get_all_stones() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push((1, 2), Color::White);
-        g.push((0, 0), Color::Black);
+        g.put((1, 2), Color::White);
+        g.put((0, 0), Color::Black);
 
         let expected = vec![
             Stone {
@@ -470,14 +471,14 @@ mod tests {
             coord: (4, 4),
             color: Color::Black,
         };
-        goban.push_stone(s);
+        goban.put_stone(s);
         println!("{}", goban.pretty_string());
         let cl = goban.clone();
         let x = cl.get_liberties(s.coord);
 
         x.for_each(|coord| {
             println!("{coord:?}");
-            goban.push_stone(Stone {
+            goban.put_stone(Stone {
                 coord,
                 color: Color::White,
             });
@@ -534,7 +535,7 @@ mod tests {
         let score = g.calculate_score();
         assert_eq!(score, (10. * 19., 9. * 19.));
         let mut goban: Goban = g.goban().clone();
-        goban.push_many(
+        goban.put_many(
             &{
                 let mut vec = vec![];
                 (10..19).for_each(|x| vec.push((x, 3)));
@@ -542,7 +543,7 @@ mod tests {
             },
             Color::Black,
         );
-        goban.push_many(
+        goban.put_many(
             &[
                 (11, 6),
                 (11, 7),
@@ -559,7 +560,7 @@ mod tests {
         let terr = goban.calculate_territories();
         assert_eq!(terr, (27, 8 * 19 + 1));
 
-        goban.push_many(
+        goban.put_many(
             &[(17, 18), (18, 17), (18, 15), (17, 16), (16, 17), (15, 18)],
             Color::Black,
         );

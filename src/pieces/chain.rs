@@ -37,11 +37,11 @@ fn any(lib: &Liberties) -> bool {
 }
 
 fn count_ones(lib: &Liberties) -> usize {
-    lib.iter().map(|x| x.count_ones() as usize).sum()
+    lib.into_iter().map(|x| x.count_ones() as usize).sum()
 }
 
 fn iter_ones(lib: &Liberties) -> impl Iterator<Item=usize> + '_ {
-    lib.iter().enumerate().flat_map(|(ix, chunk)| {
+    lib.into_iter().enumerate().flat_map(|(ix, chunk)| {
         let mut chunk = *chunk;
         let mut ixs = ArrayVec::<usize, BITS>::new();
         let mut index = 0;

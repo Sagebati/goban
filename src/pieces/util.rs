@@ -1,3 +1,5 @@
+use std::iter::FusedIterator;
+
 pub struct CircularRenIter<'a> {
     next_stone: &'a [u16],
     origin: usize,
@@ -5,7 +7,7 @@ pub struct CircularRenIter<'a> {
 }
 
 impl<'a> CircularRenIter<'a> {
-    pub fn new(origin: usize, next_stone: &'a [u16]) -> Self {
+    pub fn new(origin: usize,next_stone: &'a [u16]) -> Self {
         Self {
             next_stone,
             origin,
@@ -30,9 +32,12 @@ impl<'a> Iterator for CircularRenIter<'a> {
             dbg!(self.next_stone.iter().enumerate().collect::<Vec<_>>());
             panic!("infinite loop detected")
         }
+
         ret
     }
 }
+
+impl<'a> FusedIterator for CircularRenIter<'a> { }
 
 pub mod coord {
     use arrayvec::ArrayVec;

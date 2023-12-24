@@ -101,7 +101,7 @@ impl GameBuilder {
     pub fn build(&mut self) -> Result<Game, String> {
         let mut goban: Goban = Goban::new(self.size);
 
-        goban.push_many(&self.handicap_points, Color::Black);
+        goban.put_many(&self.handicap_points, Color::Black);
 
         if !self.handicap_points.is_empty() && self.turn.is_none() {
             self.turn = Some(White)
