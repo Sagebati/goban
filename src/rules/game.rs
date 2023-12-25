@@ -210,6 +210,12 @@ impl Game {
         test_goban.zobrist_hash()
     }
 
+    pub fn try_play_color(&mut self, color: Color, play: Move) -> Result<&mut Self, PlayError> {
+        self.turn = color;
+        // TODO: we don't undo color if we fail.
+        return self.try_play(play);
+    }
+
     /// Method to play but it verifies if the play is legal or not.
     ///
     /// # Errors
