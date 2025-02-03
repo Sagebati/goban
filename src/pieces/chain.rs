@@ -61,7 +61,7 @@ fn get(index: usize, lib: &Liberties) -> bool {
     (lib[chunk] & (1 << bit_index)) != 0
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq, Copy, Hash)]
 pub struct Chain {
     pub color: Color,
     pub origin: u16,

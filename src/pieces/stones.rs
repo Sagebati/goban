@@ -15,6 +15,11 @@ pub enum Color {
 
 pub type MaybeColor = Option<Color>;
 
+const _: () = assert!(const {
+   size_of::<MaybeColor>() == 1
+});
+
+
 pub const EMPTY: Option<Color> = None;
 
 impl std::ops::Not for Color {

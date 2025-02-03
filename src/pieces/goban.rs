@@ -3,7 +3,7 @@
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
-use std::hash::{Hash, Hasher};
+use std::hash::{Hash};
 
 use arrayvec::ArrayVec;
 
@@ -35,7 +35,7 @@ macro_rules! iter_stones {
 }
 
 /// Represents a goban. the stones are stored in ROW MAJOR (row, column)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash,PartialEq, Eq)]
 pub struct Goban {
     chains: Vec<Chain>,
     board: Vec<Option<u16>>,
@@ -62,7 +62,7 @@ impl Goban {
 
     /// Creates a Goban from an array of stones.
     pub fn from_array(stones: &[MaybeColor]) -> Self {
-        let size = ((stones.len() as f32).sqrt()) as u8;
+        let size = (stones.len() as f32).sqrt() as u8;
         let mut game = Goban::new((size, size));
         stones
             .iter()
@@ -109,7 +109,7 @@ impl Goban {
 
     /// Like vec but in a matrix shape.
     pub fn matrix(&self) -> Vec<Vec<MaybeColor>> {
-        let mut mat = vec![vec![]];
+        let mut mat = vec![];
         for line in self.board.chunks_exact(self.size.1 as usize) {
             let v = line
                 .iter()
@@ -529,6 +529,7 @@ impl Goban {
             .map(move |coord| two_to_1dim(size, coord))
     }
 
+    #[inline]
     pub fn get_chain_it(&self, chain_idx: ChainIdx) -> impl Iterator<Item=BoardIdx> + '_ {
         CircularRenIter::new(self.chains[chain_idx].origin as usize, self.chains[chain_idx].num_stones as usize, &self.next_stone)
     }
@@ -654,22 +655,37 @@ impl Display for Goban {
     }
 }
 
-impl PartialEq for Goban {
-    fn eq(&self, other: &Goban) -> bool {
-        other.zobrist_hash == self.zobrist_hash
-    }
-}
-
-impl Hash for Goban {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.zobrist_hash.hash(state)
-    }
-}
-
-impl Eq for Goban {}
-
 impl Default for Goban {
     fn default() -> Self {
         Goban::new((19, 19))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    pub fn check_eq() {
+        let mut goban = Goban::default();
+        goban.push_many(
+            &[
+                (0, 4),
+                (17, 5),
+                (15, 6),
+                (6, 7),
+                (8, 9),
+                (13, 9),
+                (3, 12),
+                (8, 13),
+                (4, 16),
+                (6, 16),
+                (12, 17),
+                (16, 17),
+            ],
+            Color::Black,
+        );
+        assert_ne!(goban, Goban::default());
+        println!("{}", goban == Goban::default());
     }
 }

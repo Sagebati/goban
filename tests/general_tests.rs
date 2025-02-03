@@ -27,6 +27,17 @@ mod tests {
     }
 
     #[test]
+    fn goban_matrix() {
+        let mut g = Goban::default();
+        g.push((0, 0), Color::White);
+
+        let mat = g.matrix();
+
+
+        assert_eq!(mat[0][0], Some(Color::White))
+    }
+
+    #[test]
     fn goban_new_array() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
         g.push((1, 2), Color::White);
