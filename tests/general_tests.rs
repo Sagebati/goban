@@ -2,12 +2,13 @@
 mod tests {
     use std::collections::HashSet;
     use std::mem;
-
+    use rand::prelude::IndexedRandom;
+    use rand::rng;
     use rand::seq::SliceRandom;
 
     use goban::pieces::goban::Goban;
     use goban::pieces::stones::{Color, Point, Stone, EMPTY};
-    use goban::pieces::util::CircularRenIter;
+    use goban::pieces::util::CircularGroupIter;
     use goban::pieces::zobrist::index_zobrist;
     use goban::rules::game::Game;
     use goban::rules::{EndGame, GobanSizes, Move};
@@ -23,15 +24,15 @@ mod tests {
     #[test]
     fn goban() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.put((1, 2), Color::White);
+        g.push((1, 2), Color::White);
         println!("{}", g.pretty_string());
     }
 
     #[test]
     fn goban_new_array() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.put((1, 2), Color::White);
-        g.put((1, 3), Color::Black);
+        g.push((1, 2), Color::White);
+        g.push((1, 3), Color::Black);
         let tab = g.to_vec();
         let g2: Goban = tab.as_slice().into();
         assert_eq!(g, g2)
@@ -50,8 +51,8 @@ mod tests {
     #[test]
     fn get_all_stones() {
         let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.put((1, 2), Color::White);
-        g.put((0, 0), Color::Black);
+        g.push((1, 2), Color::White);
+        g.push((0, 0), Color::Black);
 
         let expected = vec![
             Stone {
@@ -76,7 +77,7 @@ mod tests {
                 *g.legals()
                     .map(|coord| Move::Play(coord.0, coord.1))
                     .collect::<Vec<Move>>()
-                    .choose(&mut rand::thread_rng())
+                    .choose(&mut rng())
                     .unwrap(),
             );
             i -= 1;
@@ -471,14 +472,14 @@ mod tests {
             coord: (4, 4),
             color: Color::Black,
         };
-        goban.put_stone(s);
+        goban.push_stone(s);
         println!("{}", goban.pretty_string());
         let cl = goban.clone();
         let x = cl.get_liberties(s.coord);
 
         x.for_each(|coord| {
             println!("{coord:?}");
-            goban.put_stone(Stone {
+            goban.push_stone(Stone {
                 coord,
                 color: Color::White,
             });
@@ -535,7 +536,7 @@ mod tests {
         let score = g.calculate_score();
         assert_eq!(score, (10. * 19., 9. * 19.));
         let mut goban: Goban = g.goban().clone();
-        goban.put_many(
+        goban.push_many(
             &{
                 let mut vec = vec![];
                 (10..19).for_each(|x| vec.push((x, 3)));
@@ -543,7 +544,7 @@ mod tests {
             },
             Color::Black,
         );
-        goban.put_many(
+        goban.push_many(
             &[
                 (11, 6),
                 (11, 7),
@@ -560,7 +561,7 @@ mod tests {
         let terr = goban.calculate_territories();
         assert_eq!(terr, (27, 8 * 19 + 1));
 
-        goban.put_many(
+        goban.push_many(
             &[(17, 18), (18, 17), (18, 15), (17, 16), (16, 17), (15, 18)],
             Color::Black,
         );
@@ -714,7 +715,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    #[cfg(deadstones)]
+    #[cfg(feature = "deadstones")]
     fn dead_stones() {
         let game = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         game.display_goban();
@@ -728,16 +729,16 @@ mod tests {
     #[test]
     fn circular_ren_iter_test() {
         let a = vec![0, 0, 4, 0, 6, 0, 2, 0, 8, 0, 0, 0];
-        let mut iter = CircularRenIter::new(2, &a);
+        let mut iter = CircularGroupIter::new(2, &a);
         assert_eq!(2, iter.next().unwrap());
         assert_eq!(4, iter.next().unwrap());
         assert_eq!(6, iter.next().unwrap());
         assert_eq!(None, iter.next());
 
-        let iter = CircularRenIter::new(2, &a);
+        let iter = CircularGroupIter::new(2, &a);
         assert_eq!(6, iter.last().unwrap());
 
-        let mut iter = CircularRenIter::new(8, &a);
+        let mut iter = CircularGroupIter::new(8, &a);
         assert_eq!(8, iter.next().unwrap());
         assert_eq!(None, iter.next());
     }

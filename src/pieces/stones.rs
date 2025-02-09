@@ -1,10 +1,9 @@
 //! Module with all needed to play.
 
+use crate::pieces::util::coord::Coord;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
-
-use crate::pieces::util::coord::Coord;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
 #[repr(u8)]
@@ -48,38 +47,42 @@ impl Display for Color {
 
 /// Stone on a goban.
 #[derive(PartialEq, Eq, Hash, Clone, Debug, Copy)]
-pub struct Point {
+pub struct Point<T = MaybeColor> {
     pub coord: Coord,
-    pub color: MaybeColor,
+    pub color: T,
 }
 
-impl Point {
-    #[inline]
-    pub fn is_empty(self) -> bool {
-        self.color.is_none()
-    }
-}
-
-/// Stone on a goban.
-#[derive(PartialEq, Eq, Hash, Clone, Debug, Copy)]
-pub struct Stone {
-    pub coord: Coord,
-    pub color: Color,
-}
+pub type Stone = Point<Color>;
 
 impl TryFrom<Point> for Stone {
     type Error = &'static str;
 
     fn try_from(value: Point) -> Result<Self, Self::Error> {
         if let Some(color) = value.color {
-            Ok(
-                Stone {
-                    coord: value.coord,
-                    color,
-                }
-            )
+            Ok(Stone {
+                coord: value.coord,
+                color,
+            })
         } else {
             Err("We cannot transform an empty point to a stone")
         }
+    }
+}
+
+impl From<(Coord, Color)> for Stone {
+    fn from((coord, color): (Coord, Color)) -> Self {
+        Stone { coord, color }
+    }
+}
+
+impl From<(Coord, MaybeColor)> for Point {
+    fn from((coord, color): (Coord, MaybeColor)) -> Self {
+        Point { coord, color }
+    }
+}
+
+impl<T> From<Point<T>> for Coord {
+    fn from(value: Point<T>) -> Self {
+        value.coord
     }
 }

@@ -1,19 +1,20 @@
-use hash_hasher::{HashBuildHasher, HashedSet};
-
 use crate::pieces::goban::*;
 use crate::pieces::stones::Color::{Black, White};
 use crate::pieces::stones::{Color, Stone, EMPTY};
 use crate::pieces::util::coord::{corner_points, is_coord_valid, two_to_1dim, Coord, Size};
-use crate::pieces::Nat;
+use crate::pieces::{Nat, Connections};
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::Rule;
 use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 use crate::rules::{PlayError, CHINESE};
+use derive_more::Deref;
+use hash_hasher::{HashBuildHasher, HashedSet};
 
 /// Most important struct of the library, it's the entry point.
 /// It represents a Game of Go.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deref)]
 pub struct Game {
+    #[deref]
     pub(super) goban: Goban,
     pub(super) passes: u32,
     pub(super) prisoners: (u32, u32),
@@ -91,7 +92,7 @@ impl Game {
         self.turn
     }
 
-    #[cfg(history)]
+    #[cfg(feature = "history")]
     pub fn history(&self) -> &[Goban] {
         &self.history
     }
@@ -197,7 +198,7 @@ impl Game {
         }
     }
 
-    /// This methods plays a move then return the hash of the goban simulated,
+    /// Plays a move then return the hash of the goban simulated,
     /// used in legals for fast move simulation in Super Ko situations.
     pub fn play_for_verification(&self, (x, y): Coord) -> u64 {
         let mut test_goban = self.goban.clone();
@@ -242,7 +243,7 @@ impl Game {
     pub fn put_handicap(&mut self, points: &[Coord]) {
         self.handicap = points.len() as u32;
         points.iter().for_each(|&coord| {
-            self.goban.put(coord, Color::Black);
+            self.goban.push(coord, Color::Black);
         });
         self.turn = Color::White;
     }
@@ -279,7 +280,7 @@ impl Game {
     /// string.
     pub fn will_capture(&self, point: Coord) -> bool {
         self.goban
-            .get_neighbors_chains(point)
+            .connected_groups(point)
             .into_iter()
             .any(|go_str| go_str.color != self.turn && go_str.is_atari())
     }
@@ -312,20 +313,32 @@ impl Game {
     }
 
     /// Return the number of allied corner and off board corners.
-    fn helper_check_eye(&self, point: (Nat, Nat), color: Color) -> (Nat, Nat) {
-        let mut corner_ally = 0;
-        let mut corner_off_board = 0;
+    fn helper_check_eye(
+        &self,
+        point: (Nat, Nat),
+        color: Color,
+    ) -> (Connections<Coord>, Connections<Coord>, Connections<Coord>) {
+        let mut corner_ally = Connections::new();
+        let mut corner_off_board = Connections::new();
+        let mut empty_corners = Connections::new();
         for p in corner_points(point) {
             if is_coord_valid(self.goban.size(), p) {
-                if self.goban.get_color(p) == Some(color) {
-                    corner_ally += 1
+                let color_corner = self.goban.get_color(p);
+                match color_corner {
+                    None => {
+                        empty_corners.push(p);
+                    }
+                    Some(c) if c == color => {
+                        corner_ally.push(p);
+                    }
+                    _ => {}
                 }
             } else {
-                corner_off_board += 1;
+                corner_off_board.push(p);
             }
         }
 
-        (corner_ally, corner_off_board)
+        (corner_ally, corner_off_board, empty_corners)
     }
 
     /// Detects true eyes. return true is the stone is an eye.
@@ -336,6 +349,7 @@ impl Game {
     ///  ++ +
     ///    ++
     /// ```
+    /// nor handle double-headed dragons.
     /// This function is only used for performance checking in the rules,
     /// and not for checking is a point is really an eye !
     pub fn check_eye(&self, Stone { coord, color }: Stone) -> bool {
@@ -353,26 +367,27 @@ impl Game {
             return false;
         }
 
-        let (corner_ally, corner_off_board) = self.helper_check_eye(coord, color);
-        let corners = corner_ally + corner_off_board;
-        if corners == 4 {
+        let (corner_ally, corner_off_board, empty_corners) = self.helper_check_eye(coord, color);
+        let total_corners = corner_ally.len() + corner_off_board.len();
+
+        if total_corners == 4 {
             return true;
         }
 
-        if corners == 3 || corners == 2 {
-            // For each corner we keep only the ones on the board and that are filled
-            for coord in corner_points(coord).into_iter().filter(move |p| {
-                is_coord_valid(self.goban.size(), *p) && self.goban.get_color(coord).is_none()
-            }) {
+        // If one corner or 2 are not allied corners then we need to test if the remaining corners are an eye.
+        // We cannot call this function recursively because fo complexity with loops.
+        if [3, 2].contains(&total_corners) {
+            for coord in empty_corners {
+                // We test the cross again for the empty corner
                 if self
                     .goban
-                    .get_neighbors_stones(coord)
+                    .get_connected_stones(coord)
                     .any(move |s| s.color != color)
                 {
                     return false;
                 }
-                let (ca, cof) = self.helper_check_eye(coord, color);
-                let c = ca + cof;
+                let (ca, cof, _emc) = self.helper_check_eye(coord, color);
+                let c = ca.len() + cof.len();
                 if c == 3 || c == 2 {
                     return true;
                 }
@@ -407,11 +422,11 @@ impl Game {
         } else {
             !self
                 .goban
-                .get_neighbors_chains(stone.coord)
+                .connected_groups(stone.coord)
                 .into_iter()
                 .any(|neighbor_go_string| {
                     if neighbor_go_string.color == stone.color {
-                        // Connecting with an other string which is not in danger
+                        // Connecting with another string which is not in danger
                         !neighbor_go_string.is_atari()
                     } else {
                         // Capture move
@@ -427,7 +442,7 @@ impl Game {
     }
 
     #[inline]
-    fn remove_captured_stones(&mut self, dead_chains: &[ChainIdx], added_chain: ChainIdx) {
+    fn remove_captured_stones(&mut self, dead_chains: &[GroupIdx], added_chain: GroupIdx) {
         let ((black_prisoners, white_prisoners), ko_point) = self.goban.remove_captured_stones_aux(
             !self.rule.flag_illegal.contains(IllegalRules::SUICIDE),
             dead_chains,
