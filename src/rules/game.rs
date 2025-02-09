@@ -2,19 +2,18 @@ use crate::pieces::goban::*;
 use crate::pieces::stones::Color::{Black, White};
 use crate::pieces::stones::{Color, Stone, EMPTY};
 use crate::pieces::util::coord::{corner_points, is_coord_valid, two_to_1dim, Coord, Size};
-use crate::pieces::{Nat, Connections};
+use crate::pieces::{Connections, Nat};
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::Rule;
 use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 use crate::rules::{PlayError, CHINESE};
-use derive_more::Deref;
 use hash_hasher::{HashBuildHasher, HashedSet};
+use std::ops::Deref;
 
 /// Most important struct of the library, it's the entry point.
 /// It represents a Game of Go.
-#[derive(Clone, Debug, Deref)]
+#[derive(Clone, Debug)]
 pub struct Game {
-    #[deref]
     pub(super) goban: Goban,
     pub(super) passes: u32,
     pub(super) prisoners: (u32, u32),
@@ -28,6 +27,14 @@ pub struct Game {
     pub(super) last_hash: u64,
     pub(super) hashes: HashedSet<u64>,
     pub(super) ko_point: Option<Coord>,
+}
+
+impl Deref for Game {
+    type Target = Goban;
+
+    fn deref(&self) -> &Self::Target {
+        &self.goban
+    }
 }
 
 impl Game {
@@ -280,7 +287,7 @@ impl Game {
     /// string.
     pub fn will_capture(&self, point: Coord) -> bool {
         self.goban
-            .connected_groups(point)
+            .get_connected_groups(point)
             .into_iter()
             .any(|go_str| go_str.color != self.turn && go_str.is_atari())
     }
@@ -305,7 +312,7 @@ impl Game {
             Some(PlayError::Suicide)
         } else if illegal_rules.contains(IllegalRules::FILLEYE) && self.check_eye(stone) {
             Some(PlayError::FillEye)
-        } else if illegal_rules.contains(IllegalRules::SUPERKO) && self.check_superko(stone) {
+        } else if illegal_rules.contains(IllegalRules::SUPERKO) && self.check_super_ko(stone) {
             Some(PlayError::Ko)
         } else {
             None
@@ -361,7 +368,7 @@ impl Game {
         // if he doesn't have the cross then return false
         if self
             .goban
-            .get_neighbors_points(coord)
+            .get_connected_points(coord)
             .any(|s| s.color != Some(color))
         {
             return false;
@@ -403,7 +410,7 @@ impl Game {
     }
 
     /// Rule of the super Ko, if any before configuration was already played then return true.
-    pub fn check_superko(&self, stone: Stone) -> bool {
+    pub fn check_super_ko(&self, stone: Stone) -> bool {
         if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coord) {
             false
         } else {
@@ -422,7 +429,7 @@ impl Game {
         } else {
             !self
                 .goban
-                .connected_groups(stone.coord)
+                .get_connected_groups(stone.coord)
                 .into_iter()
                 .any(|neighbor_go_string| {
                     if neighbor_go_string.color == stone.color {

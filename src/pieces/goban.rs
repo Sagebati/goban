@@ -313,7 +313,7 @@ impl Goban {
 
     /// Get all the neighbors to the coordinate including empty intersections.
     #[inline]
-    pub fn get_neighbors_points(&self, point: Coord) -> impl Iterator<Item = Point> + '_ {
+    pub fn get_connected_points(&self, point: Coord) -> impl Iterator<Item = Point> + '_ {
         self.neighbors_coords(point).map(move |p| Point {
             coord: p,
             color: self.get_color(p),
@@ -324,13 +324,13 @@ impl Goban {
     #[inline]
     pub fn get_connected_stones(&self, point: impl IntoCoord) -> impl Iterator<Item = Stone> + '_ {
         let point = point.into_coord(self.size);
-        self.get_neighbors_points(point)
+        self.get_connected_points(point)
             .filter_map(|x| x.try_into().ok())
     }
 
     /// Get all connected groups to the coordinate.
-    pub(crate) fn connected_groups(&self, index: impl IntoIdx) -> Connections<&Group> {
-        self.connected_groups_idx(index)
+    pub(crate) fn get_connected_groups(&self, index: impl IntoIdx) -> Connections<&Group> {
+        self.get_connected_groups_idx(index)
             .into_iter()
             .map(|e| &self.chains[e])
             .collect()
@@ -338,7 +338,7 @@ impl Goban {
 
     /// Get a set of the groups adjacent to the point.
     #[inline]
-    pub fn connected_groups_idx(&self, index: impl IntoIdx) -> Connections<GroupIdx> {
+    pub fn get_connected_groups_idx(&self, index: impl IntoIdx) -> Connections<GroupIdx> {
         let index = index.into_idx(self.size);
         let mut array_vec: ArrayVec<GroupIdx, 4> = ArrayVec::new_const();
         for idx in self.neighbors_idx(index) {
@@ -465,7 +465,7 @@ impl Goban {
     pub fn remove_chain(&mut self, ren_to_remove_idx: GroupIdx) {
         let color_of_the_string = self.chains[ren_to_remove_idx].color;
         for point_idx in iter_stones!(self, ren_to_remove_idx as u16) {
-            let mut neighbors_chains = self.connected_groups_idx(point_idx);
+            let mut neighbors_chains = self.get_connected_groups_idx(point_idx);
             // We remove our group from the neighbors
             neighbors_chains.retain(|x| *x != ren_to_remove_idx);
 

@@ -143,7 +143,7 @@ impl Game {
         });
         let mut chains_wth_eye = HashMap::new();
         for eye_coord in eyes {
-            let chain_connected_eye = self.goban.connected_groups_idx(eye_coord);
+            let chain_connected_eye = self.goban.get_connected_groups_idx(eye_coord);
             for chain_idx in chain_connected_eye {
                 chains_wth_eye
                     .entry(chain_idx)

@@ -1,19 +1,23 @@
 # Goban
 
-**Library to play with a rusty "Goban" (name of the board where we play Go !)**
+**Library to play with a rusty "Goban" (name of the board where we play Go !)**, It's built with performance in mind.
+The library can perform a full playout of a random game in 1.5 ms checking all legal moves.
+
+In Go, they are different rules, atm only two rules are implemented:
+
+- Chinese *Area scoring*
+- Japanese *Territory scoring*
+
+Adding more rules can be achieved pretty easily.
 
 **Use the version > 0.5.0 because in a bug detecting dead stones and in Ko detection**
-
-*Channel : stable*
 
 **Only contains move generation, and rules there is no IA, neither front-end.**
 
 Features:
 
 - **history**     // each game will have his all history so you can iterate over it. Decrease perfs !
-
-Thanks to some help in profiling and optimisation we can run a playout randomly of an entire game in 3 ms (i7u 3.0
-Ghz) (before it was 600ms ) !
+- **deadstones** // Add the feature to detect deadstones on the board, works only if the frontiers are closed
 
 ## Example
 
@@ -75,20 +79,11 @@ etc...
 ```
 
 
-## What works
-- Capturing stones
-- Playing
-- Passing
-- Resigning
-- Implementation to count points
+## Features
 - Printing a *pretty* unicode Board on the terminal !
 - SGF Import
 - Generate legals moves (Handling Ko detection, Suicide moves, Super ko)
 - Japanese Rules
 - Chinese Rules
-- Boards of different sizes (4x5 , 4x9) Limited  to (19x19) (Due to Zobrist hashing) cas be easy increased in a fork. 
+- Boards of different sizes (4x5 , 4x9) Limited  to (19x19) (Due to Zobrist hashing). 
 - *Experimental* dead stones detection with MCTS rollouts.
-
-## Waiting for
-- Const generics or maybe not (benchmark with a Goban with backed array is slightly faster)
-

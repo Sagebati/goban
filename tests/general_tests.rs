@@ -626,7 +626,7 @@ mod tests {
         }));
         assert!(!game.legals().any(|m| m == (1, 2)));
         assert!(game.try_play(Move::Play(1, 2)).is_err());
-        assert!(game.check_superko(Stone {
+        assert!(game.check_super_ko(Stone {
             coord: (1, 2),
             color: Color::Black,
         }));

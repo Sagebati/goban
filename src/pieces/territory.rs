@@ -20,7 +20,7 @@ impl Goban {
         explored.insert(stone);
 
         let mut to_explore: Vec<Point> = self
-            .get_neighbors_points(stone.coord)
+            .get_connected_points(stone.coord)
             .filter(|p| p.color == stone.color)
             .collect(); // Acquiring all the neighbors
 
@@ -29,7 +29,7 @@ impl Goban {
             explored.insert(stone_to_explore);
 
             to_explore.extend(
-                self.get_neighbors_points(stone_to_explore.coord)
+                self.get_connected_points(stone_to_explore.coord)
                     .filter(|p| p.color == stone.color && !explored.contains(p)),
             )
         }
@@ -69,7 +69,7 @@ impl Goban {
         'outer: for empty_group in empty_chains {
             let mut neutral = (false, false);
             for empty_intersection in &empty_group {
-                for point in self.get_neighbors_points(empty_intersection.coord) {
+                for point in self.get_connected_points(empty_intersection.coord) {
                     if point.color == Some(Color::White) {
                         neutral.1 = true; // found white stone
                     }
