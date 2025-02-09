@@ -1,12 +1,12 @@
 use std::iter::FusedIterator;
 
-pub struct CircularRenIter<'a> {
+pub struct CircularGroupIter<'a> {
     next_stone: &'a [u16],
     origin: usize,
     next: Option<usize>,
 }
 
-impl<'a> CircularRenIter<'a> {
+impl<'a> CircularGroupIter<'a> {
     pub fn new(origin: usize, next_stone: &'a [u16]) -> Self {
         Self {
             next_stone,
@@ -16,7 +16,7 @@ impl<'a> CircularRenIter<'a> {
     }
 }
 
-impl<'a> Iterator for CircularRenIter<'a> {
+impl Iterator for CircularGroupIter<'_> {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -29,7 +29,6 @@ impl<'a> Iterator for CircularRenIter<'a> {
 
         #[cfg(debug_assertions)]
         if ret.is_some() && self.next == ret {
-            dbg!(self.next_stone.iter().enumerate().collect::<Vec<_>>());
             panic!("infinite loop detected")
         }
 
@@ -37,12 +36,12 @@ impl<'a> Iterator for CircularRenIter<'a> {
     }
 }
 
-impl<'a> FusedIterator for CircularRenIter<'a> {}
+impl FusedIterator for CircularGroupIter<'_> {}
 
 pub mod coord {
-    use arrayvec::ArrayVec;
-
+    use crate::pieces::goban::BoardIdx;
     use crate::pieces::Nat;
+    use arrayvec::ArrayVec;
 
     /// Defining the policy for the columns.
     pub type Coord = (Nat, Nat);
@@ -102,5 +101,37 @@ pub mod coord {
             (x1 + 1, x2.wrapping_sub(1)),
             (x1.wrapping_sub(1), x2 + 1),
         ]
+    }
+
+    pub trait IntoCoord {
+        fn into_coord(self, size: Size) -> Coord;
+    }
+
+    impl IntoCoord for Coord {
+        fn into_coord(self, _size: Size) -> Coord {
+            self
+        }
+    }
+
+    impl IntoCoord for BoardIdx {
+        fn into_coord(self, size: Size) -> Coord {
+            one_to_2dim(size, self)
+        }
+    }
+
+    pub trait IntoIdx {
+        fn into_idx(self, size: Size) -> BoardIdx;
+    }
+
+    impl IntoIdx for Coord {
+        fn into_idx(self, size: Size) -> BoardIdx {
+            two_to_1dim(size, self)
+        }
+    }
+
+    impl IntoIdx for BoardIdx {
+        fn into_idx(self, _size: Size) -> BoardIdx {
+            self
+        }
     }
 }

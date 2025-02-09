@@ -1,18 +1,20 @@
-use std::ops::BitOrAssign;
+use std::ops::{BitOrAssign, Index, IndexMut};
 
-use arrayvec::ArrayVec;
-
+use crate::pieces::goban::GroupIdx;
 use crate::pieces::stones::Color;
 use crate::pieces::BoardIdx;
-
+use arrayvec::ArrayVec;
+use nonmax::NonMaxU16;
 //pub type Liberties = BitArr![for 361, in usize];
 
-type Bucket = u32;
+type Bucket = u8;
 
 const SIZE: usize = 361 / Bucket::BITS as usize + 1;
 const BITS: usize = Bucket::BITS as usize;
 
 pub type Liberties = [Bucket; SIZE];
+
+pub const EMPTY_LIBERTIES:  Liberties = [0; SIZE];
 
 #[inline(always)]
 pub fn set<const VAL: bool>(index: usize, lib: &mut Liberties) {
@@ -36,6 +38,7 @@ fn any(lib: &Liberties) -> bool {
     lib.iter().any(|&x| x != 0)
 }
 
+#[inline(always)]
 fn count_ones(lib: &Liberties) -> usize {
     lib.iter().map(|x| x.count_ones() as usize).sum()
 }
@@ -61,29 +64,27 @@ fn get(index: usize, lib: &Liberties) -> bool {
     (lib[chunk] & (1 << bit_index)) != 0
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Copy)]
-pub struct Chain {
+#[derive(Clone, Debug, PartialEq, Eq, Copy, Hash)]
+pub struct Group {
     pub color: Color,
     pub origin: u16,
     pub last: u16,
     pub liberties: Liberties,
-    pub used: bool,
     pub num_stones: u16,
 }
 
-impl Chain {
+impl Group {
     #[inline]
     pub fn new(color: Color, stone: BoardIdx) -> Self {
-        Self::new_with_liberties(color, stone, Default::default())
+        Self::new_with_liberties(color, stone, EMPTY_LIBERTIES)
     }
 
     pub fn new_with_liberties(color: Color, stone: BoardIdx, liberties: Liberties) -> Self {
-        Chain {
+        Group {
             color,
             origin: stone as u16,
             last: stone as u16,
             liberties,
-            used: true,
             num_stones: 1,
         }
     }
@@ -163,5 +164,62 @@ impl Chain {
 
     pub fn liberties(&self) -> Vec<usize> {
         iter_ones(&self.liberties).collect()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct Groups(pub(crate) Vec<Option<Group>>);
+
+impl Index<NonMaxU16> for Groups {
+    type Output = Group;
+
+    fn index(&self, index: NonMaxU16) -> &Self::Output {
+        self.0[index.get() as usize].as_ref().unwrap()
+    }
+}
+
+impl Index<usize> for Groups {
+    type Output = Group;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.0[index].as_ref().unwrap()
+    }
+}
+
+impl IndexMut<BoardIdx> for Groups {
+    fn index_mut(&mut self, index: BoardIdx) -> &mut Self::Output {
+        self.0[index].as_mut().unwrap()
+    }
+}
+
+impl IndexMut<NonMaxU16> for Groups {
+    fn index_mut(&mut self, index: NonMaxU16) -> &mut Self::Output {
+        self.0[index.get() as usize].as_mut().unwrap()
+    }
+}
+
+impl Groups {
+    pub fn with_capacity(cap: usize) -> Self {
+        Self(Vec::with_capacity(cap))
+    }
+
+    pub fn put_free_spot(&mut self, group: Group) -> GroupIdx {
+        self.0.push(Some(group));
+        self.0.len() - 1
+    }
+
+    pub fn remove(&mut self, index: usize) {
+        self.0[index] = None;
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Group> {
+        self.0.iter().filter_map(|e| e.as_ref())
+    }
+
+    pub fn iter_with_index(&self) -> impl Iterator<Item = (GroupIdx, Group)> + '_ {
+        self.0
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, e)| e.map(|e| (idx, e)))
     }
 }

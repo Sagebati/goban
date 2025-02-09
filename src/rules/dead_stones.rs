@@ -1,19 +1,16 @@
+use rand::seq::SliceRandom;
 use std::collections::{HashMap, HashSet};
 
+use crate::pieces::goban::GroupIdx;
+use crate::pieces::stones::Stone;
+use crate::rules::game::Game;
+use crate::rules::{Color, IllegalRules, Move};
 use oxymcts::{
     uct_value, DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts,
     LazyMctsNode, Num, Playout,
 };
-use rand::prelude::{SliceRandom, ThreadRng};
-use rand::thread_rng;
-
-use ahash::AHashSet;
-
-use crate::pieces::goban::Goban;
-use crate::pieces::stones::Point;
-use crate::pieces::GoStringPtr;
-use crate::rules::game::Game;
-use crate::rules::{Color, IllegalRules, Move};
+use rand::prelude::ThreadRng;
+use rand::rng;
 
 impl GameTrait for Game {
     type Player = Color;
@@ -21,7 +18,7 @@ impl GameTrait for Game {
 
     fn legals_moves(&self) -> Vec<Self::Move> {
         let moves = self
-            .legals_by(self.rule.illegal_flag() | IllegalRules::FILLEYE)
+            .legals_by(self.rule.flag_illegal | IllegalRules::FILLEYE)
             .map(Move::from)
             .collect::<Vec<_>>();
         if moves.is_empty() {
@@ -60,12 +57,6 @@ impl GameTrait for Game {
 }
 
 struct Eval;
-
-#[derive(Clone)]
-struct EvalR {
-    reward: u32,
-    last_board: Goban,
-}
 
 type Reward = u64;
 
@@ -112,14 +103,14 @@ impl Playout<Game> for PL {
             {
                 if !state.check_eye(Stone {
                     coord: coordinates,
-                    color: state.turn().stone_color(),
+                    color: state.turn(),
                 }) {
                     return coordinates.into();
                 }
             }
             Move::Pass
         }
-        let mut thread_rng = thread_rng();
+        let mut thread_rng = rng();
         while !state.is_over() {
             state.play(fast_play_random(&state, &mut thread_rng));
         }
@@ -139,47 +130,42 @@ type Mcts<'a> = LazyMcts<
 >;
 
 impl Game {
-    fn get_floating_stones(&self) -> Vec<GoStringPtr> {
+    /// This return the groups that doesn't have two eyes
+    pub fn get_floating_stones(&self) -> Vec<GroupIdx> {
         let eyes = self.pseudo_legals().filter(|&p| {
-            self.check_eye(Point {
+            self.check_eye(Stone {
                 coord: p,
                 color: Color::Black,
-            }) || self.check_eye(Point {
+            }) || self.check_eye(Stone {
                 coord: p,
                 color: Color::White,
             })
         });
-        let mut strings_wth_eye = HashMap::new();
-        for eye in eyes {
-            let string_connected_eye = self.goban.get_neighbors_chains_idx(eye);
-            for x in string_connected_eye {
-                strings_wth_eye
-                    .entry(x)
+        let mut chains_wth_eye = HashMap::new();
+        for eye_coord in eyes {
+            let chain_connected_eye = self.goban.connected_groups_idx(eye_coord);
+            for chain_idx in chain_connected_eye {
+                chains_wth_eye
+                    .entry(chain_idx)
                     .and_modify(|v| *v += 1)
                     .or_insert(0);
             }
         }
-        let all_strings = self
-            .goban
-            .go_strings()
-            .iter()
-            .cloned()
-            .filter_map(|x| x)
-            .collect::<HashSet<_>>();
-        let string_with_2eyes = strings_wth_eye
+        let all_chains = self.goban.chains().enumerate();
+        let string_with_2eyes = chains_wth_eye
             .into_iter()
             .filter(|(_, v)| *v >= 2)
             .map(|x| x.0)
             .collect::<HashSet<_>>();
 
-        all_strings
-            .difference(&string_with_2eyes)
-            .cloned()
+        all_chains
+            .filter(|(idx, _chain)| string_with_2eyes.contains(idx))
+            .map(|(idx, _chain)| idx)
             .collect()
     }
 
-    pub fn dead_stones_wth_simulations(&self, nb_simulations: usize) -> AHashSet<GoStringPtr> {
-        let mut game = self.branch();
+    pub fn dead_stones_wth_simulations(&self, nb_simulations: usize) -> HashSet<GroupIdx> {
+        let mut game = self.clone();
         let floating_stones = self.get_floating_stones();
         while !game.is_over() {
             let m = {
@@ -191,25 +177,25 @@ impl Game {
             };
             game.play(m);
         }
-        let final_state_raw = game.goban().raw();
-        let mut dead_ren = AHashSet::new();
-        for ren_ptr in floating_stones {
-            for &stone in ren_ptr.stones() {
-                // If some stones of the string arent in the final goban then it's plausible that
+        let final_state_raw = game.goban();
+        let mut dead_chains = HashSet::new();
+        for &chain_idx in &floating_stones {
+            for stone in self.chain_stones(chain_idx) {
+                // If some stones of the string aren't in the final goban then it's plausible that
                 // this string is dead.
-                if final_state_raw[stone] != ren_ptr.color() {
-                    dead_ren.insert(ren_ptr);
+                if final_state_raw.get_color(stone.coord) != Some(stone.color) {
+                    dead_chains.insert(chain_idx);
                     break;
                 }
             }
         }
-        dead_ren
+        dead_chains
     }
 
     /// Return an array of dead stones, works better if the game if ended.
     /// the "dead" stones are only potentially dead.
     #[inline]
-    pub fn dead_stones(&self) -> AHashSet<GoStringPtr> {
+    pub fn dead_stones(&self) -> HashSet<GroupIdx> {
         self.dead_stones_wth_simulations(600)
     }
 }

@@ -7,9 +7,9 @@ use arrayvec::ArrayVec;
 pub(super) type Nat = u8;
 pub(super) type BoardIdx = usize;
 
-type Neighbors<T> = ArrayVec<T, 4>;
+pub(super) type Connections<T=BoardIdx> = ArrayVec<T, 4>;
 
-pub mod chain;
+pub mod group;
 pub mod goban;
 pub mod stones;
 pub mod territory;

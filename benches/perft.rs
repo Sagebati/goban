@@ -3,8 +3,7 @@ extern crate criterion;
 
 use criterion::Criterion;
 use rand::prelude::{SliceRandom, ThreadRng};
-use rand::thread_rng;
-
+use rand::rng;
 use goban::pieces::stones::Stone;
 use goban::rules::game::Game;
 use goban::rules::{GobanSizes, Move, Rule, CHINESE, JAPANESE};
@@ -48,7 +47,7 @@ pub fn fast_play_random(state: &Game, thread_rng: &mut ThreadRng) -> Move {
 }
 
 pub fn fast_play_game(rule: Rule) {
-    let mut thread_rng = thread_rng();
+    let mut thread_rng = rng();
     let mut g = Game::new(GobanSizes::Nineteen, rule);
     while !g.is_over() {
         g.play(fast_play_random(&g, &mut thread_rng));
@@ -57,7 +56,7 @@ pub fn fast_play_game(rule: Rule) {
 
 pub fn play_random(state: &Game) -> Move {
     let mut legals = state.legals().collect::<Vec<_>>();
-    legals.shuffle(&mut thread_rng());
+    legals.shuffle(&mut rng());
     for l in legals {
         if !state.check_eye(Stone {
             coord: l,

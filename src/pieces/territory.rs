@@ -7,26 +7,15 @@ use crate::pieces::stones::Point;
 use crate::pieces::stones::{Color, EMPTY};
 
 impl Goban {
-    #[inline]
-    pub fn get_dead_chains_by_color(&self, color: Color) -> impl Iterator<Item = usize> + '_ {
-        self.chains
-            .iter()
-            .enumerate()
-            .filter(move |(_, go_string)| {
-                go_string.used && go_string.color == color && go_string.is_dead()
-            })
-            .map(|(idx, _)| idx)
-    }
-
     ///
-    /// Get the chain of stones connected to a stone. with a Breadth First Search,
+    /// Get the group of stones connected to a stone. with a Breadth First Search,
     /// works for EMPTY stones too.
     ///
     /// Ex: Passing a stone 'a' it will return and HashSet [a,b,t,z] with the string where the
     /// stone is.
     /// It will return the stone alone if it's lonely
     ///
-    pub fn get_chain_from_point(&self, stone: Point) -> HashSet<Point> {
+    pub fn get_group_from_point(&self, stone: Point) -> HashSet<Point> {
         let mut explored = HashSet::<Point>::new();
         explored.insert(stone);
 
@@ -48,7 +37,7 @@ impl Goban {
     }
 
     ///
-    /// Pass a iterator of stones [x,a] and It will compute the string of each stone
+    /// Pass an iterator of stones [x,a] and It will compute the string of each stone
     /// stones.
     /// Use a breadth first search to deduce the groups of connected stones.
     /// Get stones connected. [[x,y,z],[a,e,r]] example of return.
@@ -62,15 +51,13 @@ impl Goban {
             let is_handled = groups_of_stones.iter().any(|set| set.contains(&s));
 
             if !is_handled {
-                groups_of_stones.push(self.get_chain_from_point(s))
+                groups_of_stones.push(self.get_group_from_point(s))
             }
         }
         groups_of_stones
     }
 
-    ///
-    /// Get two iterators of empty stones.
-    ///
+    /// Get two iterators of empty points. The first one is the territory of black the second is white territory
     pub fn get_territories(&self) -> (impl Iterator<Item = Point>, impl Iterator<Item = Point>) {
         let empty_chains =
             self.get_chains_from_stones(self.get_empty_coords().map(|coord| Point {
@@ -79,9 +66,9 @@ impl Goban {
             }));
         let mut white_territory = Vec::with_capacity(50);
         let mut black_territory = Vec::with_capacity(50);
-        'outer: for empty_chain in empty_chains {
+        'outer: for empty_group in empty_chains {
             let mut neutral = (false, false);
-            for empty_intersection in &empty_chain {
+            for empty_intersection in &empty_group {
                 for point in self.get_neighbors_points(empty_intersection.coord) {
                     if point.color == Some(Color::White) {
                         neutral.1 = true; // found white stone
@@ -96,9 +83,9 @@ impl Goban {
                 }
             }
             if neutral.0 && !neutral.1 {
-                black_territory.extend(empty_chain.into_iter())
+                black_territory.extend(empty_group.into_iter())
             } else if !neutral.0 && neutral.1 {
-                white_territory.extend(empty_chain.into_iter())
+                white_territory.extend(empty_group.into_iter())
             }
         }
         (black_territory.into_iter(), white_territory.into_iter())
