@@ -7,7 +7,9 @@ use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::Rule;
 use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
 use crate::rules::{PlayError, CHINESE};
-use hash_hasher::{HashBuildHasher, HashedSet};
+use hash_hasher::{HashBuildHasher, HashHasher};
+use indexmap::IndexSet;
+use std::hash::BuildHasherDefault;
 use std::ops::Deref;
 
 /// Most important struct of the library, it's the entry point.
@@ -22,10 +24,7 @@ pub struct Game {
     pub(super) turn: Color,
     pub(super) rule: Rule,
     pub(super) handicap: u32,
-    #[cfg(feature = "history")]
-    pub(super) history: Vec<Goban>,
-    pub(super) last_hash: u64,
-    pub(super) hashes: HashedSet<u64>,
+    pub(super) history: IndexSet<Goban, BuildHasherDefault<HashHasher>>,
     pub(super) ko_point: Option<Coord>,
 }
 
@@ -43,23 +42,18 @@ impl Game {
         let (h, w) = size.into();
         let goban = Goban::new(size.into());
         let length = h as usize * w as usize;
-        #[cfg(feature = "history")]
-        let history = Vec::with_capacity(length);
         let prisoners = (0, 0);
         let handicap = 0;
-        let hashes = HashedSet::with_capacity_and_hasher(length, HashBuildHasher::default());
+        let history = IndexSet::with_capacity_and_hasher(length, HashBuildHasher::default());
         Self {
             goban,
             turn: Color::Black,
             prisoners,
             passes: 0,
-            #[cfg(feature = "history")]
-            history,
             outcome: None,
             rule,
             handicap,
-            hashes,
-            last_hash: 0,
+            history,
             ko_point: None,
         }
     }
@@ -100,8 +94,8 @@ impl Game {
     }
 
     #[cfg(feature = "history")]
-    pub fn history(&self) -> &[Goban] {
-        &self.history
+    pub fn history(&self) -> impl Iterator<Item = &Goban> {
+        self.history.iter()
     }
 
     /// True when the game is over (two passes, or no more legals moves, Resign)
@@ -181,15 +175,13 @@ impl Game {
             Move::Pass => {
                 assert!(self.passes < 2, "This game is already paused");
                 self.turn = !self.turn;
+                self.ko_point = None;
                 self.passes += 1;
                 self
             }
             Move::Play(x, y) => {
-                let hash = self.goban.zobrist_hash();
-                self.last_hash = hash;
-                self.hashes.insert(hash);
-                #[cfg(feature = "history")]
-                self.history.push(self.goban.clone());
+                //let hash = self.goban.zobrist_hash();
+                self.history.insert(self.goban.clone());
                 let (dead_rens, added_ren) = self.goban.push_wth_feedback((x, y), self.turn);
                 self.ko_point = None;
                 self.remove_captured_stones(&dead_rens, added_ren);
@@ -204,10 +196,10 @@ impl Game {
             }
         }
     }
-
-    /// Plays a move then return the hash of the goban simulated,
+    
+    /// Plays a move then return the simulated goban,
     /// used in legals for fast move simulation in Super Ko situations.
-    pub fn play_for_verification(&self, (x, y): Coord) -> u64 {
+    pub fn play_for_verification(&self, (x, y): Coord) -> Goban {
         let mut test_goban = self.goban.clone();
         let (dead_go_strings, added_ren) = test_goban.push_wth_feedback((x, y), self.turn);
         test_goban.remove_captured_stones_aux(
@@ -215,7 +207,7 @@ impl Game {
             &dead_go_strings,
             added_ren,
         );
-        test_goban.zobrist_hash()
+        test_goban
     }
 
     /// Method to play but it verifies if the play is legal or not.
@@ -306,10 +298,10 @@ impl Game {
         };
         if self.goban.get_color(coord).is_some() {
             Some(PlayError::PointNotEmpty)
-        } else if illegal_rules.contains(IllegalRules::KO) && self.check_ko(stone) {
-            Some(PlayError::Ko)
         } else if illegal_rules.contains(IllegalRules::SUICIDE) && self.check_suicide(stone) {
             Some(PlayError::Suicide)
+        } else if illegal_rules.contains(IllegalRules::KO) && self.check_ko(stone) {
+            Some(PlayError::Ko)
         } else if illegal_rules.contains(IllegalRules::FILLEYE) && self.check_eye(stone) {
             Some(PlayError::FillEye)
         } else if illegal_rules.contains(IllegalRules::SUPERKO) && self.check_super_ko(stone) {
@@ -405,23 +397,32 @@ impl Game {
 
     /// Test if a play is ko.
     /// If the goban is in the configuration of two plays ago returns true
+    /// If the move captures more than 1 stone then it's not a ko.
     pub fn check_ko(&self, stone: Stone) -> bool {
         self.ko_point == Some(stone.coord)
+            && !self
+                .goban
+                .get_connected_groups(stone.coord)
+                .into_iter()
+                .any(|neighbor_go_string| {
+                    neighbor_go_string.is_atari() && neighbor_go_string.num_stones > 1
+                })
     }
 
     /// Rule of the super Ko, if any before configuration was already played then return true.
     pub fn check_super_ko(&self, stone: Stone) -> bool {
-        if self.last_hash == 0 || self.hashes.len() <= 2 || !self.will_capture(stone.coord) {
+        if self.history.len() <= 2 || !self.will_capture(stone.coord) {
             false
         } else {
-            self.check_ko(stone)
-                || self
-                    .hashes
-                    .contains(&self.play_for_verification(stone.coord))
+            let to_check = self.play_for_verification(stone.coord);
+            let is_it_ko = self.check_ko(stone);
+                is_it_ko ||  self
+                    .history
+                    .contains(&to_check)
         }
     }
 
-    /// Add a stone to the board an then test if the stone or stone group is dead.
+    /// Add a stone to the board and then test if the stone or stone group is dead.
     /// Returns true if the move is a suicide
     pub fn check_suicide(&self, stone: Stone) -> bool {
         if self.goban.has_liberties(stone.coord) {

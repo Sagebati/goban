@@ -1,10 +1,5 @@
 //! Module with the goban and his implementations.
 
-use std::fmt::Display;
-use std::fmt::Error;
-use std::fmt::Formatter;
-use std::hash::Hash;
-
 use crate::one2dim;
 use crate::pieces::group::{merge, set, Group, Groups, Liberties, EMPTY_LIBERTIES};
 use crate::pieces::stones::*;
@@ -16,6 +11,10 @@ use crate::pieces::zobrist::*;
 use crate::pieces::{Connections, Nat};
 use arrayvec::ArrayVec;
 use nonmax::NonMaxU16;
+use std::fmt::Display;
+use std::fmt::Error;
+use std::fmt::Formatter;
+use std::hash::{Hash, Hasher};
 
 pub type GroupIdx = usize;
 pub type BoardIdx = usize;
@@ -34,7 +33,7 @@ macro_rules! iter_stones {
 }
 
 /// Represents a goban. the stones are stored in ROW MAJOR (row, column)
-#[derive(Debug, Clone, PartialEq, Hash, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub struct Goban {
     chains: Groups,
     /// The board contains indexes of the chains
@@ -619,5 +618,29 @@ impl Display for Goban {
 impl Default for Goban {
     fn default() -> Self {
         Goban::new((19, 19))
+    }
+}
+
+impl Hash for Goban {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u64(self.zobrist_hash);
+    }
+}
+
+impl PartialEq for Goban {
+    fn eq(&self, other: &Self) -> bool {
+        if self.size != other.size || self.zobrist_hash != other.zobrist_hash {
+            return false;
+        }
+
+        for x in 0..self.size.0 {
+            for y in 0..self.size.1 {
+                if self.get_color((x, y)) != other.get_color((x, y)) {
+                    return false;
+                }
+            }
+        }
+
+        true
     }
 }

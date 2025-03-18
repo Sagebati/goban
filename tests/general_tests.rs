@@ -4,15 +4,16 @@ mod tests {
     use std::mem;
     use rand::prelude::IndexedRandom;
     use rand::rng;
-    use rand::seq::SliceRandom;
 
     use goban::pieces::goban::Goban;
     use goban::pieces::stones::{Color, Point, Stone, EMPTY};
     use goban::pieces::util::CircularGroupIter;
     use goban::pieces::zobrist::index_zobrist;
     use goban::rules::game::Game;
-    use goban::rules::{EndGame, GobanSizes, Move};
+    use goban::rules::{EndGame, GobanSizes, Move, PlayError};
     use goban::rules::{CHINESE, JAPANESE};
+    use goban::rules::Move::Play;
+    use goban::rules::PlayError::Suicide;
 
     #[test]
     fn sizes() {
@@ -625,11 +626,35 @@ mod tests {
             color: Color::Black,
         }));
         assert!(!game.legals().any(|m| m == (1, 2)));
-        assert!(game.try_play(Move::Play(1, 2)).is_err());
-        assert!(game.check_super_ko(Stone {
-            coord: (1, 2),
-            color: Color::Black,
-        }));
+        assert_eq!(game.try_play(Move::Play(1, 2)).err(), Some(PlayError::Ko));
+    }
+
+    #[test]
+    fn four_in_the_corner_super_ko() {
+        let sgf = "(;GM[1]FF[4]SZ[11]
+        GN[Just before the start position, White to move]
+        PC[http://senseis.xmp.net/?PositionalSuperkoExample]AP[GoWiki:2009]
+        DT[2009-04-22]
+        C[Diagram from http://senseis.xmp.net/?PositionalSuperkoExample
+        Just before the start position, White to move]
+        PL[W]
+
+        AB[dc][dd][de][df][cg][eg][dh][di][dj]
+        AW[ef][ff][gf][hf][gg][eh][fh][gh][hh]
+
+        ;W[ig]C[W1]MN[1]
+        ;
+        )";
+
+        let mut game = Game::from_sgf(&sgf).unwrap();
+        println!("{}", game.pretty_string());
+
+        for &m in &[Play(6, 5), Play(6,3)] {
+            game.play(m);
+            println!("{}", game.pretty_string());
+        }
+
+        assert!(game.check_super_ko(Stone{coord: (6,4), color: Color::Black}))
     }
 
     /// https://github.com/Sagebati/goban/issues/6
@@ -678,6 +703,58 @@ mod tests {
         assert!(!game.legals().any(|m| m == (0, 1)));
         assert!(game.try_play(Move::Play(0, 1)).is_err());
     }
+
+    #[test]
+    fn snap_back_test() {
+        let mut game = Game::new(GobanSizes::Nineteen, JAPANESE);
+        game.play(Move::Play(3, 3)); // B
+        game.play(Move::Play(2, 2)); // W
+        game.play(Move::Play(2, 4)); // B
+        game.play(Move::Play(2, 3)); // W
+        game.play(Move::Play(4, 2)); // B
+        game.play(Move::Play(3, 5)); // W
+        game.play(Move::Play(1, 3)); // B
+        game.play(Move::Play(3, 4)); // W
+        game.play(Move::Play(3, 1)); // B
+        game.play(Move::Play(4, 3)); // W
+        game.play(Move::Play(2, 1)); // B
+        game.play(Move::Play(5, 3)); // W
+        game.play(Move::Play(1, 2)); // B
+        game.play(Move::Play(3, 2)); // W
+
+        println!("{}", game.pretty_string());
+
+        game.try_play(Move::Play(3, 3)).expect("Play the move normally that captures 3 stones");
+    }
+
+
+    #[test]
+    pub fn ko_pass() {
+        let mut game = Game::new(GobanSizes::Nineteen, JAPANESE);
+        game.play(Move::Play(1, 1)); // B
+        game.play(Move::Play(0, 1)); // W
+        game.play(Move::Play(2, 0)); // B
+        game.play(Move::Play(1, 0)); // W
+        game.play(Move::Play(0, 0)); // B
+        game.play(Move::Pass); // W
+
+        println!("{}", game.pretty_string());
+
+        game.try_play(Move::Play(1, 0)).expect("You can pass and the take the ko");
+    }
+
+    #[test]
+    pub fn suicide_labeled_as_ko() {
+        let mut game = Game::new(GobanSizes::Nineteen, JAPANESE);
+        game.play(Move::Play(0, 1)); // B
+        game.play(Move::Play(0, 0)); // W
+        game.play(Move::Play(1, 0)); // B
+
+        println!("{}", game.pretty_string());
+
+        assert_eq!(game.try_play(Move::Play(0, 0)).err(), Some(Suicide));
+    }
+
 
     #[test]
     fn sgf_test() {

@@ -13,17 +13,17 @@
 //! let game = builder
 //!     .rule(JAPANESE)
 //!     .size((19,19))
-//!     .handicap(&[(3,3), (4,4)])
+//!     .put_handicap(&[(3,3), (4,4)])
 //!     .komi(10.)
 //!     .build();
 //! ```
 
 use crate::pieces::goban::Goban;
-use crate::pieces::stones::Color;
-use crate::pieces::stones::Color::White;
+use crate::pieces::stones::{Color, Stone};
 use crate::pieces::util::coord::{Coord, Size};
 use crate::rules::game::Game;
 use crate::rules::{EndGame, Move, Rule, CHINESE};
+use std::mem::take;
 
 pub struct GameBuilder {
     size: Size,
@@ -31,27 +31,15 @@ pub struct GameBuilder {
     white_player: String,
     rule: Rule,
     komi: Option<f32>,
+    handicap: Option<u32>,
     handicap_points: Vec<Coord>,
     turn: Option<Color>,
     moves: Vec<Move>,
     outcome: Option<EndGame>,
+    setup: Vec<Stone>,
 }
 
 impl GameBuilder {
-    fn new() -> GameBuilder {
-        GameBuilder {
-            size: (19, 19),
-            black_player: "".to_string(),
-            white_player: "".to_string(),
-            handicap_points: vec![],
-            rule: CHINESE,
-            komi: None,
-            turn: None,
-            moves: vec![],
-            outcome: None,
-        }
-    }
-
     pub fn moves(&mut self, moves: &[Move]) -> &mut Self {
         self.moves = moves.to_vec();
         self
@@ -63,8 +51,13 @@ impl GameBuilder {
     }
 
     /// Overrides the turn because it's a game with handicap. So White begins.
-    pub fn handicap(&mut self, points: &[Coord]) -> &mut Self {
+    pub fn put_handicap(&mut self, points: &[Coord]) -> &mut Self {
         self.handicap_points = points.to_vec();
+        self
+    }
+
+    pub fn handicap(&mut self, handicap: u32) -> &mut Self {
+        self.handicap = Some(handicap);
         self
     }
 
@@ -98,45 +91,79 @@ impl GameBuilder {
         self
     }
 
-    pub fn build(&mut self) -> Result<Game, String> {
+    pub fn add(&mut self, stone: Stone) -> &mut Self {
+        self.setup.push(stone);
+        self
+    }
+
+    fn build_inner(mut self) -> Result<Game, String> {
         let mut goban: Goban = Goban::new(self.size);
 
-        goban.push_many(&self.handicap_points, Color::Black);
+        let handicap = self.handicap.unwrap_or(self.handicap_points.len() as u32);
 
-        if !self.handicap_points.is_empty() && self.turn.is_none() {
-            self.turn = Some(White)
+        for point in self.handicap_points {
+            goban.push(point, Color::Black);
+        }
+
+        // Setup
+        for s in self.setup {
+            goban.push_stone(s);
         }
 
         if let Some(komi) = self.komi {
             self.rule.komi = komi;
         }
 
+        let turn = {
+            self.turn.unwrap_or(if handicap != 0 {
+                Color::White
+            } else {
+                Color::Black
+            })
+        };
+
         let mut g = Game {
-            goban,
+            goban: goban.clone(),
             passes: 0,
             prisoners: (0, 0),
             outcome: self.outcome,
-            turn: self.turn.unwrap_or(Color::Black),
+            turn,
             rule: self.rule,
-            handicap: self.handicap_points.len() as u32,
-            #[cfg(feature = "history")]
-            history: vec![],
-            hashes: Default::default(),
-            last_hash: 0,
+            handicap,
+            history: Default::default(),
             ko_point: None,
         };
 
+        // Moves to play
         for &m in &self.moves {
             g.play(m);
         }
 
         Ok(g)
     }
+
+    pub fn build(&mut self) -> Result<Game, String> {
+        let this = take(self);
+
+        this.build_inner()
+    }
 }
 
 impl Default for GameBuilder {
     fn default() -> Self {
-        Self::new()
+        GameBuilder {
+            size: (19, 19),
+            black_player: "".to_string(),
+            white_player: "".to_string(),
+            handicap_points: vec![],
+            rule: CHINESE,
+            komi: None,
+            turn: None,
+            moves: vec![],
+            outcome: None,
+            setup: vec![],
+            handicap: None,
+        }
     }
 }
 

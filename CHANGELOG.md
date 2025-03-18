@@ -1,6 +1,20 @@
 Changelog
 ==
 
+## 0.20.0
+
+### Breaking Changes
+
+- Removed the GameBuilder::new() use ::default()
+
+### Fixes
+
+- Now correctly handles SGF with player turn 
+- Sgf and the terminal representation where reversed now it's corrected
+- Suicide is no longer mislabeled as a ko
+- Correctly handling of Eq and Hash for Goban
+- Correctly handles super ko
+
 ## 0.19.0
 
 ### Fixes

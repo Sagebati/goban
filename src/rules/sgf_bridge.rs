@@ -1,7 +1,6 @@
 use sgf_parser::{Action, Outcome, RuleSet, SgfToken};
 
-use crate::pieces::stones::Color;
-use crate::pieces::util::coord::Coord;
+use crate::pieces::stones::{Color, Stone};
 use crate::pieces::Nat;
 use crate::rules::game::Game;
 use crate::rules::game_builder::GameBuilder;
@@ -18,7 +17,6 @@ impl Game {
         let mut game_builder: GameBuilder = Default::default();
         let mut first = true;
         let mut moves = vec![];
-        let mut handicap: Vec<Coord> = vec![];
 
         for node in game_tree.iter() {
             if first {
@@ -38,14 +36,42 @@ impl Game {
                         SgfToken::Add {
                             color,
                             coordinate: (x, y),
-                        } if *color == SgfColor::Black => {
-                            handicap.push(((*x - 1) as Nat, (*y - 1) as Nat));
+                        } => {
+                            game_builder.add(Stone {
+                                coord: ((*y - 1) as Nat, (*x - 1) as Nat),
+                                color: match color {
+                                    SgfColor::Black => Color::Black,
+                                    SgfColor::White => Color::White,
+                                },
+                            });
                         }
                         SgfToken::Rule(rule) => {
                             game_builder.rule(rule.clone().into());
                         }
+                        SgfToken::Handicap(handicap) => {
+                            game_builder.handicap(*handicap);
+                        }
+                        SgfToken::Game(go) => {
+                            assert_eq!(*go, sgf_parser::Game::Go);
+                        }
+
                         //TODO another options
                         _ => (),
+                    }
+                    for tokens in node.get_unknown_tokens() {
+                        if let SgfToken::Unknown((key, value)) = tokens {
+                            if key.as_str() == "PL" {
+                                match value.as_str() {
+                                    "B" => {
+                                        game_builder.turn(Color::Black);
+                                    }
+                                    "W" => {
+                                        game_builder.turn(Color::White);
+                                    }
+                                    _ => unreachable!(),
+                                }
+                            }
+                        }
                     }
                 }
                 first = false;
@@ -56,7 +82,6 @@ impl Game {
                 }
             }
         }
-        game_builder.handicap(&handicap);
         game_builder.moves(&moves);
         game_builder.build()
     }
