@@ -7,7 +7,6 @@ mod tests {
 
     use goban::pieces::goban::Goban;
     use goban::pieces::stones::{Color, Point, Stone, EMPTY};
-    use goban::pieces::util::CircularGroupIter;
     use goban::pieces::zobrist::index_zobrist;
     use goban::rules::game::Game;
     use goban::rules::{EndGame, GobanSizes, Move, PlayError};
@@ -803,20 +802,5 @@ mod tests {
         println!("{}", goban);
     }
 
-    #[test]
-    fn circular_ren_iter_test() {
-        let a = vec![0, 0, 4, 0, 6, 0, 2, 0, 8, 0, 0, 0];
-        let mut iter = CircularGroupIter::new(2, &a);
-        assert_eq!(2, iter.next().unwrap());
-        assert_eq!(4, iter.next().unwrap());
-        assert_eq!(6, iter.next().unwrap());
-        assert_eq!(None, iter.next());
-
-        let iter = CircularGroupIter::new(2, &a);
-        assert_eq!(6, iter.last().unwrap());
-
-        let mut iter = CircularGroupIter::new(8, &a);
-        assert_eq!(8, iter.next().unwrap());
-        assert_eq!(None, iter.next());
-    }
+    
 }

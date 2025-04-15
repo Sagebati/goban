@@ -5,6 +5,7 @@ use crate::pieces::stones::Color;
 use crate::pieces::BoardIdx;
 use arrayvec::ArrayVec;
 use nonmax::NonMaxU16;
+use std::iter::FusedIterator;
 //pub type Liberties = BitArr![for 361, in usize];
 
 type Bucket = u8;
@@ -14,7 +15,7 @@ const BITS: usize = Bucket::BITS as usize;
 
 pub type Liberties = [Bucket; SIZE];
 
-pub const EMPTY_LIBERTIES:  Liberties = [0; SIZE];
+pub const EMPTY_LIBERTIES: Liberties = [0; SIZE];
 
 #[inline(always)]
 pub fn set<const VAL: bool>(index: usize, lib: &mut Liberties) {
@@ -165,6 +166,15 @@ impl Group {
     pub fn liberties(&self) -> Vec<usize> {
         iter_ones(&self.liberties).collect()
     }
+
+    pub fn iter<'a>(&self, next_stone: &'a [u16]) -> CircularGroupIter<'a> {
+        CircularGroupIter {
+            next_stone,
+            origin: self.origin as usize,
+            next: Some(self.origin as usize),
+            num_stones: self.num_stones,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -221,5 +231,76 @@ impl Groups {
             .iter()
             .enumerate()
             .filter_map(|(idx, e)| e.map(|e| (idx, e)))
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct CircularGroupIter<'a> {
+    next_stone: &'a [u16],
+    origin: usize,
+    next: Option<usize>,
+    num_stones: u16,
+}
+
+impl Iterator for CircularGroupIter<'_> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let origin = self.origin;
+        let ret = self.next;
+        self.next = self
+            .next
+            .map(|stone_idx| self.next_stone[stone_idx] as usize)
+            .filter(move |&o| o != origin);
+
+        #[cfg(debug_assertions)]
+        if ret.is_some() && self.next == ret {
+            panic!("infinite loop detected")
+        }
+
+        ret
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.num_stones as usize, Some(self.num_stones as usize))
+    }
+}
+
+impl ExactSizeIterator for CircularGroupIter<'_> {}
+
+impl FusedIterator for CircularGroupIter<'_> {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn circular_ren_iter_test() {
+        let a = vec![0, 0, 4, 0, 6, 0, 2, 0, 8, 0, 0, 0];
+        let mut iter = CircularGroupIter {
+            next_stone: &a,
+            origin: 2,
+            next: Some(2),
+            num_stones: 3,
+        };
+        let iter2 = iter.clone();
+
+        assert_eq!(2, iter.next().unwrap());
+        assert_eq!(4, iter.next().unwrap());
+        assert_eq!(6, iter.next().unwrap());
+        assert_eq!(None, iter.next());
+        assert_eq!(None, iter.next());
+
+        assert_eq!(6, iter2.last().unwrap());
+
+        let mut iter = CircularGroupIter {
+            next_stone: &a,
+            origin: 8,
+            next: Some(8),
+            num_stones: 1,
+        };
+        assert_eq!(8, iter.next().unwrap());
+        assert_eq!(None, iter.next());
+        assert_eq!(None, iter.next());
     }
 }

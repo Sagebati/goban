@@ -1,12 +1,12 @@
 //! Module with the goban and his implementations.
 
 use crate::one2dim;
+use crate::pieces::group::CircularGroupIter;
 use crate::pieces::group::{merge, set, Group, Groups, Liberties, EMPTY_LIBERTIES};
 use crate::pieces::stones::*;
 use crate::pieces::util::coord::{
     one_to_2dim, two_to_1dim, valid_coords, Coord, IntoCoord, IntoIdx, Size,
 };
-use crate::pieces::util::CircularGroupIter;
 use crate::pieces::zobrist::*;
 use crate::pieces::{Connections, Nat};
 use arrayvec::ArrayVec;
@@ -22,15 +22,6 @@ pub type BoardIdx = usize;
 const BOARD_MAX_SIZE: (Nat, Nat) = (19, 19);
 const BOARD_MAX_LENGTH: usize = BOARD_MAX_SIZE.0 as usize * BOARD_MAX_SIZE.1 as usize;
 const MAX_CHAINS: usize = 4 * BOARD_MAX_LENGTH / 5;
-
-macro_rules! iter_stones {
-    ($goban: expr, $group_idx: expr) => {
-        CircularGroupIter::new(
-            $goban.chains[$group_idx as usize].origin as usize,
-            &$goban.next_stone,
-        )
-    };
-}
 
 /// Represents a goban. the stones are stored in ROW MAJOR (row, column)
 #[derive(Debug, Clone, Eq)]
@@ -94,9 +85,9 @@ impl Goban {
 
     pub fn chain_stones(&self, idx: impl IntoIdx) -> impl Iterator<Item = Stone> + '_ {
         let idx = idx.into_idx(self.size);
-
-        let color = self.chains[idx].color;
-        iter_stones!(self, idx).map(move |e| Stone {
+        let chain = self.chains[idx];
+        let color = chain.color;
+        chain.iter(&self.next_stone).map(move |e| Stone {
             coord: one_to_2dim(self.size, e),
             color,
         })
@@ -462,8 +453,9 @@ impl Goban {
     /// Remove a string from the game, it adds liberties to all
     /// adjacent chains that aren't the same color.
     pub fn remove_chain(&mut self, ren_to_remove_idx: GroupIdx) {
-        let color_of_the_string = self.chains[ren_to_remove_idx].color;
-        for point_idx in iter_stones!(self, ren_to_remove_idx as u16) {
+        let chain = self.chains[ren_to_remove_idx];
+        let color_of_the_string = chain.color;
+        for point_idx in chain.iter(&self.next_stone) {
             let mut neighbors_chains = self.get_connected_groups_idx(point_idx);
             // We remove our group from the neighbors
             neighbors_chains.retain(|x| *x != ren_to_remove_idx);
@@ -480,10 +472,13 @@ impl Goban {
     /// Updates the group idx of the board when merging groups
     fn update_chain_indexes_in_board(&mut self, chain_idx: GroupIdx) {
         debug_assert_eq!(
-            iter_stones!(self, chain_idx).last().unwrap() as u16,
+            self.chains[chain_idx]
+                .iter(&self.next_stone)
+                .last()
+                .unwrap() as u16,
             self.chains[chain_idx].last
         );
-        for point in iter_stones!(self, chain_idx) {
+        for point in self.chains[chain_idx].iter(&self.next_stone) {
             self.board[point] = Some(NonMaxU16::new(chain_idx as u16).unwrap());
         }
     }
@@ -528,7 +523,7 @@ impl Goban {
         }
         group.num_stones += 1;
         debug_assert_eq!(
-            iter_stones!(self, chain_idx).last().unwrap() as u16,
+            self.chains[chain_idx].iter(&self.next_stone).last().unwrap() as u16,
             self.chains[chain_idx].last
         );
     }
@@ -586,18 +581,24 @@ impl Goban {
     #[cfg(debug_assertions)]
     fn check_integrity_ren(&self, ren_idx: GroupIdx) {
         assert_eq!(
-            iter_stones!(self, ren_idx).next().unwrap() as u16,
+            self.iter_stones(ren_idx).next().unwrap() as u16,
             self.chains[ren_idx].origin,
             "The origin doesn't match"
         );
         assert_eq!(
-            iter_stones!(self, ren_idx).last().unwrap() as u16,
+            self.iter_stones(ren_idx).last().unwrap() as u16,
             self.chains[ren_idx].last,
             "The last doesn't match"
         );
-        if iter_stones!(self, ren_idx).count() as u16 != self.chains[ren_idx].num_stones {
+        
+        if self.iter_stones(ren_idx).count() as u16 != self.chains[ren_idx].num_stones {
             panic!("The number of stones don't match")
         }
+    }
+
+    #[inline(always)]
+    fn iter_stones(&self, chain_idx: usize) -> CircularGroupIter<'_> {
+        self.chains[chain_idx].iter(&self.next_stone)
     }
 
     #[allow(dead_code)]
