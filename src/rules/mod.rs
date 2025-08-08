@@ -6,7 +6,7 @@ use crate::pieces::Nat;
 use crate::pieces::stones::Color;
 use crate::pieces::util::coord::{Coord, Size};
 
-#[cfg(deadstones)]
+#[cfg(feature = "deadstones")]
 mod dead_stones;
 pub mod game;
 pub mod game_builder;
