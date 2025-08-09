@@ -4,12 +4,13 @@ use crate::pieces::util::coord::Coord;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
+use std::mem;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
 #[repr(u8)]
 pub enum Color {
-    White = 2,
     Black = 1,
+    White = 2,
 }
 
 pub type MaybeColor = Option<Color>;
@@ -84,5 +85,21 @@ impl From<(Coord, MaybeColor)> for Point {
 impl<T> From<Point<T>> for Coord {
     fn from(value: Point<T>) -> Self {
         value.coord
+    }
+}
+
+const _: () = check_sizes();
+
+const fn check_sizes() {
+    if size_of::<Point>() != 3 {
+        panic!("Point size is not 3");
+    }
+
+    if size_of::<Stone>() != 3 {
+        panic!("Stone size is not 3");
+    }
+
+    if size_of::<Option<Color>>() != 1 {
+        panic!("Option<Color> size is not 1");
     }
 }

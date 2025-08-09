@@ -1,42 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-    use std::mem;
     use rand::prelude::IndexedRandom;
     use rand::rng;
 
     use goban::pieces::goban::Goban;
-    use goban::pieces::stones::{Color, Point, Stone, EMPTY};
-    use goban::pieces::zobrist::index_zobrist;
+    use goban::pieces::stones::{Color, Stone, EMPTY};
     use goban::rules::game::Game;
-    use goban::rules::{EndGame, GobanSizes, Move, PlayError};
-    use goban::rules::{CHINESE, JAPANESE};
     use goban::rules::Move::Play;
     use goban::rules::PlayError::Suicide;
-
-    #[test]
-    fn sizes() {
-        assert_eq!(mem::size_of::<Point>(), 3);
-        assert_eq!(mem::size_of::<Stone>(), 3);
-        assert_eq!(mem::size_of::<Option<Color>>(), 1);
-    }
-
-    #[test]
-    fn goban() {
-        let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push((1, 2), Color::White);
-        println!("{}", g.pretty_string());
-    }
-
-    #[test]
-    fn goban_new_array() {
-        let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push((1, 2), Color::White);
-        g.push((1, 3), Color::Black);
-        let tab = g.to_vec();
-        let g2: Goban = tab.as_slice().into();
-        assert_eq!(g, g2)
-    }
+    use goban::rules::{EndGame, GobanSizes, Move, PlayError};
+    use goban::rules::{CHINESE, JAPANESE};
 
     #[test]
     fn passes() {
@@ -46,26 +19,6 @@ mod tests {
         g.play(Move::Play(4, 3));
         let goban: &Goban = g.goban();
         assert_eq!(goban.get_color((4, 3)), Some(Color::Black));
-    }
-
-    #[test]
-    fn get_all_stones() {
-        let mut g = Goban::new(GobanSizes::Nineteen.into());
-        g.push((1, 2), Color::White);
-        g.push((0, 0), Color::Black);
-
-        let expected = vec![
-            Stone {
-                coord: (0, 0),
-                color: Color::Black,
-            },
-            Stone {
-                coord: (1, 2),
-                color: Color::White,
-            },
-        ];
-        let vec: Vec<_> = g.get_stones().collect();
-        assert_eq!(expected, vec)
     }
 
     #[test]
@@ -466,31 +419,6 @@ mod tests {
     }
 
     #[test]
-    fn atari() {
-        let mut goban = Goban::new((9, 9));
-        let s = Stone {
-            coord: (4, 4),
-            color: Color::Black,
-        };
-        goban.push_stone(s);
-        println!("{}", goban.pretty_string());
-        let cl = goban.clone();
-        let x = cl.get_liberties(s.coord);
-
-        x.for_each(|coord| {
-            println!("{coord:?}");
-            goban.push_stone(Stone {
-                coord,
-                color: Color::White,
-            });
-        });
-
-        println!("{}", goban.pretty_string());
-
-        assert_eq!(goban.get_liberties(s.coord).count(), 0);
-    }
-
-    #[test]
     fn atari_2() {
         let mut g = Game::new(GobanSizes::Nine, CHINESE);
         g.play(Move::Play(1, 0)); // B
@@ -592,18 +520,6 @@ mod tests {
     }
 
     #[test]
-    fn zobrist_test() {
-        let mut set = HashSet::new();
-        for i in 0..(19 * 19) {
-            for c in [Color::Black, Color::White] {
-                let x = index_zobrist(i, c);
-                assert!(!set.contains(&x));
-                set.insert(x);
-            }
-        }
-    }
-
-    #[test]
     fn ko_test() {
         let mut game: Game = Default::default();
         for (x, y) in [
@@ -648,12 +564,15 @@ mod tests {
         let mut game = Game::from_sgf(&sgf).unwrap();
         println!("{}", game.pretty_string());
 
-        for &m in &[Play(6, 5), Play(6,3)] {
+        for &m in &[Play(6, 5), Play(6, 3)] {
             game.play(m);
             println!("{}", game.pretty_string());
         }
 
-        assert!(game.check_super_ko(Stone{coord: (6,4), color: Color::Black}))
+        assert!(game.check_super_ko(Stone {
+            coord: (6, 4),
+            color: Color::Black
+        }))
     }
 
     /// https://github.com/Sagebati/goban/issues/6
@@ -723,9 +642,9 @@ mod tests {
 
         println!("{}", game.pretty_string());
 
-        game.try_play(Move::Play(3, 3)).expect("Play the move normally that captures 3 stones");
+        game.try_play(Move::Play(3, 3))
+            .expect("Play the move normally that captures 3 stones");
     }
-
 
     #[test]
     pub fn ko_pass() {
@@ -739,7 +658,8 @@ mod tests {
 
         println!("{}", game.pretty_string());
 
-        game.try_play(Move::Play(1, 0)).expect("You can pass and the take the ko");
+        game.try_play(Move::Play(1, 0))
+            .expect("You can pass and the take the ko");
     }
 
     #[test]
@@ -753,7 +673,6 @@ mod tests {
 
         assert_eq!(game.try_play(Move::Play(0, 0)).err(), Some(Suicide));
     }
-
 
     #[test]
     fn sgf_test() {
@@ -801,6 +720,4 @@ mod tests {
         }
         println!("{}", goban);
     }
-
-    
 }

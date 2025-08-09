@@ -732,3 +732,23 @@ pub const fn index_zobrist(index: usize, color: Color) -> u64 {
     let page_idx = color as usize - 1;
     ZOBRIST[index + (BOARD_SIZE * page_idx)]
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::index_zobrist;
+    use crate::pieces::stones::Color;
+    use std::collections::HashSet;
+
+    #[test]
+    fn zobrist_test() {
+        let mut set = HashSet::new();
+        for i in 0..(19 * 19) {
+            for c in [Color::Black, Color::White] {
+                let x = index_zobrist(i, c);
+                assert!(!set.contains(&x));
+                set.insert(x);
+            }
+        }
+    }
+}

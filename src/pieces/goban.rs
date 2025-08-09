@@ -646,3 +646,60 @@ impl PartialEq for Goban {
         true
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Goban;
+    use crate::pieces::stones::{Color, Stone};
+    use crate::rules::GobanSizes;
+
+    #[test]
+    fn goban() {
+        let mut g = Goban::new(GobanSizes::Nineteen.into());
+        g.push((1, 2), Color::White);
+        println!("{}", g.pretty_string());
+    }
+
+    #[test]
+    fn goban_new_array() {
+        let mut g = Goban::new(GobanSizes::Nineteen.into());
+        g.push((1, 2), Color::White);
+        g.push((1, 3), Color::Black);
+        let tab = g.to_vec();
+        let g2: Goban = tab.as_slice().into();
+        assert_eq!(g, g2)
+    }
+
+    #[test]
+    fn get_all_stones() {
+        let mut g = Goban::new(GobanSizes::Nineteen.into());
+        g.push((1, 2), Color::White);
+        g.push((0, 0), Color::Black);
+
+        let expected = vec![
+            Stone { coord: (0, 0), color: Color::Black },
+            Stone { coord: (1, 2), color: Color::White },
+        ];
+        let vec: Vec<_> = g.get_stones().collect();
+        assert_eq!(expected, vec)
+    }
+
+    #[test]
+    fn atari() {
+        let mut goban = Goban::new((9, 9));
+        let s = Stone { coord: (4, 4), color: Color::Black };
+        goban.push_stone(s);
+        println!("{}", goban.pretty_string());
+        let cl = goban.clone();
+        let x = cl.get_liberties(s.coord);
+
+        x.for_each(|coord| {
+            println!("{coord:?}");
+            goban.push_stone(Stone { coord, color: Color::White });
+        });
+
+        println!("{}", goban.pretty_string());
+
+        assert_eq!(goban.get_liberties(s.coord).count(), 0);
+    }
+}
