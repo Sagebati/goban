@@ -4,7 +4,6 @@ use crate::pieces::util::coord::Coord;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
-use std::mem;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
 #[repr(u8)]

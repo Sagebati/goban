@@ -12,20 +12,24 @@ use indexmap::IndexSet;
 use std::hash::BuildHasherDefault;
 use std::ops::Deref;
 
+#[cfg(feature = "deadstones")]
+pub mod dead_stones;
+pub mod game_builder;
+
 /// Entrypoint struct of the library.
 /// It represents a Game of Go.
 #[derive(Clone, Debug)]
 pub struct Game {
-    pub(super) goban: Goban,
-    pub(super) passes: u32,
-    pub(super) prisoners: (u32, u32),
+    goban: Goban,
+    passes: u32,
+    prisoners: (u32, u32),
     /// None if the game is not finished,
-    pub(super) outcome: Option<EndGame>,
-    pub(super) turn: Color,
-    pub(super) rule: Rule,
-    pub(super) handicap: u32,
-    pub(super) history: IndexSet<Goban, BuildHasherDefault<HashHasher>>,
-    pub(super) ko_point: Option<Coord>,
+    outcome: Option<EndGame>,
+    turn: Color,
+    rule: Rule,
+    handicap: u32,
+    history: IndexSet<Goban, BuildHasherDefault<HashHasher>>,
+    ko_point: Option<Coord>,
 }
 
 impl Deref for Game {
@@ -350,7 +354,7 @@ impl Game {
     /// ```
     /// nor handle double-headed dragons.
     /// This function is only used for performance checking in the rules,
-    /// and not for checking is a point is really an eye !
+    /// and not for checking is a point is really an eye!
     pub fn check_eye(&self, Stone { coord, color }: Stone) -> bool {
         // if the intersection is not empty
         if self.goban.get_color(coord).is_some() {
