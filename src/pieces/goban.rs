@@ -118,7 +118,7 @@ impl Goban {
         mat
     }
 
-    /// Get number of stones on the goban.
+    /// Get the number of stones on the goban.
     /// (number of black stones, number of white stones)
     pub fn number_of_stones(&self) -> (u32, u32) {
         let mut black_stones = 0;
@@ -148,7 +148,7 @@ impl Goban {
     /// point: the point where the stone will be placed
     /// color: the color of the stone must be != empty
     /// # Returns
-    /// A tuple with (the group without liberties, the group where the point was added)
+    /// A tuple with (groups without liberties, the group where the point was added)
     pub(crate) fn push_wth_feedback(
         &mut self,
         point: Coord,
@@ -156,8 +156,8 @@ impl Goban {
     ) -> (ArrayVec<usize, 4>, GroupIdx) {
         let pushed_stone_idx = two_to_1dim(self.size, point);
 
-        let mut adjacent_same_color_str_set = ArrayVec::<BoardIdx, 4>::new();
-        let mut adjacent_opposite_color_str_set = ArrayVec::<BoardIdx, 4>::new();
+        let mut adjacent_same_color_groups = ArrayVec::<BoardIdx, 4>::new();
+        let mut adjacent_opposite_color_groups = ArrayVec::<BoardIdx, 4>::new();
         let mut liberties = ArrayVec::<BoardIdx, 4>::new();
 
         // For each neighbor we fill the right vector
@@ -166,11 +166,11 @@ impl Goban {
                 Some(adj_ren_index) => {
                     let adj_ren_index = adj_ren_index.get() as usize;
                     if self.chains[adj_ren_index].color == color {
-                        if !adjacent_same_color_str_set.contains(&adj_ren_index) {
-                            adjacent_same_color_str_set.push(adj_ren_index);
+                        if !adjacent_same_color_groups.contains(&adj_ren_index) {
+                            adjacent_same_color_groups.push(adj_ren_index);
                         }
-                    } else if !adjacent_opposite_color_str_set.contains(&adj_ren_index) {
-                        adjacent_opposite_color_str_set.push(adj_ren_index);
+                    } else if !adjacent_opposite_color_groups.contains(&adj_ren_index) {
+                        adjacent_opposite_color_groups.push(adj_ren_index);
                     }
                 }
                 None => {
@@ -179,21 +179,22 @@ impl Goban {
             }
         }
 
-        let mut dead_ren = ArrayVec::<BoardIdx, 4>::new();
+        let mut dead_groups = ArrayVec::<BoardIdx, 4>::new();
         // for every string of opposite color remove a liberty and update the string.
-        for ren_idx in adjacent_opposite_color_str_set {
+        for ren_idx in adjacent_opposite_color_groups {
             let group = &mut self.chains[ren_idx];
             group.remove_liberty(pushed_stone_idx);
             if group.is_dead() {
-                dead_ren.push(ren_idx);
+                dead_groups.push(ren_idx);
             }
         }
 
-        let number_of_neighbors_strings = adjacent_same_color_str_set.len();
+        let number_of_neighbors_strings = adjacent_same_color_groups.len();
+
         let updated_ren_index = match number_of_neighbors_strings {
             0 => self.create_chain(pushed_stone_idx, color, &liberties),
             1 => {
-                let only_ren_idx = adjacent_same_color_str_set[0];
+                let only_ren_idx = adjacent_same_color_groups[0];
 
                 self.chains[only_ren_idx]
                     .remove_liberty(pushed_stone_idx)
@@ -204,7 +205,7 @@ impl Goban {
             }
             _ => {
                 let mut to_merge = self.create_chain(pushed_stone_idx, color, &liberties);
-                for adj_ren in adjacent_same_color_str_set {
+                for adj_ren in adjacent_same_color_groups {
                     if self.chains[adj_ren].number_of_liberties()
                         < self.chains[to_merge].number_of_liberties()
                     {
@@ -221,19 +222,19 @@ impl Goban {
         self.zobrist_hash ^= index_zobrist(pushed_stone_idx, color);
         #[cfg(debug_assertions)]
         self.check_integrity_all();
-        (dead_ren, updated_ren_index)
+        (dead_groups, updated_ren_index)
     }
 
     pub(crate) fn remove_captured_stones_aux(
         &mut self,
         suicide_allowed: bool,
-        dead_rens_indices: &[GroupIdx],
-        added_chain: GroupIdx,
+        dead_groups_indices: &[GroupIdx],
+        added_group: GroupIdx,
     ) -> ((u32, u32), Option<Coord>) {
-        let only_one_ren_removed = dead_rens_indices.len() == 1;
+        let only_one_ren_removed = dead_groups_indices.len() == 1;
         let mut stones_removed = (0, 0);
         let mut ko_point = None;
-        for &dead_ren_idx in dead_rens_indices {
+        for &dead_ren_idx in dead_groups_indices {
             let dead_chain = &self.chains[dead_ren_idx];
             // If only one stone and one group is removed then it becomes a ko point
             if dead_chain.num_stones == 1 && only_one_ren_removed {
@@ -250,7 +251,7 @@ impl Goban {
             self.remove_chain(dead_ren_idx);
         }
 
-        let maybe_dead_chain = &self.chains[added_chain];
+        let maybe_dead_chain = &self.chains[added_group];
         if suicide_allowed && maybe_dead_chain.is_dead() {
             match maybe_dead_chain.color {
                 Color::White => {
@@ -261,12 +262,12 @@ impl Goban {
                 }
             }
             ko_point = None;
-            self.remove_chain(added_chain);
+            self.remove_chain(added_group);
         }
         (stones_removed, ko_point)
     }
 
-    /// Put a stones in the goban.
+    /// Put a stone in the goban.
     /// default (line, column)
     /// the (0,0) point is in the top left.
     ///
@@ -451,7 +452,7 @@ impl Goban {
     }
 
     /// Remove a string from the game, it adds liberties to all
-    /// adjacent chains that aren't the same color.
+    /// adjacent chains that are different color.
     pub fn remove_chain(&mut self, ren_to_remove_idx: GroupIdx) {
         let chain = self.chains[ren_to_remove_idx];
         let color_of_the_string = chain.color;
@@ -509,8 +510,8 @@ impl Goban {
         chain_idx
     }
 
-    fn add_stone_to_chain(&mut self, chain_idx: GroupIdx, stone: BoardIdx) {
-        let group = &mut self.chains[chain_idx];
+    fn add_stone_to_chain(&mut self, group_idx: GroupIdx, stone: BoardIdx) {
+        let group = &mut self.chains[group_idx];
         if stone < group.origin as usize {
             // replace origin
             self.next_stone[stone] = group.origin;
@@ -523,89 +524,89 @@ impl Goban {
         }
         group.num_stones += 1;
         debug_assert_eq!(
-            self.chains[chain_idx].iter(&self.next_stone).last().unwrap() as u16,
-            self.chains[chain_idx].last
+            self.chains[group_idx].iter(&self.next_stone).last().unwrap() as u16,
+            self.chains[group_idx].last
         );
     }
 
-    fn merge_strings(&mut self, chain1_idx: GroupIdx, chain2_idx: GroupIdx) {
+    fn merge_strings(&mut self, group1_idx: GroupIdx, group2_idx: GroupIdx) {
         assert_eq!(
-            self.chains[chain1_idx].color, self.chains[chain2_idx].color,
+            self.chains[group1_idx].color, self.chains[group2_idx].color,
             "Cannot merge two strings of different color"
         );
-        assert_ne!(chain1_idx, chain2_idx, "merging the same string");
+        assert_ne!(group1_idx, group2_idx, "merging the same string");
 
         // We select the biggest group first to optimize the merging
-        let (chain1, chain2) = if chain1_idx < chain2_idx {
-            let (s1, s2) = self.chains.0.split_at_mut(chain2_idx);
-            (&mut s1[chain1_idx], s2.first_mut().unwrap())
+        let (group1, group2) = if group1_idx < group2_idx {
+            let (s1, s2) = self.chains.0.split_at_mut(group2_idx);
+            (&mut s1[group1_idx], s2.first_mut().unwrap())
         } else {
             // ren2_idx > ren1_idx
-            let (contains_chain2, contains_ren1) = self.chains.0.split_at_mut(chain1_idx);
+            let (contains_chain2, contains_ren1) = self.chains.0.split_at_mut(group1_idx);
             (
                 contains_ren1.first_mut().unwrap(),
-                &mut contains_chain2[chain2_idx],
+                &mut contains_chain2[group2_idx],
             )
         };
 
-        let chain1 = chain1.as_mut().unwrap();
-        let chain2 = chain2.as_ref().unwrap();
+        let group1 = group1.as_mut().unwrap();
+        let group2 = group2.as_ref().unwrap();
 
         // We merge liberties
-        merge(&mut chain1.liberties, &chain2.liberties);
+        merge(&mut group1.liberties, &group2.liberties);
 
         // We update chain1 origin and last
-        let chain1_last = chain1.last;
-        let chain2_last = chain2.last;
+        let chain1_last = group1.last;
+        let chain2_last = group2.last;
 
-        let chain1_origin = chain1.origin;
-        let chain2_origin = chain2.origin;
+        let chain1_origin = group1.origin;
+        let chain2_origin = group2.origin;
 
         // We need to merge two so we take the least origin, or we make group 1 point to group 2
         if chain1_origin > chain2_origin {
-            chain1.origin = chain2_origin;
+            group1.origin = chain2_origin;
         } else {
-            chain1.last = chain2_last;
+            group1.last = chain2_last;
         }
 
         self.next_stone
             .swap(chain1_last as usize, chain2_last as usize);
 
-        chain1.num_stones += chain2.num_stones;
+        group1.num_stones += group2.num_stones;
 
-        self.update_chain_indexes_in_board(chain1_idx);
-        self.chains.remove(chain2_idx);
+        self.update_chain_indexes_in_board(group1_idx);
+        self.chains.remove(group2_idx);
     }
 
     #[allow(dead_code)]
     #[cfg(debug_assertions)]
-    fn check_integrity_ren(&self, ren_idx: GroupIdx) {
+    fn check_integrity_group(&self, group_idx: GroupIdx) {
         assert_eq!(
-            self.iter_stones(ren_idx).next().unwrap() as u16,
-            self.chains[ren_idx].origin,
+            self.iter_stones(group_idx).next().unwrap() as u16,
+            self.chains[group_idx].origin,
             "The origin doesn't match"
         );
         assert_eq!(
-            self.iter_stones(ren_idx).last().unwrap() as u16,
-            self.chains[ren_idx].last,
+            self.iter_stones(group_idx).last().unwrap() as u16,
+            self.chains[group_idx].last,
             "The last doesn't match"
         );
         
-        if self.iter_stones(ren_idx).count() as u16 != self.chains[ren_idx].num_stones {
+        if self.iter_stones(group_idx).count() as u16 != self.chains[group_idx].num_stones {
             panic!("The number of stones don't match")
         }
     }
 
     #[inline(always)]
-    fn iter_stones(&self, chain_idx: usize) -> CircularGroupIter<'_> {
-        self.chains[chain_idx].iter(&self.next_stone)
+    fn iter_stones(&self, group_idx: usize) -> CircularGroupIter<'_> {
+        self.chains[group_idx].iter(&self.next_stone)
     }
 
     #[allow(dead_code)]
     #[cfg(debug_assertions)]
     fn check_integrity_all(&self) {
         for (ren_idx, _) in self.chains.iter_with_index() {
-            self.check_integrity_ren(ren_idx);
+            self.check_integrity_group(ren_idx);
         }
     }
 }

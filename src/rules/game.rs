@@ -12,7 +12,7 @@ use indexmap::IndexSet;
 use std::hash::BuildHasherDefault;
 use std::ops::Deref;
 
-/// Most important struct of the library, it's the entry point.
+/// Entrypoint struct of the library.
 /// It represents a Game of Go.
 #[derive(Clone, Debug)]
 pub struct Game {
@@ -196,7 +196,7 @@ impl Game {
             }
         }
     }
-    
+
     /// Plays a move then return the simulated goban,
     /// used in legals for fast move simulation in Super Ko situations.
     pub fn play_for_verification(&self, (x, y): Coord) -> Goban {
@@ -214,10 +214,10 @@ impl Game {
     ///
     /// # Errors
     ///
-    /// If the move is a suicide Move return SuicideMove
-    /// If the move is a Ko Move returns Ko
-    /// if point is already filled then return PointNotEmpty
-    /// If the game is paused then return GamePaused
+    /// If the move is a suicide return `[PLayError::SuicideMove]`
+    /// If the move is a ko returns `[PlayError::SuicideMove]`Ko
+    /// if point is already filled, then return `[PlayError::PointNotEmpty]``
+    /// If the game is paused, then return `[PlayError::GamePaused]`
     pub fn try_play(&mut self, play: Move) -> Result<&mut Self, PlayError> {
         if self.passes == 2 {
             Err(PlayError::GamePaused)
@@ -238,7 +238,7 @@ impl Game {
     }
 
     /// Put the handicap stones on the goban.
-    /// This put the turn for white but doesn't update the komi.
+    /// This puts the turn for white but doesn't update the komi.
     pub fn put_handicap(&mut self, points: &[Coord]) {
         self.handicap = points.len() as u32;
         points.iter().for_each(|&coord| {
@@ -373,8 +373,8 @@ impl Game {
             return true;
         }
 
-        // If one corner or 2 are not allied corners then we need to test if the remaining corners are an eye.
-        // We cannot call this function recursively because fo complexity with loops.
+        // If one corner or 2 are not allied corners, then we need to test, if the remaining corners are an eye.
+        // We cannot call this function recursively because of the complexity with loops.
         if [3, 2].contains(&total_corners) {
             for coord in empty_corners {
                 // We test the cross again for the empty corner
@@ -397,7 +397,7 @@ impl Game {
 
     /// Test if a play is ko.
     /// If the goban is in the configuration of two plays ago returns true
-    /// If the move captures more than 1 stone then it's not a ko.
+    /// If the move captures more than 1 stone, then it's not a ko.
     pub fn check_ko(&self, stone: Stone) -> bool {
         self.ko_point == Some(stone.coord)
             && !self
@@ -409,7 +409,7 @@ impl Game {
                 })
     }
 
-    /// Rule of the super Ko, if any before configuration was already played then return true.
+    /// Rule of the super Ko, if any before configuration was already played, then return true.
     pub fn check_super_ko(&self, stone: Stone) -> bool {
         if self.history.len() <= 2 || !self.will_capture(stone.coord) {
             false
