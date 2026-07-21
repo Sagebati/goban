@@ -8,8 +8,9 @@ mod tests {
     use goban::rules::game::Game;
     use goban::rules::Move::Play;
     use goban::rules::PlayError::Suicide;
-    use goban::rules::{EndGame, GobanSizes, Move, PlayError};
-    use goban::rules::{CHINESE, JAPANESE};
+    use goban::rules::{EndGame, GobanSizes, Move, PlayError, Rule};
+    use goban::rules::{AGA, CHINESE, FRENCH, ING, JAPANESE, NEW_ZEALAND, TROMP_TAYLOR};
+    use std::str::FromStr;
 
     #[test]
     fn passes() {
@@ -620,6 +621,93 @@ mod tests {
         }));
         assert!(!game.legals().any(|m| m == (0, 1)));
         assert!(game.try_play(Move::Play(0, 1)).is_err());
+    }
+
+    #[test]
+    fn tromp_taylor_allows_suicide() {
+        let mut game = Game::new(GobanSizes::Nineteen, TROMP_TAYLOR);
+        game.play(Move::Play(0, 2)); // black
+        game.play(Move::Play(0, 0)); // white
+        game.play(Move::Play(1, 1)); // black
+        game.play(Move::Play(1, 0)); // white
+        game.play(Move::Play(2, 0)); // black
+
+        assert!(game.legals().any(|m| m == (0, 1)));
+        assert!(game.try_play(Move::Play(0, 1)).is_ok());
+    }
+
+    #[test]
+    fn new_zealand_allows_suicide() {
+        let mut game = Game::new(GobanSizes::Nineteen, NEW_ZEALAND);
+        game.play(Move::Play(0, 2)); // black
+        game.play(Move::Play(0, 0)); // white
+        game.play(Move::Play(1, 1)); // black
+        game.play(Move::Play(1, 0)); // white
+        game.play(Move::Play(2, 0)); // black
+
+        assert!(game.legals().any(|m| m == (0, 1)));
+        assert!(game.try_play(Move::Play(0, 1)).is_ok());
+    }
+
+    #[test]
+    fn aga_forbids_suicide() {
+        let mut game = Game::new(GobanSizes::Nineteen, AGA);
+        game.play(Move::Play(0, 2)); // black
+        game.play(Move::Play(0, 0)); // white
+        game.play(Move::Play(1, 1)); // black
+        game.play(Move::Play(1, 0)); // white
+        game.play(Move::Play(2, 0)); // black
+
+        assert!(!game.legals().any(|m| m == (0, 1)));
+        assert!(game.try_play(Move::Play(0, 1)).is_err());
+    }
+
+    #[test]
+    fn ing_forbids_suicide() {
+        let mut game = Game::new(GobanSizes::Nineteen, ING);
+        game.play(Move::Play(0, 2)); // black
+        game.play(Move::Play(0, 0)); // white
+        game.play(Move::Play(1, 1)); // black
+        game.play(Move::Play(1, 0)); // white
+        game.play(Move::Play(2, 0)); // black
+
+        assert!(!game.legals().any(|m| m == (0, 1)));
+        assert!(game.try_play(Move::Play(0, 1)).is_err());
+    }
+
+    #[test]
+    fn ing_komi_is_eight() {
+        assert_eq!(ING.komi, 8.);
+    }
+
+    #[test]
+    fn rule_from_str() {
+        assert_eq!(Rule::from_str("AGA"), Ok(AGA));
+        assert_eq!(Rule::from_str("TT"), Ok(TROMP_TAYLOR));
+        assert_eq!(Rule::from_str("NZ"), Ok(NEW_ZEALAND));
+        assert_eq!(Rule::from_str("FRA"), Ok(FRENCH));
+        assert_eq!(Rule::from_str("ING"), Ok(ING));
+        assert!(Rule::from_str("XYZ").is_err());
+    }
+
+    #[test]
+    fn french_rules_are_aga_rules() {
+        assert_eq!(FRENCH, AGA);
+    }
+
+    #[test]
+    fn new_rules_use_area_scoring_and_default_komi() {
+        for rule in [AGA, FRENCH, TROMP_TAYLOR, NEW_ZEALAND, ING] {
+            let mut g = Game::new(GobanSizes::Nine, rule);
+            g.play(Move::Play(4, 4));
+            g.play(Move::Pass);
+            g.play(Move::Pass);
+            let score = g.calculate_score();
+            assert_eq!(score.0, 81.); // full board area score for black
+        }
+        for rule in [AGA, FRENCH, TROMP_TAYLOR, NEW_ZEALAND] {
+            assert_eq!(rule.komi, 7.5);
+        }
     }
 
     #[test]

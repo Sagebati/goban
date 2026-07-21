@@ -4,7 +4,7 @@ use crate::pieces::stones::{Color, Stone};
 use crate::pieces::Nat;
 use crate::rules::game::Game;
 use crate::rules::game::game_builder::GameBuilder;
-use crate::rules::{EndGame, Move, Rule, CHINESE, JAPANESE};
+use crate::rules::{EndGame, Move, Rule, AGA, CHINESE, ING, JAPANESE, NEW_ZEALAND};
 
 type SgfColor = sgf_parser::Color;
 
@@ -92,6 +92,9 @@ impl From<RuleSet> for Rule {
         match r {
             RuleSet::Japanese => JAPANESE,
             RuleSet::Chinese => CHINESE,
+            RuleSet::AGA => AGA,
+            RuleSet::NZ => NEW_ZEALAND,
+            RuleSet::GOE => ING,
             _ => panic!("The rule {} is not implemented yet !", r.to_string()),
         }
     }

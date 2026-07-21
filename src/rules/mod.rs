@@ -136,6 +136,55 @@ pub static CHINESE: Rule = Rule {
     flag_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::STONES.bits()),
 };
 
+/// American Go Association rules: area scoring with positional superko.
+/// The official AGA rules permit multi-stone suicide (while still forbidding
+/// single-stone suicide); this crate's flag model cannot distinguish the two
+/// cases, so suicide is disallowed entirely here, matching how it is played
+/// in practice.
+pub static AGA: Rule = Rule {
+    komi: 7.5,
+    flag_illegal: IllegalRules::from_bits_truncate(
+        IllegalRules::KO.bits() | IllegalRules::SUPERKO.bits() | IllegalRules::SUICIDE.bits(),
+    ),
+    flag_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::STONES.bits()),
+};
+
+/// Tromp-Taylor rules: the canonical formal ruleset used for computer Go.
+/// Area scoring, positional superko, and suicide (including multi-stone
+/// suicide) is explicitly allowed.
+pub static TROMP_TAYLOR: Rule = Rule {
+    komi: 7.5,
+    flag_illegal: IllegalRules::from_bits_truncate(IllegalRules::SUPERKO.bits()),
+    flag_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::STONES.bits()),
+};
+
+/// French rules (Fédération Française de Go): identical to the AGA ruleset,
+/// which the FFG has used since 1994.
+pub static FRENCH: Rule = AGA;
+
+/// New Zealand rules: area scoring with positional superko, notable for
+/// explicitly allowing suicide of stone groups of any size.
+pub static NEW_ZEALAND: Rule = Rule {
+    komi: 7.5,
+    flag_illegal: IllegalRules::from_bits_truncate(IllegalRules::SUPERKO.bits()),
+    flag_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::STONES.bits()),
+};
+
+/// Ing (Ing Chang-ki / Ing Cup) rules: area scoring via a stone-counting
+/// method, with an integer komi of 8 and suicide disallowed. The official
+/// rules break ties in Black's favor instead of using a half-point komi,
+/// and distinguish "fighting kos" from "disturbing kos" with a complex
+/// adjudication procedure; this crate cannot model either nuance, so ties
+/// are left as draws and positional superko is used as the closest
+/// approximation of the ko handling.
+pub static ING: Rule = Rule {
+    komi: 8.,
+    flag_illegal: IllegalRules::from_bits_truncate(
+        IllegalRules::KO.bits() | IllegalRules::SUPERKO.bits() | IllegalRules::SUICIDE.bits(),
+    ),
+    flag_score: ScoreRules::from_bits_truncate(ScoreRules::KOMI.bits() | ScoreRules::STONES.bits()),
+};
+
 impl FromStr for Rule {
     type Err = String;
 
@@ -143,6 +192,11 @@ impl FromStr for Rule {
         match s {
             "JAP" => Ok(JAPANESE),
             "CHI" => Ok(CHINESE),
+            "AGA" => Ok(AGA),
+            "TT" => Ok(TROMP_TAYLOR),
+            "NZ" => Ok(NEW_ZEALAND),
+            "FRA" => Ok(FRENCH),
+            "ING" => Ok(ING),
             _ => Err(format!("The rule {s} is not implemented yet.")),
         }
     }

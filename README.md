@@ -3,10 +3,15 @@
 A fast Rust library for working with a Goban (the board used to play Go). It is built with performance in mind.
 The library can perform a full playout of a random game in ~1.5 ms while checking all legal moves.
 
-In Go, there are different rule sets; at the moment only two are implemented:
+In Go, there are different rule sets; the following are implemented:
 
 - Chinese (area scoring)
 - Japanese (territory scoring)
+- AGA / American Go Association (area scoring)
+- French / Fédération Française de Go (area scoring, same as AGA)
+- Tromp-Taylor (area scoring, suicide allowed)
+- New Zealand (area scoring, suicide allowed)
+- Ing / Ing Chang-ki (area scoring, komi 8)
 
 Adding more rules can be achieved fairly easily.
 
