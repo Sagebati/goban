@@ -70,12 +70,17 @@ impl Evaluator<Game, Reward, ()> for Eval {
         parent_visits: u32,
         args: &Self::Args,
     ) -> Num {
-        uct_value(
-            parent_visits,
-            child.sum_rewards as f64,
-            child.n_visits,
-            *args,
-        )
+        // Rewards are wins of the player to move at the root. `state` holds the
+        // moves from the root to this child, so at odd depth the child was
+        // reached by a root player's move and its wins count; at even depth
+        // the opponent chose the move and wants the root player's losses.
+        let root_player_moved = child.state.len() % 2 == 1;
+        let wins = if root_player_moved {
+            child.sum_rewards
+        } else {
+            child.n_visits as Reward - child.sum_rewards
+        };
+        uct_value(parent_visits, wins as f64, child.n_visits, *args)
     }
 
     fn evaluate_leaf(child: Game, turn: &<Game as GameTrait>::Player) -> Self::EvalResult {
@@ -130,7 +135,8 @@ type Mcts<'a> = LazyMcts<
 >;
 
 impl Game {
-    /// This return the groups that doesn't have two eyes
+    /// Returns the chains that do not have two eyes, that is the candidates
+    /// for being dead. A chain touching two single-point eyes is assumed alive.
     pub fn get_floating_stones(&self) -> Vec<GroupIdx> {
         let eyes = self.pseudo_legals().filter(|&p| {
             self.check_eye(Stone {
@@ -141,25 +147,16 @@ impl Game {
                 color: Color::White,
             })
         });
-        let mut chains_wth_eye = HashMap::new();
+        let mut eyes_per_chain: HashMap<GroupIdx, usize> = HashMap::new();
         for eye_coord in eyes {
-            let chain_connected_eye = self.goban.get_connected_groups_idx(eye_coord);
-            for chain_idx in chain_connected_eye {
-                chains_wth_eye
-                    .entry(chain_idx)
-                    .and_modify(|v| *v += 1)
-                    .or_insert(0);
+            for chain_idx in self.goban.get_connected_groups_idx(eye_coord) {
+                *eyes_per_chain.entry(chain_idx).or_insert(0) += 1;
             }
         }
-        let all_chains = self.goban.chains().enumerate();
-        let string_with_2eyes = chains_wth_eye
-            .into_iter()
-            .filter(|(_, v)| *v >= 2)
-            .map(|x| x.0)
-            .collect::<HashSet<_>>();
 
-        all_chains
-            .filter(|(idx, _chain)| string_with_2eyes.contains(idx))
+        self.goban
+            .chains_with_index()
+            .filter(|(idx, _chain)| eyes_per_chain.get(idx).copied().unwrap_or(0) < 2)
             .map(|(idx, _chain)| idx)
             .collect()
     }
@@ -173,7 +170,9 @@ impl Game {
                 for _ in 0..nb_simulations {
                     mcts.execute(&2.0_f64.sqrt(), ());
                 }
-                mcts.best_move(&2.0_f64.sqrt())
+                // Pick the final move by win rate alone, without the
+                // exploration bonus used while searching.
+                mcts.best_move(&0.0)
             };
             game.play(m);
         }

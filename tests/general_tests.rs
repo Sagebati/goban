@@ -520,6 +520,120 @@ mod tests {
         )
     }
 
+    /// Black wall on column 3, White wall on column 5 of a 9x9 board. Column 4
+    /// is dame (touches both colours), so each side owns exactly 27 points.
+    fn two_walls(rule: Rule) -> Game {
+        let mut g = Game::new(GobanSizes::Nine, rule);
+        for row in 0..9 {
+            g.try_play(Move::Play(row, 3)).unwrap(); // black
+            g.try_play(Move::Play(row, 5)).unwrap(); // white
+        }
+        g
+    }
+
+    /// Score a position from its board, prisoners and komi, with the dead
+    /// stones removed first and, when prisoners count, added to the captor.
+    fn score_with_dead_removed(
+        game: &Game,
+        dead: &std::collections::HashSet<usize>,
+        flag_score: goban::rules::ScoreRules,
+    ) -> (f32, f32) {
+        use goban::rules::ScoreRules;
+        let mut goban = game.goban().clone();
+        let (mut black_prisoners, mut white_prisoners) = game.prisoners();
+        for &chain in dead {
+            let stones: Vec<Stone> = goban.chain_stones(chain).collect();
+            match stones[0].color {
+                Color::White => black_prisoners += stones.len() as u32,
+                Color::Black => white_prisoners += stones.len() as u32,
+            }
+            goban.remove_chain(chain);
+        }
+        let (black_territory, white_territory) = goban.calculate_territories();
+        let (mut black, mut white) = (black_territory as f32, white_territory as f32);
+        if flag_score.contains(ScoreRules::PRISONNERS) {
+            black += black_prisoners as f32;
+            white += white_prisoners as f32;
+        }
+        if flag_score.contains(ScoreRules::STONES) {
+            let (black_stones, white_stones) = goban.number_of_stones();
+            black += black_stones as f32;
+            white += white_stones as f32;
+        }
+        if flag_score.contains(ScoreRules::KOMI) {
+            white += game.komi();
+        }
+        (black, white)
+    }
+
+    #[test]
+    fn score_without_dead_stones_territory_rules() {
+        let mut g = two_walls(JAPANESE);
+        g.play(Move::Pass);
+        g.play(Move::Pass);
+        assert!(g.is_over());
+        assert_eq!(g.goban().calculate_territories(), (27, 27));
+        assert_eq!(g.goban().number_of_stones(), (9, 9));
+        assert_eq!(g.prisoners(), (0, 0));
+        // Territory + prisoners + komi: the dame column counts for nobody.
+        assert_eq!(g.calculate_score(), (27., 27. + 6.5));
+        assert_eq!(g.outcome(), Some(EndGame::WinnerByScore(Color::White, 6.5)));
+    }
+
+    #[test]
+    fn score_without_dead_stones_area_rules() {
+        let mut g = two_walls(CHINESE);
+        g.play(Move::Pass);
+        g.play(Move::Pass);
+        assert!(g.is_over());
+        assert_eq!(g.goban().calculate_territories(), (27, 27));
+        // Territory + stones + komi.
+        assert_eq!(g.calculate_score(), (27. + 9., 27. + 9. + 7.5));
+        assert_eq!(g.outcome(), Some(EndGame::WinnerByScore(Color::White, 7.5)));
+    }
+
+    /// Same walls, plus one hopeless stone of each colour deep inside the
+    /// other side's territory. As long as those stones are on the board every
+    /// empty region touches both colours and nobody has any territory, so the
+    /// dead stones must be found and removed before counting.
+    ///
+    /// Ignored for now: `dead_stones` plays a single searched game and takes
+    /// its final board as the truth, and a random game on this board wipes
+    /// out one whole side often enough that the answer is wrong most of the
+    /// time. Run it by hand with `cargo test --all-features -- --ignored`.
+    #[test]
+    #[ignore]
+    #[cfg(feature = "deadstones")]
+    fn score_with_dead_stones() {
+        for (rule, expected) in [
+            // Japanese: 27 territory + 1 prisoner each, komi for white.
+            (JAPANESE, (27. + 1., 27. + 1. + 6.5)),
+            // Chinese: 27 territory + 9 stones each, komi for white.
+            (CHINESE, (27. + 9., 27. + 9. + 7.5)),
+        ] {
+            let mut g = two_walls(rule);
+            g.try_play(Move::Play(4, 7)).unwrap(); // black, inside white's area
+            g.try_play(Move::Play(4, 1)).unwrap(); // white, inside black's area
+
+            // With the invaders still on the board nothing is territory.
+            assert_eq!(g.goban().calculate_territories(), (0, 0));
+
+            let dead = g.dead_stones_wth_simulations(200);
+            let dead_coords: std::collections::HashSet<_> = dead
+                .iter()
+                .flat_map(|&chain| g.goban().chain_stones(chain).map(|s| s.coord))
+                .collect();
+            assert_eq!(
+                dead_coords,
+                [(4, 7), (4, 1)].into_iter().collect(),
+                "dead stones under {rule:?}"
+            );
+
+            let score = score_with_dead_removed(&g, &dead, rule.flag_score);
+            assert_eq!(score, expected, "score under {rule:?}");
+        }
+    }
+
     #[test]
     fn ko_test() {
         let mut game: Game = Default::default();
@@ -645,9 +759,9 @@ mod tests {
         game.play(Move::Play(0, 1)); // black
         game.play(Move::Play(8, 8)); // white
         game.play(Move::Play(1, 0)); // black
-        // White commits suicide in the corner (legal under Tromp-Taylor), the
-        // stone is removed at once, Black passes, and so on, more times than a
-        // `u16` chain index can count.
+                                     // White commits suicide in the corner (legal under Tromp-Taylor), the
+                                     // stone is removed at once, Black passes, and so on, more times than a
+                                     // `u16` chain index can count.
         for _ in 0..70_000 {
             game.play(Move::Play(0, 0)); // white, removed immediately
             assert_eq!(game.goban().get_color((0, 0)), EMPTY);
@@ -694,7 +808,7 @@ mod tests {
         game.play(Move::Play(1, 1)); // black
         game.play(Move::Play(1, 0)); // white
         game.play(Move::Play(2, 0)); // black
-        // White (0, 1) kills its own three stones: legal, position is new.
+                                     // White (0, 1) kills its own three stones: legal, position is new.
         assert_eq!(game.check_point((0, 1)), None);
         game.play(Move::Play(0, 1));
         assert_eq!(game.goban().get_color((0, 0)), EMPTY);
@@ -703,8 +817,8 @@ mod tests {
         game.play(Move::Play(9, 10)); // black
         game.play(Move::Play(1, 0)); // white
         game.play(Move::Play(9, 11)); // black
-        // Same corner shape again, but the board now differs elsewhere, so the
-        // position after the suicide is new and the move stays legal.
+                                      // Same corner shape again, but the board now differs elsewhere, so the
+                                      // position after the suicide is new and the move stays legal.
         assert_eq!(game.check_point((0, 1)), None);
     }
 

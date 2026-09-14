@@ -83,6 +83,12 @@ impl Goban {
         self.chains.iter()
     }
 
+    /// Iterate over the chains together with the index used to address them
+    /// in `chain_stones` and `remove_chain`.
+    pub fn chains_with_index(&self) -> impl Iterator<Item = (GroupIdx, Group)> + '_ {
+        self.chains.iter_with_index()
+    }
+
     pub fn chain_stones(&self, idx: impl IntoIdx) -> impl Iterator<Item = Stone> + '_ {
         let idx = idx.into_idx(self.size);
         let chain = self.chains[idx];
