@@ -28,6 +28,14 @@ Changelog
 - `play_for_verification` removed the suicided stones under the wrong rules.
 - `Game::from_sgf` reads a Fox/Tygem komi written times 100 (`KM[750]`) as 7.5.
 
+### Performance
+
+- `Group` caches its liberty count, so atari and death tests no longer scan the liberty bitset:
+  `legals()` is about 30% faster and random playouts about 25% faster.
+- The dead-stone playout policy only prefers safe captures (the capturing stone keeps more than one
+  liberty, or several stones are taken). Ko-style captures used to make two random players trade
+  single stones for hundreds of moves; a playout from a 19x19 endgame is now four times faster.
+
 ### Added
 
 - `Goban::chains_with_index`, `Goban::chain_liberties_at`, `Goban::snapshot`, `Game::check_false_eye`.

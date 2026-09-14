@@ -35,11 +35,6 @@ pub fn merge(lib: &mut Liberties, o: &Liberties) {
 }
 
 #[inline(always)]
-fn any(lib: &Liberties) -> bool {
-    lib.iter().any(|&x| x != 0)
-}
-
-#[inline(always)]
 fn count_ones(lib: &Liberties) -> usize {
     lib.iter().map(|x| x.count_ones() as usize).sum()
 }
@@ -72,6 +67,9 @@ pub struct Group {
     pub last: u16,
     pub liberties: Liberties,
     pub num_stones: u16,
+    /// Number of bits set in `liberties`, kept up to date by the liberty
+    /// methods so that atari and death tests do not scan the bitset.
+    pub(crate) num_liberties: u16,
 }
 
 impl Group {
@@ -85,6 +83,7 @@ impl Group {
             color,
             origin: stone as u16,
             last: stone as u16,
+            num_liberties: count_ones(&liberties) as u16,
             liberties,
             num_stones: 1,
         }
@@ -92,13 +91,17 @@ impl Group {
 
     #[inline]
     pub fn is_dead(&self) -> bool {
-        // !self.liberties.any()
-        !any(&self.liberties)
+        self.num_liberties == 0
     }
 
     #[inline]
     pub fn number_of_liberties(&self) -> usize {
-        //self.liberties.count_ones()
+        self.num_liberties as usize
+    }
+
+    /// Recount the liberties from the bitset; the debug integrity check
+    /// compares it with the cached count.
+    pub(crate) fn recount_liberties(&self) -> usize {
         count_ones(&self.liberties)
     }
 
@@ -120,13 +123,19 @@ impl Group {
             get(stone_idx, &self.liberties),
             "Tried to remove a liberty, who isn't present. stone idx: {stone_idx}"
         );
-        set::<false>(stone_idx, &mut self.liberties);
+        if get(stone_idx, &self.liberties) {
+            set::<false>(stone_idx, &mut self.liberties);
+            self.num_liberties -= 1;
+        }
         self
     }
 
     #[inline(always)]
     fn add_liberty_unchecked(&mut self, stone_idx: BoardIdx) -> &mut Self {
-        set::<true>(stone_idx, &mut self.liberties);
+        if !get(stone_idx, &self.liberties) {
+            set::<true>(stone_idx, &mut self.liberties);
+            self.num_liberties += 1;
+        }
         self
     }
 
@@ -153,6 +162,7 @@ impl Group {
     pub fn union_liberties(&mut self, liberties_idx: Liberties) -> &mut Self {
         //self.liberties |= liberties_idx;
         merge(&mut self.liberties, &liberties_idx);
+        self.num_liberties = count_ones(&self.liberties) as u16;
         self
     }
 

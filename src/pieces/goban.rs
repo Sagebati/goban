@@ -2,7 +2,7 @@
 
 use crate::one2dim;
 use crate::pieces::group::CircularGroupIter;
-use crate::pieces::group::{merge, set, Group, Groups, Liberties, EMPTY_LIBERTIES};
+use crate::pieces::group::{set, Group, Groups, Liberties, EMPTY_LIBERTIES};
 use crate::pieces::stones::*;
 use crate::pieces::util::coord::{
     one_to_2dim, two_to_1dim, valid_coords, Coord, IntoCoord, IntoIdx, Size,
@@ -641,7 +641,7 @@ impl Goban {
         let group2 = group2.as_ref().unwrap();
 
         // We merge liberties
-        merge(&mut group1.liberties, &group2.liberties);
+        group1.union_liberties(group2.liberties);
 
         // We update chain1 origin and last
         let chain1_last = group1.last;
@@ -683,6 +683,11 @@ impl Goban {
         if self.iter_stones(group_idx).count() as u16 != self.chains[group_idx].num_stones {
             panic!("The number of stones don't match")
         }
+        assert_eq!(
+            self.chains[group_idx].number_of_liberties(),
+            self.chains[group_idx].recount_liberties(),
+            "The cached liberty count doesn't match the bitset"
+        );
     }
 
     #[inline(always)]
