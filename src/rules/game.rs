@@ -18,6 +18,16 @@ pub mod game_builder;
 
 /// Entrypoint struct of the library.
 /// It represents a Game of Go.
+/// Outcome of the suicide test for a move.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum SuicideKind {
+    NotSuicide,
+    /// The played stone connects to nothing and dies alone.
+    LoneStone,
+    /// The played stone and at least one friendly chain die.
+    Chain,
+}
+
 #[derive(Clone, Debug)]
 pub struct Game {
     goban: Goban,
@@ -308,7 +318,9 @@ impl Game {
             Some(PlayError::Ko)
         } else if illegal_rules.contains(IllegalRules::FILLEYE) && self.check_eye(stone) {
             Some(PlayError::FillEye)
-        } else if illegal_rules.contains(IllegalRules::SUPERKO) && self.check_super_ko(stone) {
+        } else if illegal_rules.contains(IllegalRules::SUPERKO)
+            && self.check_super_ko_by(stone, !illegal_rules.contains(IllegalRules::SUICIDE))
+        {
             Some(PlayError::Ko)
         } else {
             None
@@ -420,13 +432,15 @@ impl Game {
     /// and removes only the stone just played recreates the current position,
     /// so the board before the move is checked as well as the history.
     pub fn check_super_ko(&self, stone: Stone) -> bool {
-        let captures = self.will_capture(stone.coord);
-        let suicide = !captures && self.check_suicide(stone);
-        if !captures && !suicide {
-            // Adds a stone and removes none: the position cannot be a repeat.
-            return false;
-        }
-        if captures {
+        self.check_super_ko_by(stone, true)
+    }
+
+    /// Super ko check where `suicide_possible` says whether a suicide could
+    /// reach this point. Rules that forbid suicide reject those moves before
+    /// checking super ko, so `check_point_by` passes `false` and skips the
+    /// suicide detection.
+    fn check_super_ko_by(&self, stone: Stone, suicide_possible: bool) -> bool {
+        if self.will_capture(stone.coord) {
             if self.check_ko(stone) {
                 return true;
             }
@@ -434,31 +448,50 @@ impl Game {
                 // Too few positions for a capture to repeat one.
                 return false;
             }
+        } else {
+            match if suicide_possible {
+                self.suicide_kind(stone)
+            } else {
+                SuicideKind::NotSuicide
+            } {
+                // Adds a stone and removes none: the position cannot be a repeat.
+                SuicideKind::NotSuicide => return false,
+                // Only the played stone dies: the position is the current one.
+                SuicideKind::LoneStone => return true,
+                // A friendly chain dies too: the position changes, check history.
+                SuicideKind::Chain => {}
+            }
         }
         let to_check = self.play_for_verification(stone.coord);
-        to_check == self.goban || self.history.contains(&to_check)
+        self.history.contains(&to_check)
     }
 
     /// Add a stone to the board and then test if the stone or stone group is dead.
     /// Returns true if the move is a suicide
     pub fn check_suicide(&self, stone: Stone) -> bool {
+        self.suicide_kind(stone) != SuicideKind::NotSuicide
+    }
+
+    /// Whether the move is a suicide, and if so whether only the played stone
+    /// dies or a friendly chain with it.
+    fn suicide_kind(&self, stone: Stone) -> SuicideKind {
         if self.goban.has_liberties(stone.coord) {
-            false
-        } else {
-            !self
-                .goban
-                .get_connected_groups(stone.coord)
-                .into_iter()
-                .any(|neighbor_go_string| {
-                    if neighbor_go_string.color == stone.color {
-                        // Connecting with another string which is not in danger
-                        !neighbor_go_string.is_atari()
-                    } else {
-                        // Capture move
-                        neighbor_go_string.is_atari()
-                    }
-                })
+            return SuicideKind::NotSuicide;
         }
+        let mut kind = SuicideKind::LoneStone;
+        for neighbor_go_string in self.goban.get_connected_groups(stone.coord) {
+            if neighbor_go_string.color == stone.color {
+                if !neighbor_go_string.is_atari() {
+                    // Connecting with another string which is not in danger
+                    return SuicideKind::NotSuicide;
+                }
+                kind = SuicideKind::Chain;
+            } else if neighbor_go_string.is_atari() {
+                // Capture move
+                return SuicideKind::NotSuicide;
+            }
+        }
+        kind
     }
 
     /// Displays the internal board.
