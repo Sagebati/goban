@@ -133,7 +133,12 @@ impl Game {
         }
         legal.shuffle(rng);
 
-        if let Some(&coord) = legal.iter().find(|&&c| self.will_capture(c)) {
+        // A capture, unless it is a ko-style one: taking a single stone while
+        // leaving the capturing stone itself in atari invites an immediate
+        // recapture, and two such players trade stones for hundreds of moves.
+        if let Some(&coord) = legal.iter().find(|&&c| {
+            self.will_capture(c) && (self.capture_size(c) > 1 || self.liberties_after(c) > 1)
+        }) {
             return coord.into();
         }
 
@@ -153,9 +158,25 @@ impl Game {
                 let stone = Stone { coord, color: me };
                 !self.check_eye(stone)
                     && !self.check_false_eye(stone)
-                    && self.play_for_verification(coord).chain_liberties_at(coord) > 1
+                    && self.liberties_after(coord) > 1
             })
             .map(Move::from)
             .unwrap_or(Move::Pass)
+    }
+
+    /// Liberties of the chain the stone would belong to after playing
+    /// `coord`, captures included.
+    fn liberties_after(&self, coord: Coord) -> usize {
+        self.play_for_verification(coord).chain_liberties_at(coord)
+    }
+
+    /// Number of enemy stones a move at `coord` would capture.
+    fn capture_size(&self, coord: Coord) -> usize {
+        self.goban
+            .get_connected_groups(coord)
+            .into_iter()
+            .filter(|chain| chain.color != self.turn && chain.is_atari())
+            .map(|chain| chain.num_stones as usize)
+            .sum()
     }
 }
