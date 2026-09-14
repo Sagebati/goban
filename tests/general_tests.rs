@@ -592,45 +592,96 @@ mod tests {
         assert_eq!(g.outcome(), Some(EndGame::WinnerByScore(Color::White, 7.5)));
     }
 
-    /// Same walls, plus one hopeless stone of each colour deep inside the
-    /// other side's territory. As long as those stones are on the board every
-    /// empty region touches both colours and nobody has any territory, so the
-    /// dead stones must be found and removed before counting.
-    ///
-    /// Ignored for now: `dead_stones` plays a single searched game and takes
-    /// its final board as the truth, and a random game on this board wipes
-    /// out one whole side often enough that the answer is wrong most of the
-    /// time. Run it by hand with `cargo test --all-features -- --ignored`.
+    /// A settled 9x9 position: Black owns columns 0 to 3 and White columns 5
+    /// to 8, each side filled down to two real eyes in the corners and a
+    /// three-point pocket on row 4 holding one hopeless enemy stone. Column 4
+    /// is dame. Returns the game and the coordinates of the two dead stones.
+    fn settled_with_dead_stones(rule: Rule) -> (Game, [(u8, u8); 2]) {
+        let mut builder = Game::builder();
+        builder.size((9, 9)).rule(rule).turn(Color::Black);
+        let pockets = [(4, 0), (4, 1), (4, 2), (4, 6), (4, 7), (4, 8)];
+        let eyes = [(0, 0), (8, 0), (0, 8), (8, 8)];
+        for row in 0..9u8 {
+            for col in 0..9u8 {
+                let coord = (row, col);
+                if col == 4 || pockets.contains(&coord) || eyes.contains(&coord) {
+                    continue;
+                }
+                let color = if col < 4 { Color::Black } else { Color::White };
+                builder.add(Stone { coord, color });
+            }
+        }
+        builder.add(Stone {
+            coord: (4, 1),
+            color: Color::White,
+        });
+        builder.add(Stone {
+            coord: (4, 7),
+            color: Color::Black,
+        });
+        (builder.build().unwrap(), [(4, 1), (4, 7)])
+    }
+
+    /// Expected scores of `settled_with_dead_stones` once the dead stones are
+    /// gone: each side has 5 points of territory (two eyes and the pocket)
+    /// and 31 stones; under Japanese rules each also holds one prisoner.
+    const SETTLED_JAPANESE: (f32, f32) = (5. + 1., 5. + 1. + 6.5);
+    const SETTLED_CHINESE: (f32, f32) = (5. + 31., 5. + 31. + 7.5);
+
+    /// Counting with the dead stones removed by hand, no estimation involved.
     #[test]
-    #[ignore]
+    fn score_with_dead_stones_removed() {
+        for (rule, expected) in [(JAPANESE, SETTLED_JAPANESE), (CHINESE, SETTLED_CHINESE)] {
+            let (g, dead_coords) = settled_with_dead_stones(rule);
+            // While the invaders stand, the pockets touch both colours and only
+            // the four eyes count as territory.
+            assert_eq!(g.goban().calculate_territories(), (2, 2));
+
+            let dead: std::collections::HashSet<usize> = g
+                .goban()
+                .chains_with_index()
+                .filter(|(idx, _)| {
+                    g.goban()
+                        .chain_stones(*idx)
+                        .any(|s| dead_coords.contains(&s.coord))
+                })
+                .map(|(idx, _)| idx)
+                .collect();
+            assert_eq!(dead.len(), 2);
+            assert_eq!(
+                score_with_dead_removed(&g, &dead, rule.flag_score),
+                expected,
+                "score under {rule:?}"
+            );
+        }
+    }
+
+    /// The same counting, with the dead stones found by `dead_stones`.
+    #[test]
     #[cfg(feature = "deadstones")]
     fn score_with_dead_stones() {
-        for (rule, expected) in [
-            // Japanese: 27 territory + 1 prisoner each, komi for white.
-            (JAPANESE, (27. + 1., 27. + 1. + 6.5)),
-            // Chinese: 27 territory + 9 stones each, komi for white.
-            (CHINESE, (27. + 9., 27. + 9. + 7.5)),
-        ] {
-            let mut g = two_walls(rule);
-            g.try_play(Move::Play(4, 7)).unwrap(); // black, inside white's area
-            g.try_play(Move::Play(4, 1)).unwrap(); // white, inside black's area
+        for (rule, expected) in [(JAPANESE, SETTLED_JAPANESE), (CHINESE, SETTLED_CHINESE)] {
+            let (g, dead_coords) = settled_with_dead_stones(rule);
 
-            // With the invaders still on the board nothing is territory.
-            assert_eq!(g.goban().calculate_territories(), (0, 0));
+            // Only the two invaders lack two eyes.
+            let floating = g.get_floating_stones();
+            assert_eq!(floating.len(), 2, "floating chains under {rule:?}");
 
-            let dead = g.dead_stones_wth_simulations(200);
-            let dead_coords: std::collections::HashSet<_> = dead
+            let dead = g.dead_stones();
+            let found: std::collections::HashSet<_> = dead
                 .iter()
                 .flat_map(|&chain| g.goban().chain_stones(chain).map(|s| s.coord))
                 .collect();
             assert_eq!(
-                dead_coords,
-                [(4, 7), (4, 1)].into_iter().collect(),
+                found,
+                dead_coords.into_iter().collect(),
                 "dead stones under {rule:?}"
             );
-
-            let score = score_with_dead_removed(&g, &dead, rule.flag_score);
-            assert_eq!(score, expected, "score under {rule:?}");
+            assert_eq!(
+                score_with_dead_removed(&g, &dead, rule.flag_score),
+                expected,
+                "score under {rule:?}"
+            );
         }
     }
 

@@ -20,7 +20,7 @@ This crate contains move generation and rules only; it does not include an AI no
 Optional cargo features:
 
 - history — keep the full history of Gobans so you can iterate over it (this decreases performance)
-- deadstones — experimental dead-stone detection using MCTS rollouts; works only when borders are closed
+- deadstones — experimental dead-stone detection by random playouts; a chain without two eyes is reported dead when it is captured in more than 98% of the playouts. Works only when borders are closed
 
 ## Example
 
@@ -88,7 +88,7 @@ etc...
 - Generate legal moves (handles ko detection, suicide moves, and superko)
 - Japanese and Chinese rules
 - Boards of different sizes (e.g., 4x5, 4x9); limited up to 19x19 due to the Zobrist hashing table size
-- Experimental dead-stone detection with MCTS rollouts (feature: deadstones)
+- Experimental dead-stone detection by random playouts (feature: deadstones)
 
 ## Benchmarks
 

@@ -1,6 +1,27 @@
 Changelog
 ==
 
+## Unreleased
+
+### Breaking Changes
+
+- `deadstones`: dead stones are now estimated by random playouts instead of an MCTS game. A chain
+  without two eyes is dead when it is captured in more than 98% of the playouts; the `oxymcts`
+  dependency is gone. `dead_stones_wth_simulations(n)` now takes a number of playouts.
+
+### Fixes
+
+- Chain storage reuses freed slots; a game creating more than 65535 chains no longer panics.
+- Under rules that allow suicide (Tromp-Taylor, New Zealand), a lone stone suicide that captures
+  nothing is rejected as a super ko violation, since it repeats the position.
+- `get_floating_stones` returns the chains without two eyes, as documented.
+- `play_for_verification` removed the suicided stones under the wrong rules.
+
+### Added
+
+- `Goban::chains_with_index`.
+- Criterion benchmarks split into `board`, `rules`, `playout` and `deadstones` suites.
+
 ## 0.20.0
 
 ### Breaking Changes

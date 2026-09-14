@@ -1,11 +1,9 @@
 //! Dead-stone estimation (`deadstones` feature).
 //!
-//! `Game::from_sgf` sets the outcome from the `RE[]` property, so on those
-//! games `dead_stones` finds the game already over and never runs the MCTS
-//! playout. That fast path is measured under `finished_game`. To exercise the
-//! MCTS itself, `mcts` uses an unfinished endgame position and a reduced
-//! simulation budget so a sample stays in the seconds range. The MCTS draws
-//! from an unseeded RNG, so expect more variance there than elsewhere.
+//! `finished_game` runs the default number of playouts on the three shipped
+//! SGF games. `playouts` scales the playout count on an unfinished endgame
+//! position. The playouts draw from an unseeded RNG, so expect more variance
+//! here than elsewhere.
 
 mod common;
 
@@ -18,6 +16,9 @@ use common::{shusaku_at_move, SGF_FILES};
 
 fn finished_game(c: &mut Criterion) {
     let mut group = c.benchmark_group("deadstones/finished_game");
+    group
+        .sample_size(10)
+        .measurement_time(Duration::from_secs(20));
     for (name, sgf) in SGF_FILES {
         let game = Game::from_sgf(sgf).unwrap();
         group.bench_with_input(BenchmarkId::from_parameter(name), &game, |b, g| {
