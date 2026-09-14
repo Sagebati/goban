@@ -2,7 +2,7 @@ use crate::pieces::goban::*;
 use crate::pieces::stones::Color::{Black, White};
 use crate::pieces::stones::{Color, Stone, EMPTY};
 use crate::pieces::util::coord::{corner_points, is_coord_valid, two_to_1dim, Coord, Size};
-use crate::pieces::{Connections, Nat};
+use crate::pieces::Nat;
 use crate::rules::EndGame::{Draw, WinnerByScore};
 use crate::rules::Rule;
 use crate::rules::{EndGame, GobanSizes, IllegalRules, Move, ScoreRules};
@@ -327,88 +327,53 @@ impl Game {
         }
     }
 
-    /// Return the number of allied corner and off board corners.
-    fn helper_check_eye(
-        &self,
-        point: (Nat, Nat),
-        color: Color,
-    ) -> (Connections<Coord>, Connections<Coord>, Connections<Coord>) {
-        let mut corner_ally = Connections::new();
-        let mut corner_off_board = Connections::new();
-        let mut empty_corners = Connections::new();
-        for p in corner_points(point) {
-            if is_coord_valid(self.goban.size(), p) {
-                let color_corner = self.goban.get_color(p);
-                match color_corner {
-                    None => {
-                        empty_corners.push(p);
-                    }
-                    Some(c) if c == color => {
-                        corner_ally.push(p);
-                    }
-                    _ => {}
-                }
-            } else {
-                corner_off_board.push(p);
-            }
-        }
-
-        (corner_ally, corner_off_board, empty_corners)
+    /// Detects true single-point eyes, the points a player should never fill.
+    ///
+    /// The point must be empty with every neighbour of `color`, and the
+    /// player must hold enough diagonals: at least three of the four in the
+    /// centre, both on the edge and the one in the corner. A diagonal is held
+    /// by a stone of `color`, or by an empty point that is itself such an eye
+    /// (two eyes sharing a diagonal keep each other true). An enemy stone or
+    /// a plain empty point on a diagonal is not held, so a false eye, or a
+    /// point that is not an eye yet, may be filled.
+    pub fn check_eye(&self, Stone { coord, color }: Stone) -> bool {
+        self.goban.get_color(coord).is_none()
+            && self.cross_owned(coord, color)
+            && self.diagonals_held(coord, color, None)
     }
 
-    /// Detects true eyes. return true is the stone is an eye.
-    /// Except for this form :
-    /// ```{nothing}
-    ///  ++
-    ///  + ++
-    ///  ++ +
-    ///    ++
-    /// ```
-    /// nor handle double-headed dragons.
-    /// This function is only used for performance checking in the rules,
-    /// and not for checking is a point is really an eye!
-    pub fn check_eye(&self, Stone { coord, color }: Stone) -> bool {
-        // if the intersection is not empty
-        if self.goban.get_color(coord).is_some() {
-            return false;
-        }
-
-        // if he doesn't have the cross then return false
-        if self
+    /// Every neighbour of the point carries a stone of `color`.
+    fn cross_owned(&self, coord: Coord, color: Color) -> bool {
+        !self
             .goban
             .get_connected_points(coord)
             .any(|s| s.color != Some(color))
-        {
-            return false;
-        }
+    }
 
-        let (corner_ally, corner_off_board, empty_corners) = self.helper_check_eye(coord, color);
-        let total_corners = corner_ally.len() + corner_off_board.len();
-
-        if total_corners == 4 {
-            return true;
-        }
-
-        // If one corner or 2 are not allied corners, then we need to test, if the remaining corners are an eye.
-        // We cannot call this function recursively because of the complexity with loops.
-        if [3, 2].contains(&total_corners) {
-            for coord in empty_corners {
-                // We test the cross again for the empty corner
-                if self
-                    .goban
-                    .get_connected_stones(coord)
-                    .any(move |s| s.color != color)
-                {
-                    return false;
-                }
-                let (ca, cof, _emc) = self.helper_check_eye(coord, color);
-                let c = ca.len() + cof.len();
-                if c == 3 || c == 2 {
-                    return true;
-                }
+    /// Enough diagonals of `coord` are held for a true eye. `supporter` is
+    /// the eye that asked, treated as held; when it is `None`, an empty
+    /// diagonal may count as held if it is itself an eye supported by `coord`.
+    fn diagonals_held(&self, coord: Coord, color: Color, supporter: Option<Coord>) -> bool {
+        let mut held = 0;
+        let mut off_board = 0;
+        for corner in corner_points(coord) {
+            if !is_coord_valid(self.goban.size(), corner) {
+                off_board += 1;
+            } else if Some(corner) == supporter
+                || self.goban.get_color(corner) == Some(color)
+                || (supporter.is_none()
+                    && self.goban.get_color(corner).is_none()
+                    && self.cross_owned(corner, color)
+                    && self.diagonals_held(corner, color, Some(coord)))
+            {
+                held += 1;
             }
         }
-        false
+        if off_board > 0 {
+            held + off_board == 4
+        } else {
+            held >= 3
+        }
     }
 
     /// Test if a play is ko.

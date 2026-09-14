@@ -15,6 +15,9 @@ Changelog
 - Under rules that allow suicide (Tromp-Taylor, New Zealand), a lone stone suicide that captures
   nothing is rejected as a super ko violation, since it repeats the position.
 - `get_floating_stones` returns the chains without two eyes, as documented.
+- `check_eye` follows the usual definition of a true eye: at least three held diagonals in the
+  centre, all of them on the edge and in the corner. It used to reject real eyes that had an empty
+  or a single enemy diagonal.
 - `play_for_verification` removed the suicided stones under the wrong rules.
 
 ### Added

@@ -65,6 +65,119 @@ mod tests {
         }));
     }
 
+    /// `check_eye` must recognise true single-point eyes and reject false
+    /// ones: at least three held diagonals in the centre, all of them on the
+    /// edge and in the corner, where a held diagonal is an own stone or an
+    /// empty point that is itself such an eye.
+    #[test]
+    fn eye_shapes() {
+        fn game_with(black: &[(u8, u8)], white: &[(u8, u8)]) -> Game {
+            let mut builder = Game::builder();
+            builder.size((9, 9)).rule(CHINESE).turn(Color::Black);
+            for &coord in black {
+                builder.add(Stone {
+                    coord,
+                    color: Color::Black,
+                });
+            }
+            for &coord in white {
+                builder.add(Stone {
+                    coord,
+                    color: Color::White,
+                });
+            }
+            builder.build().unwrap()
+        }
+        fn eye(g: &Game, coord: (u8, u8)) -> bool {
+            g.check_eye(Stone {
+                coord,
+                color: Color::Black,
+            })
+        }
+        // (4, 4) with its four neighbours black, then the given diagonals.
+        fn centre(diag_black: &[(u8, u8)], diag_white: &[(u8, u8)]) -> Game {
+            let mut black = vec![(3, 4), (5, 4), (4, 3), (4, 5)];
+            black.extend_from_slice(diag_black);
+            game_with(&black, diag_white)
+        }
+
+        assert!(eye(&centre(&[(3, 3), (3, 5), (5, 3), (5, 5)], &[]), (4, 4)));
+        assert!(eye(&centre(&[(3, 3), (3, 5), (5, 3)], &[(5, 5)]), (4, 4)));
+        assert!(eye(&centre(&[(3, 3), (3, 5), (5, 3)], &[]), (4, 4)));
+        // false eye: two enemy diagonals
+        assert!(!eye(&centre(&[(3, 3), (5, 5)], &[(3, 5), (5, 3)]), (4, 4)));
+        // not an eye yet: two empty diagonals
+        assert!(!eye(&centre(&[(3, 3), (5, 5)], &[]), (4, 4)));
+        // an occupied point is never an eye
+        assert!(!eye(
+            &centre(&[(3, 3), (3, 5), (5, 3), (5, 5), (4, 4)], &[]),
+            (4, 4)
+        ));
+        // a neighbour of the other colour is never an eye
+        assert!(!eye(
+            &game_with(&[(3, 4), (5, 4), (4, 3)], &[(4, 5)]),
+            (4, 4)
+        ));
+
+        // edge (0, 4): both diagonals must be held
+        assert!(eye(
+            &game_with(&[(0, 3), (0, 5), (1, 4), (1, 3), (1, 5)], &[]),
+            (0, 4)
+        ));
+        assert!(!eye(
+            &game_with(&[(0, 3), (0, 5), (1, 4), (1, 3)], &[(1, 5)]),
+            (0, 4)
+        ));
+        assert!(!eye(
+            &game_with(&[(0, 3), (0, 5), (1, 4), (1, 3)], &[]),
+            (0, 4)
+        ));
+
+        // corner (0, 0): the single diagonal must be held
+        assert!(eye(&game_with(&[(0, 1), (1, 0), (1, 1)], &[]), (0, 0)));
+        assert!(!eye(&game_with(&[(0, 1), (1, 0)], &[(1, 1)]), (0, 0)));
+
+        // two eyes sharing a diagonal, (4, 4) and (5, 5), support each other
+        let twins = game_with(
+            &[
+                (3, 4),
+                (4, 3),
+                (4, 5),
+                (5, 4),
+                (5, 6),
+                (6, 5),
+                (3, 3),
+                (3, 5),
+                (5, 3),
+                (4, 6),
+                (6, 4),
+                (6, 6),
+            ],
+            &[],
+        );
+        assert!(eye(&twins, (4, 4)));
+        assert!(eye(&twins, (5, 5)));
+
+        // a two-point eye space is not a single-point eye at either point
+        let two_point = game_with(
+            &[
+                (3, 4),
+                (3, 5),
+                (5, 4),
+                (5, 5),
+                (4, 3),
+                (4, 6),
+                (3, 3),
+                (3, 6),
+                (5, 3),
+                (5, 6),
+            ],
+            &[],
+        );
+        assert!(!eye(&two_point, (4, 4)));
+        assert!(!eye(&two_point, (4, 5)));
+    }
+
     #[test]
     fn some_plays_from_sgf() {
         let moves_sgf = vec![
