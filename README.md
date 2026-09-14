@@ -45,7 +45,7 @@ let mut g = Game::builder()
 let mut i = 35;
 while !g.is_over() && i != 0 {
     // legals returns an iterator of (x, y) points (lazy)
-    if let Some((x, y)) = g.legals().choose(&mut rand::thread_rng()) {
+    if let Some((x, y)) = g.legals().choose(&mut rand::rng()) {
         g.play(Move::Play(x, y));
     } else {
         break; // no legal moves
@@ -62,13 +62,13 @@ while !g.is_over() && i != 0 {
 #[cfg(feature = "history")]
 {
     // Access first and last positions in the history
-    let mut iter_history = g.history().iter();
-    println!("{:?}", iter_history.next().unwrap());
-    println!("{:?}", iter_history.next_back().unwrap());
+    let history: Vec<_> = g.history().collect();
+    println!("{:?}", history.first().unwrap());
+    println!("{:?}", history.last().unwrap());
 }
 ```
 
-```
+```text
 ┏┯┯┯┯┯┯┯┓
 ┠┼┼┼┼┼┼┼┨
 ┠┼┼┼┼┼┼┼┨

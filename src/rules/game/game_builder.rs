@@ -2,8 +2,7 @@
 //! Utility for creating complex games with non standard komi, handicap etc...
 //! # Example
 //! ```
-//! use crate::goban::rules::game_builder::GameBuilder;
-//! use crate::goban::rules::Rule;
+//! use goban::rules::game::game_builder::GameBuilder;
 //! use goban::rules::game::Game;
 //! use goban::rules::JAPANESE;
 //!
