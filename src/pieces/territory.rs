@@ -2,9 +2,11 @@
 
 use std::collections::HashSet;
 
-use crate::pieces::goban::Goban;
+use crate::pieces::goban::{Goban, BOARD_MAX_LENGTH};
 use crate::pieces::stones::Point;
 use crate::pieces::stones::{Color, EMPTY};
+use crate::pieces::util::coord::one_to_2dim;
+use crate::pieces::BoardIdx;
 
 impl Goban {
     ///
@@ -58,35 +60,53 @@ impl Goban {
     }
 
     /// Get two iterators of empty points. The first one is the territory of black the second is white territory
+    ///
+    /// A flood fill over the empty points: each empty region is visited once
+    /// and belongs to a colour when every stone touching it has that colour.
     pub fn get_territories(&self) -> (impl Iterator<Item = Point>, impl Iterator<Item = Point>) {
-        let empty_chains =
-            self.get_chains_from_stones(self.get_empty_coords().map(|coord| Point {
-                coord,
-                color: EMPTY,
-            }));
-        let mut white_territory = Vec::with_capacity(50);
+        let size = self.size();
+        let board = self.board();
+        let points = size.0 as usize * size.1 as usize;
+        let mut visited = [false; BOARD_MAX_LENGTH];
+        let mut stack: Vec<BoardIdx> = Vec::with_capacity(points);
+        let mut region: Vec<BoardIdx> = Vec::with_capacity(points);
         let mut black_territory = Vec::with_capacity(50);
-        'outer: for empty_group in empty_chains {
-            let mut neutral = (false, false);
-            for empty_intersection in &empty_group {
-                for point in self.get_connected_points(empty_intersection.coord) {
-                    if point.color == Some(Color::White) {
-                        neutral.1 = true; // found white stone
-                    }
-                    if point.color == Some(Color::Black) {
-                        neutral.0 = true; // found black stone
-                    }
-                    if neutral.0 && neutral.1 {
-                        // if the territory is surrounded by two colors then pass
-                        continue 'outer;
+        let mut white_territory = Vec::with_capacity(50);
+
+        for start in 0..points {
+            if visited[start] || board[start].is_some() {
+                continue;
+            }
+            let (mut touches_black, mut touches_white) = (false, false);
+            region.clear();
+            visited[start] = true;
+            stack.push(start);
+            while let Some(idx) = stack.pop() {
+                region.push(idx);
+                for neighbor in self.neighbors_idx(idx) {
+                    match board[neighbor] {
+                        None => {
+                            if !visited[neighbor] {
+                                visited[neighbor] = true;
+                                stack.push(neighbor);
+                            }
+                        }
+                        Some(chain) => match self.chain_color(chain) {
+                            Color::Black => touches_black = true,
+                            Color::White => touches_white = true,
+                        },
                     }
                 }
             }
-            if neutral.0 && !neutral.1 {
-                black_territory.extend(empty_group.into_iter())
-            } else if !neutral.0 && neutral.1 {
-                white_territory.extend(empty_group.into_iter())
-            }
+            let owner = match (touches_black, touches_white) {
+                (true, false) => &mut black_territory,
+                (false, true) => &mut white_territory,
+                _ => continue,
+            };
+            owner.extend(region.iter().map(|&idx| Point {
+                coord: one_to_2dim(size, idx),
+                color: EMPTY,
+            }));
         }
         (black_territory.into_iter(), white_territory.into_iter())
     }

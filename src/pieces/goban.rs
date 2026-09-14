@@ -221,6 +221,12 @@ impl Goban {
         &self.board
     }
 
+    /// Colour of the chain stored at `chain`, as found in `board()`.
+    #[inline]
+    pub(crate) fn chain_color(&self, chain: NonMaxU16) -> Color {
+        self.chains[chain].color
+    }
+
     /// pushes the stone
     /// # Arguments
     /// point: the point where the stone will be placed
@@ -576,7 +582,7 @@ impl Goban {
     }
 
     #[inline]
-    fn neighbors_idx(&self, board_idx: BoardIdx) -> impl Iterator<Item = BoardIdx> {
+    pub(crate) fn neighbors_idx(&self, board_idx: BoardIdx) -> impl Iterator<Item = BoardIdx> {
         let size = self.size;
         self.neighbors_coords(one_to_2dim(size, board_idx))
             .map(move |coord| two_to_1dim(size, coord))

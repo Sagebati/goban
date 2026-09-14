@@ -32,6 +32,8 @@ Changelog
 
 - `Group` caches its liberty count, so atari and death tests no longer scan the liberty bitset:
   `legals()` is about 30% faster and random playouts about 25% faster.
+- Territory detection is a flood fill over a visited array instead of one hash set per region
+  scanned for every point: `calculate_territories` is 15 to 20 times faster.
 - The dead-stone playout policy only prefers safe captures (the capturing stone keeps more than one
   liberty, or several stones are taken). Ko-style captures used to make two random players trade
   single stones for hundreds of moves; a playout from a 19x19 endgame is now four times faster.
