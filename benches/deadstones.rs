@@ -28,21 +28,19 @@ fn finished_game(c: &mut Criterion) {
     group.finish();
 }
 
-fn mcts(c: &mut Criterion) {
-    let mut group = c.benchmark_group("deadstones/mcts");
+fn playouts(c: &mut Criterion) {
+    let mut group = c.benchmark_group("deadstones/playouts");
     group
         .sample_size(10)
         .measurement_time(Duration::from_secs(20));
     let endgame = shusaku_at_move(320, CHINESE);
-    for simulations in [1usize, 5, 20] {
-        group.bench_with_input(
-            BenchmarkId::from_parameter(simulations),
-            &simulations,
-            |b, &n| b.iter(|| endgame.dead_stones_wth_simulations(n)),
-        );
+    for playouts in [10usize, 50, 200] {
+        group.bench_with_input(BenchmarkId::from_parameter(playouts), &playouts, |b, &n| {
+            b.iter(|| endgame.dead_stones_wth_simulations(n))
+        });
     }
     group.finish();
 }
 
-criterion_group!(benches, finished_game, mcts);
+criterion_group!(benches, finished_game, playouts);
 criterion_main!(benches);
