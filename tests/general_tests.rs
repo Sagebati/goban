@@ -636,6 +636,26 @@ mod tests {
         assert!(game.try_play(Move::Play(0, 1)).is_ok());
     }
 
+    /// Every chain ever created used to take a fresh slot in the chain storage,
+    /// so a long game with many captures or suicides overflowed the `u16`
+    /// chain index and panicked. Freed slots must be reused instead.
+    #[test]
+    fn chain_slots_are_reused_after_removal() {
+        let mut game = Game::new(GobanSizes::Nine, TROMP_TAYLOR);
+        game.play(Move::Play(0, 1)); // black
+        game.play(Move::Play(8, 8)); // white
+        game.play(Move::Play(1, 0)); // black
+        // White commits suicide in the corner (legal under Tromp-Taylor), the
+        // stone is removed at once, Black passes, and so on, more times than a
+        // `u16` chain index can count.
+        for _ in 0..70_000 {
+            game.play(Move::Play(0, 0)); // white, removed immediately
+            assert_eq!(game.goban().get_color((0, 0)), EMPTY);
+            game.play(Move::Pass); // black
+        }
+        assert_eq!(game.goban().number_of_stones(), (2, 1));
+    }
+
     #[test]
     fn new_zealand_allows_suicide() {
         let mut game = Game::new(GobanSizes::Nineteen, NEW_ZEALAND);

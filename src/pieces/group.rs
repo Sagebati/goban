@@ -177,8 +177,11 @@ impl Group {
     }
 }
 
+/// Slab of chains. Removed chains leave a `None` hole whose index is kept in
+/// the free list and handed out again by `put_free_spot`, so the slab does not
+/// grow with every chain ever created during a game.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Groups(pub(crate) Vec<Option<Group>>);
+pub struct Groups(pub(crate) Vec<Option<Group>>, Vec<GroupIdx>);
 
 impl Index<NonMaxU16> for Groups {
     type Output = Group;
@@ -210,16 +213,30 @@ impl IndexMut<NonMaxU16> for Groups {
 
 impl Groups {
     pub fn with_capacity(cap: usize) -> Self {
-        Self(Vec::with_capacity(cap))
+        Self(Vec::with_capacity(cap), Vec::new())
     }
 
+    /// Store a chain, reusing the slot of a previously removed chain when
+    /// one is available. Returns the index of the slot.
     pub fn put_free_spot(&mut self, group: Group) -> GroupIdx {
-        self.0.push(Some(group));
-        self.0.len() - 1
+        match self.1.pop() {
+            Some(index) => {
+                debug_assert!(self.0[index].is_none(), "free slot {index} is occupied");
+                self.0[index] = Some(group);
+                index
+            }
+            None => {
+                self.0.push(Some(group));
+                self.0.len() - 1
+            }
+        }
     }
 
+    /// Remove a chain and make its slot available to `put_free_spot`.
     pub fn remove(&mut self, index: usize) {
-        self.0[index] = None;
+        if self.0[index].take().is_some() {
+            self.1.push(index);
+        }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Group> {
