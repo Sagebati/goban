@@ -1,136 +1,30 @@
+//! Dead-stone estimation by playouts.
+//!
+//! Chains that do not have two eyes are the candidates. The position is played
+//! out to the end many times with a light random policy, and a candidate is
+//! reported dead only when it has been removed from the board in more than
+//! [`DEAD_THRESHOLD_PERCENT`] percent of those final boards. Anything less
+//! stays "floating": the estimator could not decide, so the chain is kept.
+
 use rand::seq::SliceRandom;
+use rand::Rng;
 use std::collections::{HashMap, HashSet};
 
 use crate::pieces::goban::GroupIdx;
-use crate::pieces::stones::Stone;
+use crate::pieces::stones::{Color, Stone};
+use crate::pieces::util::coord::Coord;
 use crate::rules::game::Game;
-use crate::rules::{Color, IllegalRules, Move};
-use oxymcts::{
-    uct_value, DefaultBackProp, DefaultLazyTreePolicy, Evaluator, GameTrait, LazyMcts,
-    LazyMctsNode, Num, Playout,
-};
-use rand::prelude::ThreadRng;
-use rand::rng;
+use crate::rules::Move;
 
-impl GameTrait for Game {
-    type Player = Color;
-    type Move = Move;
+/// Share of the final boards a chain must be missing from to be called dead.
+pub const DEAD_THRESHOLD_PERCENT: usize = 98;
 
-    fn legals_moves(&self) -> Vec<Self::Move> {
-        let moves = self
-            .legals_by(self.rule.flag_illegal | IllegalRules::FILLEYE)
-            .map(Move::from)
-            .collect::<Vec<_>>();
-        if moves.is_empty() {
-            if self.is_over() {
-                vec![]
-            } else {
-                vec![Move::Pass]
-            }
-        } else {
-            moves
-        }
-    }
-
-    fn player_turn(&self) -> Self::Player {
-        self.turn
-    }
-
-    fn hash(&self) -> u64 {
-        0
-    }
-
-    fn is_final(&self) -> bool {
-        self.is_over()
-    }
-
-    fn do_move(&mut self, m: &Self::Move) {
-        self.play(*m);
-    }
-
-    fn get_winner(&self) -> Self::Player {
-        self.outcome()
-            .unwrap()
-            .get_winner()
-            .expect("The game was ex aequo")
-    }
-}
-
-struct Eval;
-
-type Reward = u64;
-
-impl Evaluator<Game, Reward, ()> for Eval {
-    type Args = f64;
-    type EvalResult = Reward;
-
-    fn eval_child(
-        child: &LazyMctsNode<Game, Reward, ()>,
-        _turn: &<Game as GameTrait>::Player,
-        parent_visits: u32,
-        args: &Self::Args,
-    ) -> Num {
-        uct_value(
-            parent_visits,
-            child.sum_rewards as f64,
-            child.n_visits,
-            *args,
-        )
-    }
-
-    fn evaluate_leaf(child: Game, turn: &<Game as GameTrait>::Player) -> Self::EvalResult {
-        let winner = child.get_winner();
-        if winner == *turn {
-            1
-        } else {
-            0
-        }
-    }
-}
-
-struct PL;
-
-impl Playout<Game> for PL {
-    type Args = ();
-
-    fn playout(mut state: Game, _args: ()) -> Game {
-        fn fast_play_random(state: &Game, thread_rng: &mut ThreadRng) -> Move {
-            let mut v: Vec<_> = state.pseudo_legals().collect();
-            v.shuffle(thread_rng);
-            for coordinates in v
-                .into_iter()
-                .filter(|&point| state.check_point(point).is_none())
-            {
-                if !state.check_eye(Stone {
-                    coord: coordinates,
-                    color: state.turn(),
-                }) {
-                    return coordinates.into();
-                }
-            }
-            Move::Pass
-        }
-        let mut thread_rng = rng();
-        while !state.is_over() {
-            state.play(fast_play_random(&state, &mut thread_rng));
-        }
-        state
-    }
-}
-
-type Mcts<'a> = LazyMcts<
-    'a,
-    Game,
-    DefaultLazyTreePolicy<Game, Eval, (), u64>,
-    PL,
-    DefaultBackProp,
-    Eval,
-    (),
-    u64,
->;
+/// Number of playouts used by [`Game::dead_stones`].
+pub const DEFAULT_PLAYOUTS: usize = 200;
 
 impl Game {
-    /// This return the groups that doesn't have two eyes
+    /// Returns the chains that do not have two eyes, that is the candidates
+    /// for being dead. A chain touching two single-point eyes is assumed alive.
     pub fn get_floating_stones(&self) -> Vec<GroupIdx> {
         let eyes = self.pseudo_legals().filter(|&p| {
             self.check_eye(Stone {
@@ -141,61 +35,148 @@ impl Game {
                 color: Color::White,
             })
         });
-        let mut chains_wth_eye = HashMap::new();
+        let mut eyes_per_chain: HashMap<GroupIdx, usize> = HashMap::new();
         for eye_coord in eyes {
-            let chain_connected_eye = self.goban.get_connected_groups_idx(eye_coord);
-            for chain_idx in chain_connected_eye {
-                chains_wth_eye
-                    .entry(chain_idx)
-                    .and_modify(|v| *v += 1)
-                    .or_insert(0);
+            for chain_idx in self.goban.get_connected_groups_idx(eye_coord) {
+                *eyes_per_chain.entry(chain_idx).or_insert(0) += 1;
             }
         }
-        let all_chains = self.goban.chains().enumerate();
-        let string_with_2eyes = chains_wth_eye
-            .into_iter()
-            .filter(|(_, v)| *v >= 2)
-            .map(|x| x.0)
-            .collect::<HashSet<_>>();
 
-        all_chains
-            .filter(|(idx, _chain)| string_with_2eyes.contains(idx))
+        self.goban
+            .chains_with_index()
+            .filter(|(idx, _chain)| eyes_per_chain.get(idx).copied().unwrap_or(0) < 2)
             .map(|(idx, _chain)| idx)
             .collect()
     }
 
-    pub fn dead_stones_wth_simulations(&self, nb_simulations: usize) -> HashSet<GroupIdx> {
-        let mut game = self.clone();
+    /// Chains estimated dead after `nb_playouts` random playouts: a chain
+    /// without two eyes that has been captured in more than
+    /// [`DEAD_THRESHOLD_PERCENT`] percent of the final boards.
+    ///
+    /// The playouts start from this position with the passes and the outcome
+    /// cleared, so a game that ended by two passes or that carries a result is
+    /// still played out.
+    pub fn dead_stones_wth_simulations(&self, nb_playouts: usize) -> HashSet<GroupIdx> {
         let floating_stones = self.get_floating_stones();
-        while !game.is_over() {
-            let m = {
-                let mut mcts = Mcts::with_capacity(&game, nb_simulations);
-                for _ in 0..nb_simulations {
-                    mcts.execute(&2.0_f64.sqrt(), ());
-                }
-                mcts.best_move(&2.0_f64.sqrt())
-            };
-            game.play(m);
+        if floating_stones.is_empty() || nb_playouts == 0 {
+            return HashSet::new();
         }
-        let final_state_raw = game.goban();
-        let mut dead_chains = HashSet::new();
-        for &chain_idx in &floating_stones {
-            for stone in self.chain_stones(chain_idx) {
-                // If some stones of the string aren't in the final goban then it's plausible that
-                // this string is dead.
-                if final_state_raw.get_color(stone.coord) != Some(stone.color) {
-                    dead_chains.insert(chain_idx);
-                    break;
+        let chain_stones: Vec<(GroupIdx, Vec<Stone>)> = floating_stones
+            .into_iter()
+            .map(|idx| (idx, self.chain_stones(idx).collect()))
+            .collect();
+
+        let mut rng = rand::rng();
+        let mut removed = vec![0usize; chain_stones.len()];
+        for _ in 0..nb_playouts {
+            let final_goban = self.playout(&mut rng);
+            for (count, (_idx, stones)) in removed.iter_mut().zip(&chain_stones) {
+                if stones
+                    .iter()
+                    .any(|s| final_goban.get_color(s.coord) != Some(s.color))
+                {
+                    *count += 1;
                 }
             }
         }
-        dead_chains
+
+        chain_stones
+            .into_iter()
+            .zip(removed)
+            .filter(|(_, count)| count * 100 > DEAD_THRESHOLD_PERCENT * nb_playouts)
+            .map(|((idx, _), _)| idx)
+            .collect()
     }
 
     /// Return an array of dead stones, works better if the game if ended.
     /// the "dead" stones are only potentially dead.
     #[inline]
     pub fn dead_stones(&self) -> HashSet<GroupIdx> {
-        self.dead_stones_wth_simulations(600)
+        self.dead_stones_wth_simulations(DEFAULT_PLAYOUTS)
+    }
+
+    /// Play the position to the end with [`Game::playout_move`] and return
+    /// the final board.
+    fn playout(&self, rng: &mut impl Rng) -> crate::pieces::goban::Goban {
+        let mut game = self.clone();
+        game.passes = 0;
+        game.outcome = None;
+        let (height, width) = game.size();
+        // Guard against endless cycles under rules without super ko.
+        let max_moves = 4 * height as usize * width as usize;
+        let mut moves = 0;
+        while !game.is_over() && moves < max_moves {
+            game.play(game.playout_move(rng));
+            moves += 1;
+        }
+        game.goban
+    }
+
+    /// Light playout policy, in order: capture when possible; extend from a
+    /// cramped stone of ours (one with a single empty neighbour) onto a point
+    /// that keeps at least two empty neighbours; otherwise a random legal
+    /// move that is neither a true nor a false eye of ours nor a self-atari.
+    /// Never a suicide. Pass when nothing is left.
+    ///
+    /// Measured on open positions, always rescuing a chain in atari makes a
+    /// dead invader run and build a group that a random defender fails to
+    /// kill, so the extension rule is deliberately local rather than a
+    /// proper "save the chain" rule.
+    fn playout_move(&self, rng: &mut impl Rng) -> Move {
+        let me = self.turn;
+        let mut legal: Vec<Coord> = self
+            .legals()
+            .filter(|&coord| !self.check_suicide(Stone { coord, color: me }))
+            .collect();
+        if legal.is_empty() {
+            return Move::Pass;
+        }
+        legal.shuffle(rng);
+
+        // A capture, unless it is a ko-style one: taking a single stone while
+        // leaving the capturing stone itself in atari invites an immediate
+        // recapture, and two such players trade stones for hundreds of moves.
+        if let Some(&coord) = legal.iter().find(|&&c| {
+            self.will_capture(c) && (self.capture_size(c) > 1 || self.liberties_after(c) > 1)
+        }) {
+            return coord.into();
+        }
+
+        let goban = &self.goban;
+        if let Some(&coord) = legal.iter().find(|&&c| {
+            goban
+                .get_connected_points(c)
+                .any(|p| p.color == Some(me) && goban.get_liberties(p.coord).count() == 1)
+                && self.play_for_verification(c).get_liberties(c).count() > 1
+        }) {
+            return coord.into();
+        }
+
+        legal
+            .into_iter()
+            .find(|&coord| {
+                let stone = Stone { coord, color: me };
+                !self.check_eye(stone)
+                    && !self.check_false_eye(stone)
+                    && self.liberties_after(coord) > 1
+            })
+            .map(Move::from)
+            .unwrap_or(Move::Pass)
+    }
+
+    /// Liberties of the chain the stone would belong to after playing
+    /// `coord`, captures included.
+    fn liberties_after(&self, coord: Coord) -> usize {
+        self.play_for_verification(coord).chain_liberties_at(coord)
+    }
+
+    /// Number of enemy stones a move at `coord` would capture.
+    fn capture_size(&self, coord: Coord) -> usize {
+        self.goban
+            .get_connected_groups(coord)
+            .into_iter()
+            .filter(|chain| chain.color != self.turn && chain.is_atari())
+            .map(|chain| chain.num_stones as usize)
+            .sum()
     }
 }

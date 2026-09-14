@@ -20,7 +20,7 @@ This crate contains move generation and rules only; it does not include an AI no
 Optional cargo features:
 
 - history — keep the full history of Gobans so you can iterate over it (this decreases performance)
-- deadstones — experimental dead-stone detection using MCTS rollouts; works only when borders are closed
+- deadstones — experimental dead-stone detection by random playouts; a chain without two eyes is reported dead when it is captured in more than 98% of the playouts. Works only when borders are closed
 
 ## Example
 
@@ -45,7 +45,7 @@ let mut g = Game::builder()
 let mut i = 35;
 while !g.is_over() && i != 0 {
     // legals returns an iterator of (x, y) points (lazy)
-    if let Some((x, y)) = g.legals().choose(&mut rand::thread_rng()) {
+    if let Some((x, y)) = g.legals().choose(&mut rand::rng()) {
         g.play(Move::Play(x, y));
     } else {
         break; // no legal moves
@@ -62,13 +62,13 @@ while !g.is_over() && i != 0 {
 #[cfg(feature = "history")]
 {
     // Access first and last positions in the history
-    let mut iter_history = g.history().iter();
-    println!("{:?}", iter_history.next().unwrap());
-    println!("{:?}", iter_history.next_back().unwrap());
+    let history: Vec<_> = g.history().collect();
+    println!("{:?}", history.first().unwrap());
+    println!("{:?}", history.last().unwrap());
 }
 ```
 
-```
+```text
 ┏┯┯┯┯┯┯┯┓
 ┠┼┼┼┼┼┼┼┨
 ┠┼┼┼┼┼┼┼┨
@@ -88,4 +88,24 @@ etc...
 - Generate legal moves (handles ko detection, suicide moves, and superko)
 - Japanese and Chinese rules
 - Boards of different sizes (e.g., 4x5, 4x9); limited up to 19x19 due to the Zobrist hashing table size
-- Experimental dead-stone detection with MCTS rollouts (feature: deadstones)
+- Experimental dead-stone detection by random playouts (feature: deadstones)
+
+## Benchmarks
+
+The benches use [Criterion](https://github.com/bheisler/criterion.rs) and are
+grouped by what they measure:
+
+- `board`: stone placement, captures, chain merges, cloning and scoring.
+- `rules`: move generation and each legality check on fixed positions, by rule
+  set and by board size, plus SGF parsing.
+- `playout`: seeded random games (moves per second), perft, and replaying a
+  real game.
+- `deadstones`: dead-stone estimation (needs the `deadstones` feature).
+
+```sh
+cargo bench --bench rules                       # one suite
+cargo bench --bench rules -- legals             # filter by name
+cargo bench --all-features -- --save-baseline before
+# ... make a change ...
+cargo bench --all-features -- --baseline before
+```

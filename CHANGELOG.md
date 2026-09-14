@@ -1,6 +1,50 @@
 Changelog
 ==
 
+## Unreleased
+
+### Breaking Changes
+
+- `Goban` is `Copy`: the board, the chain links and the chain slab are fixed-size arrays sized for
+  19x19 (about 18 KiB), the slab and its free list being `tinyvec::ArrayVec`s. A copy is a memcpy
+  (about 100 ns instead of a few microseconds) and `Goban` no longer allocates. `Groups::new`
+  replaces `Groups::with_capacity`. More than `MAX_CHAINS` (288) chains alive at once panics.
+- The super ko history stores a `Snapshot` (zobrist hash plus one byte per point) instead of a whole
+  `Goban`; `Game::clone` on an endgame position drops from about 95 µs to 4 µs. With the `history`
+  feature, `Game::history` yields `Goban`s by value, rebuilt from the snapshots.
+- `deadstones`: dead stones are now estimated by random playouts instead of an MCTS game. A chain
+  without two eyes is dead when it is captured in more than 98% of the playouts; the `oxymcts`
+  dependency is gone. `dead_stones_wth_simulations(n)` now takes a number of playouts.
+
+### Fixes
+
+- Chain storage reuses freed slots; a game creating more than 65535 chains no longer panics.
+- Under rules that allow suicide (Tromp-Taylor, New Zealand), a lone stone suicide that captures
+  nothing is rejected as a super ko violation, since it repeats the position.
+- `get_floating_stones` returns the chains without two eyes, as documented.
+- `check_eye` follows the usual definition of a true eye: at least three held diagonals in the
+  centre, all of them on the edge and in the corner. It used to reject real eyes that had an empty
+  or a single enemy diagonal.
+- `play_for_verification` removed the suicided stones under the wrong rules.
+- `Game::from_sgf` reads a Fox/Tygem komi written times 100 (`KM[750]`) as 7.5.
+
+### Performance
+
+- `Group` caches its liberty count, so atari and death tests no longer scan the liberty bitset:
+  `legals()` is about 30% faster and random playouts about 25% faster.
+- Territory detection is a flood fill over a visited array instead of one hash set per region
+  scanned for every point: `calculate_territories` is 15 to 20 times faster.
+- The dead-stone playout policy only prefers safe captures (the capturing stone keeps more than one
+  liberty, or several stones are taken). Ko-style captures used to make two random players trade
+  single stones for hundreds of moves; a playout from a 19x19 endgame is now four times faster.
+
+### Added
+
+- `Goban::chains_with_index`, `Goban::chain_liberties_at`, `Goban::snapshot`, `Game::check_false_eye`.
+- Criterion benchmarks split into `board`, `rules`, `playout` and `deadstones` suites.
+- Scoring tests on real 19x19 games with a counted result (`sgf/results`), with every stone
+  on the board and after removing the dead stones found by `dead_stones`.
+
 ## 0.20.0
 
 ### Breaking Changes

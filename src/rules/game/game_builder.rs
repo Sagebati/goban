@@ -2,8 +2,7 @@
 //! Utility for creating complex games with non standard komi, handicap etc...
 //! # Example
 //! ```
-//! use crate::goban::rules::game_builder::GameBuilder;
-//! use crate::goban::rules::Rule;
+//! use goban::rules::game::game_builder::GameBuilder;
 //! use goban::rules::game::Game;
 //! use goban::rules::JAPANESE;
 //!
@@ -123,7 +122,7 @@ impl GameBuilder {
         };
 
         let mut g = Game {
-            goban: goban.clone(),
+            goban,
             passes: 0,
             prisoners: (0, 0),
             outcome: self.outcome,

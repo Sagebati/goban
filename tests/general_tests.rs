@@ -65,6 +65,119 @@ mod tests {
         }));
     }
 
+    /// `check_eye` must recognise true single-point eyes and reject false
+    /// ones: at least three held diagonals in the centre, all of them on the
+    /// edge and in the corner, where a held diagonal is an own stone or an
+    /// empty point that is itself such an eye.
+    #[test]
+    fn eye_shapes() {
+        fn game_with(black: &[(u8, u8)], white: &[(u8, u8)]) -> Game {
+            let mut builder = Game::builder();
+            builder.size((9, 9)).rule(CHINESE).turn(Color::Black);
+            for &coord in black {
+                builder.add(Stone {
+                    coord,
+                    color: Color::Black,
+                });
+            }
+            for &coord in white {
+                builder.add(Stone {
+                    coord,
+                    color: Color::White,
+                });
+            }
+            builder.build().unwrap()
+        }
+        fn eye(g: &Game, coord: (u8, u8)) -> bool {
+            g.check_eye(Stone {
+                coord,
+                color: Color::Black,
+            })
+        }
+        // (4, 4) with its four neighbours black, then the given diagonals.
+        fn centre(diag_black: &[(u8, u8)], diag_white: &[(u8, u8)]) -> Game {
+            let mut black = vec![(3, 4), (5, 4), (4, 3), (4, 5)];
+            black.extend_from_slice(diag_black);
+            game_with(&black, diag_white)
+        }
+
+        assert!(eye(&centre(&[(3, 3), (3, 5), (5, 3), (5, 5)], &[]), (4, 4)));
+        assert!(eye(&centre(&[(3, 3), (3, 5), (5, 3)], &[(5, 5)]), (4, 4)));
+        assert!(eye(&centre(&[(3, 3), (3, 5), (5, 3)], &[]), (4, 4)));
+        // false eye: two enemy diagonals
+        assert!(!eye(&centre(&[(3, 3), (5, 5)], &[(3, 5), (5, 3)]), (4, 4)));
+        // not an eye yet: two empty diagonals
+        assert!(!eye(&centre(&[(3, 3), (5, 5)], &[]), (4, 4)));
+        // an occupied point is never an eye
+        assert!(!eye(
+            &centre(&[(3, 3), (3, 5), (5, 3), (5, 5), (4, 4)], &[]),
+            (4, 4)
+        ));
+        // a neighbour of the other colour is never an eye
+        assert!(!eye(
+            &game_with(&[(3, 4), (5, 4), (4, 3)], &[(4, 5)]),
+            (4, 4)
+        ));
+
+        // edge (0, 4): both diagonals must be held
+        assert!(eye(
+            &game_with(&[(0, 3), (0, 5), (1, 4), (1, 3), (1, 5)], &[]),
+            (0, 4)
+        ));
+        assert!(!eye(
+            &game_with(&[(0, 3), (0, 5), (1, 4), (1, 3)], &[(1, 5)]),
+            (0, 4)
+        ));
+        assert!(!eye(
+            &game_with(&[(0, 3), (0, 5), (1, 4), (1, 3)], &[]),
+            (0, 4)
+        ));
+
+        // corner (0, 0): the single diagonal must be held
+        assert!(eye(&game_with(&[(0, 1), (1, 0), (1, 1)], &[]), (0, 0)));
+        assert!(!eye(&game_with(&[(0, 1), (1, 0)], &[(1, 1)]), (0, 0)));
+
+        // two eyes sharing a diagonal, (4, 4) and (5, 5), support each other
+        let twins = game_with(
+            &[
+                (3, 4),
+                (4, 3),
+                (4, 5),
+                (5, 4),
+                (5, 6),
+                (6, 5),
+                (3, 3),
+                (3, 5),
+                (5, 3),
+                (4, 6),
+                (6, 4),
+                (6, 6),
+            ],
+            &[],
+        );
+        assert!(eye(&twins, (4, 4)));
+        assert!(eye(&twins, (5, 5)));
+
+        // a two-point eye space is not a single-point eye at either point
+        let two_point = game_with(
+            &[
+                (3, 4),
+                (3, 5),
+                (5, 4),
+                (5, 5),
+                (4, 3),
+                (4, 6),
+                (3, 3),
+                (3, 6),
+                (5, 3),
+                (5, 6),
+            ],
+            &[],
+        );
+        assert!(!eye(&two_point, (4, 4)));
+        assert!(!eye(&two_point, (4, 5)));
+    }
+
     #[test]
     fn some_plays_from_sgf() {
         let moves_sgf = vec![
@@ -464,7 +577,7 @@ mod tests {
         g.display_goban();
         let score = g.calculate_score();
         assert_eq!(score, (10. * 19., 9. * 19.));
-        let mut goban: Goban = g.goban().clone();
+        let mut goban: Goban = *g.goban();
         goban.push_many(
             &{
                 let mut vec = vec![];
@@ -518,6 +631,171 @@ mod tests {
             outcome,
             EndGame::WinnerByScore(Color::Black, 81. - g.komi())
         )
+    }
+
+    /// Black wall on column 3, White wall on column 5 of a 9x9 board. Column 4
+    /// is dame (touches both colours), so each side owns exactly 27 points.
+    fn two_walls(rule: Rule) -> Game {
+        let mut g = Game::new(GobanSizes::Nine, rule);
+        for row in 0..9 {
+            g.try_play(Move::Play(row, 3)).unwrap(); // black
+            g.try_play(Move::Play(row, 5)).unwrap(); // white
+        }
+        g
+    }
+
+    /// Score a position from its board, prisoners and komi, with the dead
+    /// stones removed first and, when prisoners count, added to the captor.
+    fn score_with_dead_removed(
+        game: &Game,
+        dead: &std::collections::HashSet<usize>,
+        flag_score: goban::rules::ScoreRules,
+    ) -> (f32, f32) {
+        use goban::rules::ScoreRules;
+        let mut goban = *game.goban();
+        let (mut black_prisoners, mut white_prisoners) = game.prisoners();
+        for &chain in dead {
+            let stones: Vec<Stone> = goban.chain_stones(chain).collect();
+            match stones[0].color {
+                Color::White => black_prisoners += stones.len() as u32,
+                Color::Black => white_prisoners += stones.len() as u32,
+            }
+            goban.remove_chain(chain);
+        }
+        let (black_territory, white_territory) = goban.calculate_territories();
+        let (mut black, mut white) = (black_territory as f32, white_territory as f32);
+        if flag_score.contains(ScoreRules::PRISONNERS) {
+            black += black_prisoners as f32;
+            white += white_prisoners as f32;
+        }
+        if flag_score.contains(ScoreRules::STONES) {
+            let (black_stones, white_stones) = goban.number_of_stones();
+            black += black_stones as f32;
+            white += white_stones as f32;
+        }
+        if flag_score.contains(ScoreRules::KOMI) {
+            white += game.komi();
+        }
+        (black, white)
+    }
+
+    #[test]
+    fn score_without_dead_stones_territory_rules() {
+        let mut g = two_walls(JAPANESE);
+        g.play(Move::Pass);
+        g.play(Move::Pass);
+        assert!(g.is_over());
+        assert_eq!(g.goban().calculate_territories(), (27, 27));
+        assert_eq!(g.goban().number_of_stones(), (9, 9));
+        assert_eq!(g.prisoners(), (0, 0));
+        // Territory + prisoners + komi: the dame column counts for nobody.
+        assert_eq!(g.calculate_score(), (27., 27. + 6.5));
+        assert_eq!(g.outcome(), Some(EndGame::WinnerByScore(Color::White, 6.5)));
+    }
+
+    #[test]
+    fn score_without_dead_stones_area_rules() {
+        let mut g = two_walls(CHINESE);
+        g.play(Move::Pass);
+        g.play(Move::Pass);
+        assert!(g.is_over());
+        assert_eq!(g.goban().calculate_territories(), (27, 27));
+        // Territory + stones + komi.
+        assert_eq!(g.calculate_score(), (27. + 9., 27. + 9. + 7.5));
+        assert_eq!(g.outcome(), Some(EndGame::WinnerByScore(Color::White, 7.5)));
+    }
+
+    /// A settled 9x9 position: Black owns columns 0 to 3 and White columns 5
+    /// to 8, each side filled down to two real eyes in the corners and a
+    /// three-point pocket on row 4 holding one hopeless enemy stone. Column 4
+    /// is dame. Returns the game and the coordinates of the two dead stones.
+    fn settled_with_dead_stones(rule: Rule) -> (Game, [(u8, u8); 2]) {
+        let mut builder = Game::builder();
+        builder.size((9, 9)).rule(rule).turn(Color::Black);
+        let pockets = [(4, 0), (4, 1), (4, 2), (4, 6), (4, 7), (4, 8)];
+        let eyes = [(0, 0), (8, 0), (0, 8), (8, 8)];
+        for row in 0..9u8 {
+            for col in 0..9u8 {
+                let coord = (row, col);
+                if col == 4 || pockets.contains(&coord) || eyes.contains(&coord) {
+                    continue;
+                }
+                let color = if col < 4 { Color::Black } else { Color::White };
+                builder.add(Stone { coord, color });
+            }
+        }
+        builder.add(Stone {
+            coord: (4, 1),
+            color: Color::White,
+        });
+        builder.add(Stone {
+            coord: (4, 7),
+            color: Color::Black,
+        });
+        (builder.build().unwrap(), [(4, 1), (4, 7)])
+    }
+
+    /// Expected scores of `settled_with_dead_stones` once the dead stones are
+    /// gone: each side has 5 points of territory (two eyes and the pocket)
+    /// and 31 stones; under Japanese rules each also holds one prisoner.
+    const SETTLED_JAPANESE: (f32, f32) = (5. + 1., 5. + 1. + 6.5);
+    const SETTLED_CHINESE: (f32, f32) = (5. + 31., 5. + 31. + 7.5);
+
+    /// Counting with the dead stones removed by hand, no estimation involved.
+    #[test]
+    fn score_with_dead_stones_removed() {
+        for (rule, expected) in [(JAPANESE, SETTLED_JAPANESE), (CHINESE, SETTLED_CHINESE)] {
+            let (g, dead_coords) = settled_with_dead_stones(rule);
+            // While the invaders stand, the pockets touch both colours and only
+            // the four eyes count as territory.
+            assert_eq!(g.goban().calculate_territories(), (2, 2));
+
+            let dead: std::collections::HashSet<usize> = g
+                .goban()
+                .chains_with_index()
+                .filter(|(idx, _)| {
+                    g.goban()
+                        .chain_stones(*idx)
+                        .any(|s| dead_coords.contains(&s.coord))
+                })
+                .map(|(idx, _)| idx)
+                .collect();
+            assert_eq!(dead.len(), 2);
+            assert_eq!(
+                score_with_dead_removed(&g, &dead, rule.flag_score),
+                expected,
+                "score under {rule:?}"
+            );
+        }
+    }
+
+    /// The same counting, with the dead stones found by `dead_stones`.
+    #[test]
+    #[cfg(feature = "deadstones")]
+    fn score_with_dead_stones() {
+        for (rule, expected) in [(JAPANESE, SETTLED_JAPANESE), (CHINESE, SETTLED_CHINESE)] {
+            let (g, dead_coords) = settled_with_dead_stones(rule);
+
+            // Only the two invaders lack two eyes.
+            let floating = g.get_floating_stones();
+            assert_eq!(floating.len(), 2, "floating chains under {rule:?}");
+
+            let dead = g.dead_stones();
+            let found: std::collections::HashSet<_> = dead
+                .iter()
+                .flat_map(|&chain| g.goban().chain_stones(chain).map(|s| s.coord))
+                .collect();
+            assert_eq!(
+                found,
+                dead_coords.into_iter().collect(),
+                "dead stones under {rule:?}"
+            );
+            assert_eq!(
+                score_with_dead_removed(&g, &dead, rule.flag_score),
+                expected,
+                "score under {rule:?}"
+            );
+        }
     }
 
     #[test]
@@ -634,6 +912,78 @@ mod tests {
 
         assert!(game.legals().any(|m| m == (0, 1)));
         assert!(game.try_play(Move::Play(0, 1)).is_ok());
+    }
+
+    /// Every chain ever created used to take a fresh slot in the chain storage,
+    /// so a long game with many captures or suicides overflowed the `u16`
+    /// chain index and panicked. Freed slots must be reused instead.
+    #[test]
+    fn chain_slots_are_reused_after_removal() {
+        let mut game = Game::new(GobanSizes::Nine, TROMP_TAYLOR);
+        game.play(Move::Play(0, 1)); // black
+        game.play(Move::Play(8, 8)); // white
+        game.play(Move::Play(1, 0)); // black
+                                     // White commits suicide in the corner (legal under Tromp-Taylor), the
+                                     // stone is removed at once, Black passes, and so on, more times than a
+                                     // `u16` chain index can count.
+        for _ in 0..70_000 {
+            game.play(Move::Play(0, 0)); // white, removed immediately
+            assert_eq!(game.goban().get_color((0, 0)), EMPTY);
+            game.play(Move::Pass); // black
+        }
+        assert_eq!(game.goban().number_of_stones(), (2, 1));
+    }
+
+    /// A lone stone that commits suicide without capturing anything puts the
+    /// board back exactly as it was, which positional super ko forbids.
+    #[test]
+    fn tromp_taylor_lone_stone_suicide_is_super_ko() {
+        for rule in [TROMP_TAYLOR, NEW_ZEALAND] {
+            let mut game = Game::new(GobanSizes::Nineteen, rule);
+            game.play(Move::Play(0, 1)); // black
+            game.play(Move::Play(9, 9)); // white
+            game.play(Move::Play(1, 0)); // black
+
+            // White at (0, 0) would have no liberties and capture nothing.
+            assert!(game.check_suicide(Stone {
+                coord: (0, 0),
+                color: Color::White,
+            }));
+            assert_eq!(game.check_point((0, 0)), Some(PlayError::Ko));
+            assert!(!game.legals().any(|m| m == (0, 0)));
+            assert_eq!(game.try_play(Move::Play(0, 0)).err(), Some(PlayError::Ko));
+
+            // Under Japanese rules the same move is reported as a suicide.
+            let mut japanese = Game::new(GobanSizes::Nineteen, JAPANESE);
+            japanese.play(Move::Play(0, 1));
+            japanese.play(Move::Play(9, 9));
+            japanese.play(Move::Play(1, 0));
+            assert_eq!(japanese.check_point((0, 0)), Some(Suicide));
+        }
+    }
+
+    /// Suicide of a chain of several stones changes the position, so it is
+    /// not a super ko and stays legal.
+    #[test]
+    fn tromp_taylor_multi_stone_suicide_stays_legal() {
+        let mut game = Game::new(GobanSizes::Nineteen, TROMP_TAYLOR);
+        game.play(Move::Play(0, 2)); // black
+        game.play(Move::Play(0, 0)); // white
+        game.play(Move::Play(1, 1)); // black
+        game.play(Move::Play(1, 0)); // white
+        game.play(Move::Play(2, 0)); // black
+                                     // White (0, 1) kills its own three stones: legal, position is new.
+        assert_eq!(game.check_point((0, 1)), None);
+        game.play(Move::Play(0, 1));
+        assert_eq!(game.goban().get_color((0, 0)), EMPTY);
+        game.play(Move::Play(9, 9)); // black
+        game.play(Move::Play(0, 0)); // white
+        game.play(Move::Play(9, 10)); // black
+        game.play(Move::Play(1, 0)); // white
+        game.play(Move::Play(9, 11)); // black
+                                      // Same corner shape again, but the board now differs elsewhere, so the
+                                      // position after the suicide is new and the move stays legal.
+        assert_eq!(game.check_point((0, 1)), None);
     }
 
     #[test]
@@ -802,7 +1152,7 @@ mod tests {
     fn dead_stones() {
         let game = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         game.display_goban();
-        let mut goban: Goban = game.goban().clone();
+        let mut goban: Goban = *game.goban();
         for string in game.dead_stones_wth_simulations(20) {
             goban.remove_chain(string);
         }

@@ -2,8 +2,8 @@ use sgf_parser::{Action, Outcome, RuleSet, SgfToken};
 
 use crate::pieces::stones::{Color, Stone};
 use crate::pieces::Nat;
-use crate::rules::game::Game;
 use crate::rules::game::game_builder::GameBuilder;
+use crate::rules::game::Game;
 use crate::rules::{EndGame, Move, Rule, AGA, CHINESE, ING, JAPANESE, NEW_ZEALAND};
 
 type SgfColor = sgf_parser::Color;
@@ -25,7 +25,10 @@ impl Game {
                 for token in &node.tokens {
                     match token {
                         SgfToken::Komi(komi) => {
-                            game_builder.komi(*komi);
+                            // Fox and Tygem exports write the komi times 100
+                            // (`KM[750]`); no real komi reaches 100.
+                            let komi = if *komi >= 100. { *komi / 100. } else { *komi };
+                            game_builder.komi(komi);
                         }
                         SgfToken::Size(x, y) => {
                             game_builder.size((*x as u8, *y as u8));

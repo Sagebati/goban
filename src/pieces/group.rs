@@ -1,6 +1,6 @@
 use std::ops::{BitOrAssign, Index, IndexMut};
 
-use crate::pieces::goban::GroupIdx;
+use crate::pieces::goban::{GroupIdx, MAX_CHAINS};
 use crate::pieces::stones::Color;
 use crate::pieces::BoardIdx;
 use arrayvec::ArrayVec;
@@ -32,11 +32,6 @@ pub fn set<const VAL: bool>(index: usize, lib: &mut Liberties) {
 #[inline(always)]
 pub fn merge(lib: &mut Liberties, o: &Liberties) {
     lib.iter_mut().zip(o).for_each(|(x, o)| x.bitor_assign(o))
-}
-
-#[inline(always)]
-fn any(lib: &Liberties) -> bool {
-    lib.iter().any(|&x| x != 0)
 }
 
 #[inline(always)]
@@ -72,6 +67,9 @@ pub struct Group {
     pub last: u16,
     pub liberties: Liberties,
     pub num_stones: u16,
+    /// Number of bits set in `liberties`, kept up to date by the liberty
+    /// methods so that atari and death tests do not scan the bitset.
+    pub(crate) num_liberties: u16,
 }
 
 impl Group {
@@ -85,6 +83,7 @@ impl Group {
             color,
             origin: stone as u16,
             last: stone as u16,
+            num_liberties: count_ones(&liberties) as u16,
             liberties,
             num_stones: 1,
         }
@@ -92,13 +91,17 @@ impl Group {
 
     #[inline]
     pub fn is_dead(&self) -> bool {
-        // !self.liberties.any()
-        !any(&self.liberties)
+        self.num_liberties == 0
     }
 
     #[inline]
     pub fn number_of_liberties(&self) -> usize {
-        //self.liberties.count_ones()
+        self.num_liberties as usize
+    }
+
+    /// Recount the liberties from the bitset; the debug integrity check
+    /// compares it with the cached count.
+    pub(crate) fn recount_liberties(&self) -> usize {
         count_ones(&self.liberties)
     }
 
@@ -120,13 +123,19 @@ impl Group {
             get(stone_idx, &self.liberties),
             "Tried to remove a liberty, who isn't present. stone idx: {stone_idx}"
         );
-        set::<false>(stone_idx, &mut self.liberties);
+        if get(stone_idx, &self.liberties) {
+            set::<false>(stone_idx, &mut self.liberties);
+            self.num_liberties -= 1;
+        }
         self
     }
 
     #[inline(always)]
     fn add_liberty_unchecked(&mut self, stone_idx: BoardIdx) -> &mut Self {
-        set::<true>(stone_idx, &mut self.liberties);
+        if !get(stone_idx, &self.liberties) {
+            set::<true>(stone_idx, &mut self.liberties);
+            self.num_liberties += 1;
+        }
         self
     }
 
@@ -153,6 +162,7 @@ impl Group {
     pub fn union_liberties(&mut self, liberties_idx: Liberties) -> &mut Self {
         //self.liberties |= liberties_idx;
         merge(&mut self.liberties, &liberties_idx);
+        self.num_liberties = count_ones(&self.liberties) as u16;
         self
     }
 
@@ -177,8 +187,23 @@ impl Group {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Groups(pub(crate) Vec<Option<Group>>);
+/// Slab of chains. Removed chains leave a `None` hole whose index is kept in
+/// the free list and handed out again by `put_free_spot`, so the slab does not
+/// grow with every chain ever created during a game.
+///
+/// Both the slab and the free list are inline arrays of `MAX_CHAINS` slots,
+/// which keeps the slab `Copy`; pushing beyond that bound panics.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct Groups(
+    pub(crate) tinyvec::ArrayVec<[Option<Group>; MAX_CHAINS]>,
+    tinyvec::ArrayVec<[u16; MAX_CHAINS]>,
+);
+
+impl Default for Groups {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Index<NonMaxU16> for Groups {
     type Output = Group;
@@ -209,17 +234,35 @@ impl IndexMut<NonMaxU16> for Groups {
 }
 
 impl Groups {
-    pub fn with_capacity(cap: usize) -> Self {
-        Self(Vec::with_capacity(cap))
+    pub fn new() -> Self {
+        Self(tinyvec::ArrayVec::new(), tinyvec::ArrayVec::new())
     }
 
+    /// Store a chain, reusing the slot of a previously removed chain when
+    /// one is available. Returns the index of the slot.
     pub fn put_free_spot(&mut self, group: Group) -> GroupIdx {
-        self.0.push(Some(group));
-        self.0.len() - 1
+        match self.1.pop() {
+            Some(index) => {
+                let index = index as usize;
+                debug_assert!(self.0[index].is_none(), "free slot {index} is occupied");
+                self.0[index] = Some(group);
+                index
+            }
+            None => {
+                assert!(
+                    self.0.try_push(Some(group)).is_none(),
+                    "more chains alive at once than MAX_CHAINS"
+                );
+                self.0.len() - 1
+            }
+        }
     }
 
+    /// Remove a chain and make its slot available to `put_free_spot`.
     pub fn remove(&mut self, index: usize) {
-        self.0[index] = None;
+        if self.0[index].take().is_some() {
+            self.1.push(index as u16);
+        }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Group> {
