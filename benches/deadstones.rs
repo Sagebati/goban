@@ -1,20 +1,47 @@
-#[macro_use]
-extern crate criterion;
+//! Dead-stone estimation (`deadstones` feature).
+//!
+//! `Game::from_sgf` sets the outcome from the `RE[]` property, so on those
+//! games `dead_stones` finds the game already over and never runs the MCTS
+//! playout. That fast path is measured under `finished_game`. To exercise the
+//! MCTS itself, `mcts` uses an unfinished endgame position and a reduced
+//! simulation budget so a sample stays in the seconds range. The MCTS draws
+//! from an unseeded RNG, so expect more variance there than elsewhere.
 
-use criterion::Criterion;
+mod common;
 
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use goban::rules::game::Game;
+use goban::rules::CHINESE;
+use std::time::Duration;
 
-pub fn dead_stones() {
-    let state = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
-    state.dead_stones();
+use common::{shusaku_at_move, SGF_FILES};
+
+fn finished_game(c: &mut Criterion) {
+    let mut group = c.benchmark_group("deadstones/finished_game");
+    for (name, sgf) in SGF_FILES {
+        let game = Game::from_sgf(sgf).unwrap();
+        group.bench_with_input(BenchmarkId::from_parameter(name), &game, |b, g| {
+            b.iter(|| g.dead_stones())
+        });
+    }
+    group.finish();
 }
 
-pub fn dead_bench(_c: &mut Criterion) {
-    let c = Criterion::default();
-    c.sample_size(10)
-        .bench_function("dead_stones_mcts", |b| b.iter(|| dead_stones()));
+fn mcts(c: &mut Criterion) {
+    let mut group = c.benchmark_group("deadstones/mcts");
+    group
+        .sample_size(10)
+        .measurement_time(Duration::from_secs(20));
+    let endgame = shusaku_at_move(320, CHINESE);
+    for simulations in [1usize, 5, 20] {
+        group.bench_with_input(
+            BenchmarkId::from_parameter(simulations),
+            &simulations,
+            |b, &n| b.iter(|| endgame.dead_stones_wth_simulations(n)),
+        );
+    }
+    group.finish();
 }
 
-criterion_group!(benches, dead_bench);
+criterion_group!(benches, finished_game, mcts);
 criterion_main!(benches);

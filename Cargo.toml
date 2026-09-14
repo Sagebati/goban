@@ -36,7 +36,15 @@ debug = true
 debug-assertions = false
 
 [[bench]]
-name = "perft"
+name = "playout"
+harness = false
+
+[[bench]]
+name = "rules"
+harness = false
+
+[[bench]]
+name = "board"
 harness = false
 
 [[bench]]

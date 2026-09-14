@@ -89,3 +89,23 @@ etc...
 - Japanese and Chinese rules
 - Boards of different sizes (e.g., 4x5, 4x9); limited up to 19x19 due to the Zobrist hashing table size
 - Experimental dead-stone detection with MCTS rollouts (feature: deadstones)
+
+## Benchmarks
+
+The benches use [Criterion](https://github.com/bheisler/criterion.rs) and are
+grouped by what they measure:
+
+- `board`: stone placement, captures, chain merges, cloning and scoring.
+- `rules`: move generation and each legality check on fixed positions, by rule
+  set and by board size, plus SGF parsing.
+- `playout`: seeded random games (moves per second), perft, and replaying a
+  real game.
+- `deadstones`: dead-stone estimation (needs the `deadstones` feature).
+
+```sh
+cargo bench --bench rules                       # one suite
+cargo bench --bench rules -- legals             # filter by name
+cargo bench --all-features -- --save-baseline before
+# ... make a change ...
+cargo bench --all-features -- --baseline before
+```
