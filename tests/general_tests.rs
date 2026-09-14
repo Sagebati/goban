@@ -656,6 +656,58 @@ mod tests {
         assert_eq!(game.goban().number_of_stones(), (2, 1));
     }
 
+    /// A lone stone that commits suicide without capturing anything puts the
+    /// board back exactly as it was, which positional super ko forbids.
+    #[test]
+    fn tromp_taylor_lone_stone_suicide_is_super_ko() {
+        for rule in [TROMP_TAYLOR, NEW_ZEALAND] {
+            let mut game = Game::new(GobanSizes::Nineteen, rule);
+            game.play(Move::Play(0, 1)); // black
+            game.play(Move::Play(9, 9)); // white
+            game.play(Move::Play(1, 0)); // black
+
+            // White at (0, 0) would have no liberties and capture nothing.
+            assert!(game.check_suicide(Stone {
+                coord: (0, 0),
+                color: Color::White,
+            }));
+            assert_eq!(game.check_point((0, 0)), Some(PlayError::Ko));
+            assert!(!game.legals().any(|m| m == (0, 0)));
+            assert_eq!(game.try_play(Move::Play(0, 0)).err(), Some(PlayError::Ko));
+
+            // Under Japanese rules the same move is reported as a suicide.
+            let mut japanese = Game::new(GobanSizes::Nineteen, JAPANESE);
+            japanese.play(Move::Play(0, 1));
+            japanese.play(Move::Play(9, 9));
+            japanese.play(Move::Play(1, 0));
+            assert_eq!(japanese.check_point((0, 0)), Some(Suicide));
+        }
+    }
+
+    /// Suicide of a chain of several stones changes the position, so it is
+    /// not a super ko and stays legal.
+    #[test]
+    fn tromp_taylor_multi_stone_suicide_stays_legal() {
+        let mut game = Game::new(GobanSizes::Nineteen, TROMP_TAYLOR);
+        game.play(Move::Play(0, 2)); // black
+        game.play(Move::Play(0, 0)); // white
+        game.play(Move::Play(1, 1)); // black
+        game.play(Move::Play(1, 0)); // white
+        game.play(Move::Play(2, 0)); // black
+        // White (0, 1) kills its own three stones: legal, position is new.
+        assert_eq!(game.check_point((0, 1)), None);
+        game.play(Move::Play(0, 1));
+        assert_eq!(game.goban().get_color((0, 0)), EMPTY);
+        game.play(Move::Play(9, 9)); // black
+        game.play(Move::Play(0, 0)); // white
+        game.play(Move::Play(9, 10)); // black
+        game.play(Move::Play(1, 0)); // white
+        game.play(Move::Play(9, 11)); // black
+        // Same corner shape again, but the board now differs elsewhere, so the
+        // position after the suicide is new and the move stays legal.
+        assert_eq!(game.check_point((0, 1)), None);
+    }
+
     #[test]
     fn new_zealand_allows_suicide() {
         let mut game = Game::new(GobanSizes::Nineteen, NEW_ZEALAND);

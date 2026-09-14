@@ -207,7 +207,7 @@ impl Game {
         let mut test_goban = self.goban.clone();
         let (dead_go_strings, added_ren) = test_goban.push_wth_feedback((x, y), self.turn);
         test_goban.remove_captured_stones_aux(
-            self.rule.flag_illegal.contains(IllegalRules::SUICIDE),
+            !self.rule.flag_illegal.contains(IllegalRules::SUICIDE),
             &dead_go_strings,
             added_ren,
         );
@@ -414,16 +414,29 @@ impl Game {
     }
 
     /// Rule of the super Ko, if any before configuration was already played, then return true.
+    ///
+    /// Only moves that remove stones can repeat a position: captures, and
+    /// suicides under rules that allow them. A suicide that captures nothing
+    /// and removes only the stone just played recreates the current position,
+    /// so the board before the move is checked as well as the history.
     pub fn check_super_ko(&self, stone: Stone) -> bool {
-        if self.history.len() <= 2 || !self.will_capture(stone.coord) {
-            false
-        } else {
-            let to_check = self.play_for_verification(stone.coord);
-            let is_it_ko = self.check_ko(stone);
-                is_it_ko ||  self
-                    .history
-                    .contains(&to_check)
+        let captures = self.will_capture(stone.coord);
+        let suicide = !captures && self.check_suicide(stone);
+        if !captures && !suicide {
+            // Adds a stone and removes none: the position cannot be a repeat.
+            return false;
         }
+        if captures {
+            if self.check_ko(stone) {
+                return true;
+            }
+            if self.history.len() <= 2 {
+                // Too few positions for a capture to repeat one.
+                return false;
+            }
+        }
+        let to_check = self.play_for_verification(stone.coord);
+        to_check == self.goban || self.history.contains(&to_check)
     }
 
     /// Add a stone to the board and then test if the stone or stone group is dead.
