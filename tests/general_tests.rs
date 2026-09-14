@@ -577,7 +577,7 @@ mod tests {
         g.display_goban();
         let score = g.calculate_score();
         assert_eq!(score, (10. * 19., 9. * 19.));
-        let mut goban: Goban = g.goban().clone();
+        let mut goban: Goban = *g.goban();
         goban.push_many(
             &{
                 let mut vec = vec![];
@@ -652,7 +652,7 @@ mod tests {
         flag_score: goban::rules::ScoreRules,
     ) -> (f32, f32) {
         use goban::rules::ScoreRules;
-        let mut goban = game.goban().clone();
+        let mut goban = *game.goban();
         let (mut black_prisoners, mut white_prisoners) = game.prisoners();
         for &chain in dead {
             let stones: Vec<Stone> = goban.chain_stones(chain).collect();
@@ -1152,7 +1152,7 @@ mod tests {
     fn dead_stones() {
         let game = Game::from_sgf(include_str!("../sgf/ShusakuvsInseki.sgf")).unwrap();
         game.display_goban();
-        let mut goban: Goban = game.goban().clone();
+        let mut goban: Goban = *game.goban();
         for string in game.dead_stones_wth_simulations(20) {
             goban.remove_chain(string);
         }

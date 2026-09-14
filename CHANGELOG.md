@@ -5,6 +5,13 @@ Changelog
 
 ### Breaking Changes
 
+- `Goban` is `Copy`: the board, the chain links and the chain slab are fixed-size arrays sized for
+  19x19 (about 18 KiB), the slab and its free list being `tinyvec::ArrayVec`s. A copy is a memcpy
+  (about 100 ns instead of a few microseconds) and `Goban` no longer allocates. `Groups::new`
+  replaces `Groups::with_capacity`. More than `MAX_CHAINS` (288) chains alive at once panics.
+- The super ko history stores a `Snapshot` (zobrist hash plus one byte per point) instead of a whole
+  `Goban`; `Game::clone` on an endgame position drops from about 95 µs to 4 µs. With the `history`
+  feature, `Game::history` yields `Goban`s by value, rebuilt from the snapshots.
 - `deadstones`: dead stones are now estimated by random playouts instead of an MCTS game. A chain
   without two eyes is dead when it is captured in more than 98% of the playouts; the `oxymcts`
   dependency is gone. `dead_stones_wth_simulations(n)` now takes a number of playouts.
@@ -23,7 +30,7 @@ Changelog
 
 ### Added
 
-- `Goban::chains_with_index`, `Goban::chain_liberties_at`, `Game::check_false_eye`.
+- `Goban::chains_with_index`, `Goban::chain_liberties_at`, `Goban::snapshot`, `Game::check_false_eye`.
 - Criterion benchmarks split into `board`, `rules`, `playout` and `deadstones` suites.
 - Scoring tests on real 19x19 games with a counted result (`sgf/results`), with every stone
   on the board and after removing the dead stones found by `dead_stones`.

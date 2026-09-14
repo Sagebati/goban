@@ -1,6 +1,6 @@
 use std::ops::{BitOrAssign, Index, IndexMut};
 
-use crate::pieces::goban::GroupIdx;
+use crate::pieces::goban::{GroupIdx, MAX_CHAINS};
 use crate::pieces::stones::Color;
 use crate::pieces::BoardIdx;
 use arrayvec::ArrayVec;
@@ -180,8 +180,20 @@ impl Group {
 /// Slab of chains. Removed chains leave a `None` hole whose index is kept in
 /// the free list and handed out again by `put_free_spot`, so the slab does not
 /// grow with every chain ever created during a game.
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Groups(pub(crate) Vec<Option<Group>>, Vec<GroupIdx>);
+///
+/// Both the slab and the free list are inline arrays of `MAX_CHAINS` slots,
+/// which keeps the slab `Copy`; pushing beyond that bound panics.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct Groups(
+    pub(crate) tinyvec::ArrayVec<[Option<Group>; MAX_CHAINS]>,
+    tinyvec::ArrayVec<[u16; MAX_CHAINS]>,
+);
+
+impl Default for Groups {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Index<NonMaxU16> for Groups {
     type Output = Group;
@@ -212,8 +224,8 @@ impl IndexMut<NonMaxU16> for Groups {
 }
 
 impl Groups {
-    pub fn with_capacity(cap: usize) -> Self {
-        Self(Vec::with_capacity(cap), Vec::new())
+    pub fn new() -> Self {
+        Self(tinyvec::ArrayVec::new(), tinyvec::ArrayVec::new())
     }
 
     /// Store a chain, reusing the slot of a previously removed chain when
@@ -221,12 +233,16 @@ impl Groups {
     pub fn put_free_spot(&mut self, group: Group) -> GroupIdx {
         match self.1.pop() {
             Some(index) => {
+                let index = index as usize;
                 debug_assert!(self.0[index].is_none(), "free slot {index} is occupied");
                 self.0[index] = Some(group);
                 index
             }
             None => {
-                self.0.push(Some(group));
+                assert!(
+                    self.0.try_push(Some(group)).is_none(),
+                    "more chains alive at once than MAX_CHAINS"
+                );
                 self.0.len() - 1
             }
         }
@@ -235,7 +251,7 @@ impl Groups {
     /// Remove a chain and make its slot available to `put_free_spot`.
     pub fn remove(&mut self, index: usize) {
         if self.0[index].take().is_some() {
-            self.1.push(index);
+            self.1.push(index as u16);
         }
     }
 

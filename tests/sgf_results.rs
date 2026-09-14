@@ -44,7 +44,7 @@ const WITH_DEAD_STONES: [(&str, EndGame); 4] = [
 
 /// Area score (stones + territory, komi for White) with `dead` removed.
 fn area_score(game: &Game, dead: &HashSet<usize>) -> (f32, f32) {
-    let mut goban = game.goban().clone();
+    let mut goban = *game.goban();
     for &chain in dead {
         goban.remove_chain(chain);
     }

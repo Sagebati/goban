@@ -38,7 +38,7 @@ pub struct Game {
     turn: Color,
     rule: Rule,
     handicap: u32,
-    history: IndexSet<Goban, BuildHasherDefault<HashHasher>>,
+    history: IndexSet<Snapshot, BuildHasherDefault<HashHasher>>,
     ko_point: Option<Coord>,
 }
 
@@ -107,9 +107,11 @@ impl Game {
         self.turn
     }
 
+    /// The positions before each move, oldest first, rebuilt from the
+    /// compact snapshots kept for super ko.
     #[cfg(feature = "history")]
-    pub fn history(&self) -> impl Iterator<Item = &Goban> {
-        self.history.iter()
+    pub fn history(&self) -> impl Iterator<Item = Goban> + '_ {
+        self.history.iter().map(Goban::from)
     }
 
     /// True when the game is over (two passes, or no more legals moves, Resign)
@@ -195,7 +197,7 @@ impl Game {
             }
             Move::Play(x, y) => {
                 //let hash = self.goban.zobrist_hash();
-                self.history.insert(self.goban.clone());
+                self.history.insert(self.goban.snapshot());
                 let (dead_rens, added_ren) = self.goban.push_wth_feedback((x, y), self.turn);
                 self.ko_point = None;
                 self.remove_captured_stones(&dead_rens, added_ren);
@@ -214,7 +216,7 @@ impl Game {
     /// Plays a move then return the simulated goban,
     /// used in legals for fast move simulation in Super Ko situations.
     pub fn play_for_verification(&self, (x, y): Coord) -> Goban {
-        let mut test_goban = self.goban.clone();
+        let mut test_goban = self.goban;
         let (dead_go_strings, added_ren) = test_goban.push_wth_feedback((x, y), self.turn);
         test_goban.remove_captured_stones_aux(
             !self.rule.flag_illegal.contains(IllegalRules::SUICIDE),
@@ -438,7 +440,7 @@ impl Game {
             }
         }
         let to_check = self.play_for_verification(stone.coord);
-        self.history.contains(&to_check)
+        self.history.contains(&to_check.snapshot())
     }
 
     /// Add a stone to the board and then test if the stone or stone group is dead.

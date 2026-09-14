@@ -1,6 +1,6 @@
 //! Board-level primitives: placing stones, captures, chain merges, hashing,
-//! cloning, and scoring. Mutating benches use `iter_batched` so the clone of
-//! the fixture is not included in the measured time.
+//! cloning, and scoring. Mutating benches use `iter_batched_ref` so neither
+//! the clone of the fixture nor moving it in and out is measured.
 
 mod common;
 
@@ -20,18 +20,17 @@ fn push(c: &mut Criterion) {
         let (h, w) = common::size_dims(size);
         let empty = Goban::new((h as u8, w as u8));
         let centre = ((h / 2) as u8, (w / 2) as u8);
+        // A copy of the board plus one push: the copy is a memcpy of the
+        // fixed-size goban, so it stays in the measurement on purpose.
         group.bench_with_input(
-            BenchmarkId::new("empty_board", size_name),
+            BenchmarkId::new("copy_and_push/empty_board", size_name),
             &empty,
             |b, g| {
-                b.iter_batched(
-                    || g.clone(),
-                    |mut goban| {
-                        goban.push(centre, Color::Black);
-                        goban
-                    },
-                    BatchSize::SmallInput,
-                )
+                b.iter(|| {
+                    let mut goban = *g;
+                    goban.push(centre, Color::Black);
+                    goban.zobrist_hash()
+                })
             },
         );
     }
@@ -40,11 +39,10 @@ fn push(c: &mut Criterion) {
     let midgame = shusaku_at_move(150, CHINESE);
     let quiet = midgame.legals().next().unwrap();
     group.bench_function("play/midgame_quiet", |b| {
-        b.iter_batched(
+        b.iter_batched_ref(
             || midgame.clone(),
-            |mut game| {
+            |game| {
                 game.play(Move::Play(quiet.0, quiet.1));
-                game
             },
             BatchSize::SmallInput,
         )
@@ -52,11 +50,10 @@ fn push(c: &mut Criterion) {
 
     let (capture, capturing_move) = big_capture();
     group.bench_function("play/capture_171_stones", |b| {
-        b.iter_batched(
+        b.iter_batched_ref(
             || capture.clone(),
-            |mut game| {
+            |game| {
                 game.play(capturing_move);
-                game
             },
             BatchSize::SmallInput,
         )
@@ -64,11 +61,10 @@ fn push(c: &mut Criterion) {
 
     let (merge, merging_move) = four_way_merge();
     group.bench_function("play/merge_4_chains", |b| {
-        b.iter_batched(
+        b.iter_batched_ref(
             || merge.clone(),
-            |mut game| {
+            |game| {
                 game.play(merging_move);
-                game
             },
             BatchSize::SmallInput,
         )
@@ -84,13 +80,11 @@ fn clone(c: &mut Criterion) {
             b.iter(|| g.clone())
         });
         group.bench_with_input(BenchmarkId::new("goban", phase), game.goban(), |b, g| {
-            b.iter(|| g.clone())
+            b.iter(|| g)
         });
     }
     let fragmented = fragmented_board(GobanSizes::Nineteen, CHINESE);
-    group.bench_function("goban/fragmented_19", |b| {
-        b.iter(|| fragmented.goban().clone())
-    });
+    group.bench_function("goban/fragmented_19", |b| b.iter(|| fragmented.goban()));
     group.finish();
 }
 

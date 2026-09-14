@@ -19,19 +19,79 @@ use std::hash::{Hash, Hasher};
 pub type GroupIdx = usize;
 pub type BoardIdx = usize;
 
-const BOARD_MAX_SIZE: (Nat, Nat) = (19, 19);
-const BOARD_MAX_LENGTH: usize = BOARD_MAX_SIZE.0 as usize * BOARD_MAX_SIZE.1 as usize;
-const MAX_CHAINS: usize = 4 * BOARD_MAX_LENGTH / 5;
+pub(crate) const BOARD_MAX_SIZE: (Nat, Nat) = (19, 19);
+pub(crate) const BOARD_MAX_LENGTH: usize = BOARD_MAX_SIZE.0 as usize * BOARD_MAX_SIZE.1 as usize;
+/// Upper bound on the chains alive at once. Every chain needs a liberty, so
+/// a 19x19 board cannot hold more than about 200; 4/5 of the points leaves
+/// a comfortable margin.
+pub(crate) const MAX_CHAINS: usize = 4 * BOARD_MAX_LENGTH / 5;
 
 /// Represents a goban. the stones are stored in ROW MAJOR (row, column)
-#[derive(Debug, Clone, Eq)]
+///
+/// The goban owns no heap memory: the board, the chain links and the chain
+/// slab are fixed-size arrays sized for a 19x19 board, so it is `Copy` and a
+/// copy is a plain memcpy of about 18 KiB.
+#[derive(Debug, Clone, Copy, Eq)]
 pub struct Goban {
     chains: Groups,
     /// The board contains indexes of the chains
-    board: Vec<Option<NonMaxU16>>,
-    next_stone: Vec<u16>,
+    board: [Option<NonMaxU16>; BOARD_MAX_LENGTH],
+    next_stone: [u16; BOARD_MAX_LENGTH],
     size: Size,
     zobrist_hash: u64,
+}
+
+/// The colours of every point plus the zobrist hash of a position: all that
+/// is needed to recognise a repeated position for super ko, at a fraction of
+/// the size of a [`Goban`].
+#[derive(Clone, Copy, Debug)]
+pub struct Snapshot {
+    size: Size,
+    zobrist_hash: u64,
+    colors: [MaybeColor; BOARD_MAX_LENGTH],
+}
+
+impl Snapshot {
+    pub fn size(&self) -> Size {
+        self.size
+    }
+
+    pub fn zobrist_hash(&self) -> u64 {
+        self.zobrist_hash
+    }
+
+    /// Colours in row-major order, `height * width` entries.
+    pub fn colors(&self) -> &[MaybeColor] {
+        &self.colors[..self.size.0 as usize * self.size.1 as usize]
+    }
+}
+
+impl PartialEq for Snapshot {
+    fn eq(&self, other: &Self) -> bool {
+        self.size == other.size
+            && self.zobrist_hash == other.zobrist_hash
+            && self.colors() == other.colors()
+    }
+}
+
+impl Eq for Snapshot {}
+
+impl Hash for Snapshot {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u64(self.zobrist_hash);
+    }
+}
+
+impl From<&Snapshot> for Goban {
+    fn from(snapshot: &Snapshot) -> Self {
+        let mut goban = Goban::new(snapshot.size);
+        for (index, color) in snapshot.colors().iter().enumerate() {
+            if let Some(color) = color {
+                goban.push(one_to_2dim(snapshot.size, index), *color);
+            }
+        }
+        goban
+    }
 }
 
 impl From<&[MaybeColor]> for Goban {
@@ -63,10 +123,9 @@ impl Goban {
         Goban {
             size: (height, width),
             zobrist_hash: 0,
-            board: vec![None; BOARD_MAX_LENGTH],
-            next_stone: vec![0; BOARD_MAX_LENGTH],
-            chains: Groups::with_capacity(MAX_CHAINS),
-            //free_slots: Default::default(),
+            board: [None; BOARD_MAX_LENGTH],
+            next_stone: [0; BOARD_MAX_LENGTH],
+            chains: Groups::new(),
         }
     }
 
@@ -76,6 +135,19 @@ impl Goban {
 
     pub fn zobrist_hash(&self) -> u64 {
         self.zobrist_hash
+    }
+
+    /// Compact record of the position, see [`Snapshot`].
+    pub fn snapshot(&self) -> Snapshot {
+        let mut colors = [EMPTY; BOARD_MAX_LENGTH];
+        for (color, cell) in colors.iter_mut().zip(&self.board) {
+            *color = cell.map(|idx| self.chains[idx].color);
+        }
+        Snapshot {
+            size: self.size,
+            zobrist_hash: self.zobrist_hash,
+            colors,
+        }
     }
 
     // Returns all the groups in the goban even dead groups
@@ -537,7 +609,10 @@ impl Goban {
         }
         group.num_stones += 1;
         debug_assert_eq!(
-            self.chains[group_idx].iter(&self.next_stone).last().unwrap() as u16,
+            self.chains[group_idx]
+                .iter(&self.next_stone)
+                .last()
+                .unwrap() as u16,
             self.chains[group_idx].last
         );
     }
@@ -604,7 +679,7 @@ impl Goban {
             self.chains[group_idx].last,
             "The last doesn't match"
         );
-        
+
         if self.iter_stones(group_idx).count() as u16 != self.chains[group_idx].num_stones {
             panic!("The number of stones don't match")
         }
@@ -690,8 +765,14 @@ mod tests {
         g.push((0, 0), Color::Black);
 
         let expected = vec![
-            Stone { coord: (0, 0), color: Color::Black },
-            Stone { coord: (1, 2), color: Color::White },
+            Stone {
+                coord: (0, 0),
+                color: Color::Black,
+            },
+            Stone {
+                coord: (1, 2),
+                color: Color::White,
+            },
         ];
         let vec: Vec<_> = g.get_stones().collect();
         assert_eq!(expected, vec)
@@ -700,15 +781,21 @@ mod tests {
     #[test]
     fn atari() {
         let mut goban = Goban::new((9, 9));
-        let s = Stone { coord: (4, 4), color: Color::Black };
+        let s = Stone {
+            coord: (4, 4),
+            color: Color::Black,
+        };
         goban.push_stone(s);
         println!("{}", goban.pretty_string());
-        let cl = goban.clone();
+        let cl = goban;
         let x = cl.get_liberties(s.coord);
 
         x.for_each(|coord| {
             println!("{coord:?}");
-            goban.push_stone(Stone { coord, color: Color::White });
+            goban.push_stone(Stone {
+                coord,
+                color: Color::White,
+            });
         });
 
         println!("{}", goban.pretty_string());

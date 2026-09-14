@@ -122,7 +122,7 @@ impl GameBuilder {
         };
 
         let mut g = Game {
-            goban: goban.clone(),
+            goban,
             passes: 0,
             prisoners: (0, 0),
             outcome: self.outcome,
