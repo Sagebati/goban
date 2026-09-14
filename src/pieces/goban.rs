@@ -416,6 +416,13 @@ impl Goban {
             .filter(|&x| self.get_color(x).is_none())
     }
 
+    /// Number of liberties of the chain occupying `coord`, 0 when empty.
+    pub fn chain_liberties_at(&self, coord: Coord) -> usize {
+        self.board[two_to_1dim(self.size, coord)]
+            .map(|idx| self.chains[idx].number_of_liberties())
+            .unwrap_or(0)
+    }
+
     /// Returns true if the stone has liberties.
     #[inline]
     pub fn has_liberties(&self, coord: Coord) -> bool {

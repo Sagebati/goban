@@ -112,45 +112,50 @@ impl Game {
         game.goban
     }
 
-    /// Light playout policy: capture when possible, otherwise get a chain of
-    /// ours out of atari, otherwise a random legal move that is neither a
-    /// suicide nor fills one of our own eyes. Pass when nothing is left.
+    /// Light playout policy, in order: capture when possible; extend from a
+    /// cramped stone of ours (one with a single empty neighbour) onto a point
+    /// that keeps at least two empty neighbours; otherwise a random legal
+    /// move that is neither a true nor a false eye of ours nor a self-atari.
+    /// Never a suicide. Pass when nothing is left.
+    ///
+    /// Measured on open positions, always rescuing a chain in atari makes a
+    /// dead invader run and build a group that a random defender fails to
+    /// kill, so the extension rule is deliberately local rather than a
+    /// proper "save the chain" rule.
     fn playout_move(&self, rng: &mut impl Rng) -> Move {
         let me = self.turn;
-        let mut candidates: Vec<Coord> = self
+        let mut legal: Vec<Coord> = self
             .legals()
-            .filter(|&coord| {
-                let stone = Stone { coord, color: me };
-                !self.check_eye(stone) && !self.check_suicide(stone)
-            })
+            .filter(|&coord| !self.check_suicide(Stone { coord, color: me }))
             .collect();
-        if candidates.is_empty() {
+        if legal.is_empty() {
             return Move::Pass;
         }
-        candidates.shuffle(rng);
+        legal.shuffle(rng);
 
-        if let Some(&coord) = candidates.iter().find(|&&c| self.will_capture(c)) {
+        if let Some(&coord) = legal.iter().find(|&&c| self.will_capture(c)) {
             return coord.into();
         }
-        if let Some(&coord) = candidates.iter().find(|&&c| self.saves_chain_in_atari(c)) {
+
+        let goban = &self.goban;
+        if let Some(&coord) = legal.iter().find(|&&c| {
+            goban
+                .get_connected_points(c)
+                .any(|p| p.color == Some(me) && goban.get_liberties(p.coord).count() == 1)
+                && self.play_for_verification(c).get_liberties(c).count() > 1
+        }) {
             return coord.into();
         }
-        candidates[0].into()
-    }
 
-    /// True when a chain of the player to move next to `coord` is in atari
-    /// and playing `coord` leaves the merged chain with more than one liberty.
-    fn saves_chain_in_atari(&self, coord: Coord) -> bool {
-        let in_atari = self
-            .goban
-            .get_connected_groups(coord)
+        legal
             .into_iter()
-            .any(|chain| chain.color == self.turn && chain.is_atari());
-        in_atari
-            && self
-                .play_for_verification(coord)
-                .get_liberties(coord)
-                .count()
-                > 1
+            .find(|&coord| {
+                let stone = Stone { coord, color: me };
+                !self.check_eye(stone)
+                    && !self.check_false_eye(stone)
+                    && self.play_for_verification(coord).chain_liberties_at(coord) > 1
+            })
+            .map(Move::from)
+            .unwrap_or(Move::Pass)
     }
 }

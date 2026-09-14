@@ -22,7 +22,7 @@ Changelog
 
 ### Added
 
-- `Goban::chains_with_index`.
+- `Goban::chains_with_index`, `Goban::chain_liberties_at`, `Game::check_false_eye`.
 - Criterion benchmarks split into `board`, `rules`, `playout` and `deadstones` suites.
 
 ## 0.20.0

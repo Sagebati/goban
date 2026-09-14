@@ -342,6 +342,16 @@ impl Game {
             && self.diagonals_held(coord, color, None)
     }
 
+    /// Detects false eyes: an empty point with every neighbour of `color`
+    /// that does not hold enough diagonals to be a true eye (see
+    /// [`Game::check_eye`]). Filling it connects the neighbours but never
+    /// creates an eye, so a playout should not bother.
+    pub fn check_false_eye(&self, Stone { coord, color }: Stone) -> bool {
+        self.goban.get_color(coord).is_none()
+            && self.cross_owned(coord, color)
+            && !self.diagonals_held(coord, color, None)
+    }
+
     /// Every neighbour of the point carries a stone of `color`.
     fn cross_owned(&self, coord: Coord, color: Color) -> bool {
         !self
