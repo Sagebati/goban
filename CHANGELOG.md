@@ -19,11 +19,14 @@ Changelog
   centre, all of them on the edge and in the corner. It used to reject real eyes that had an empty
   or a single enemy diagonal.
 - `play_for_verification` removed the suicided stones under the wrong rules.
+- `Game::from_sgf` reads a Fox/Tygem komi written times 100 (`KM[750]`) as 7.5.
 
 ### Added
 
 - `Goban::chains_with_index`, `Goban::chain_liberties_at`, `Game::check_false_eye`.
 - Criterion benchmarks split into `board`, `rules`, `playout` and `deadstones` suites.
+- Scoring tests on real 19x19 games with a counted result (`sgf/results`), with every stone
+  on the board and after removing the dead stones found by `dead_stones`.
 
 ## 0.20.0
 
